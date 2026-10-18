@@ -36,6 +36,8 @@ import type { TimelineEvent } from "./types";
 
 export type DashboardLoadStatus = "loading" | "ready" | "empty" | "error";
 
+// Czas bieżący ustawiany po zamontowaniu (new Date() w stanie początkowym blokuje prerender)
+const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
 const MIN_PER_HOUR = 60;
 const MS_PER_SECOND = 1000;
 const PLACEHOLDER_TIME = "—";
@@ -164,9 +166,10 @@ export function useDashboardState() {
   const [pendingMorningWakingReview, setPendingMorningWakingReview] = useState<readonly string[]>(
     [],
   );
-  const [nowIso, setNowIso] = useState<string>(() => new Date().toISOString());
+  const [nowIso, setNowIso] = useState<string>(EPOCH_ISO);
 
   useEffect(() => {
+    setNowIso(new Date().toISOString());
     const timer = setInterval(() => setNowIso(new Date().toISOString()), MS_PER_SECOND);
     return () => clearInterval(timer);
   }, []);

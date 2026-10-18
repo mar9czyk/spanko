@@ -50,6 +50,8 @@ export interface HouseholdRecord {
   readonly name: string;
   readonly invite_code?: string;
   readonly invite_expires_at?: string;
+  /** Nadpisanie dziennego limitu AI dla gospodarstwa (ustawia wyłącznie admin) */
+  readonly ai_daily_limit_override?: number;
   readonly created: string;
   readonly updated: string;
 }
@@ -125,8 +127,30 @@ export interface AdminSettingsRecord {
   readonly openrouter_fast_model?: string;
   readonly openrouter_reasoning_model?: string;
   readonly system_prompt_insights?: string;
-  readonly sleep_matrix_override_json?: Record<string, unknown>;
+  /** Tablica przedziałów wiekowych lub `{ brackets: [...] }`; walidowana w resolveSleepMatrix */
+  readonly sleep_matrix_override_json?: unknown;
   readonly ai_daily_limit_per_household?: number;
+  readonly created: string;
+  readonly updated: string;
+}
+
+export type AiCallKind = "evaluate" | "sandbox";
+export type AiCallStatus = "ok" | "error" | "invalid_json";
+
+export interface AiCallRecord {
+  readonly id: string;
+  readonly child_id?: string;
+  readonly household_id?: string;
+  readonly kind: AiCallKind;
+  readonly model?: string;
+  readonly request_snapshot_json?: Record<string, unknown>;
+  readonly response_json?: unknown;
+  readonly status: AiCallStatus;
+  readonly error_message?: string;
+  readonly prompt_tokens?: number;
+  readonly completion_tokens?: number;
+  readonly latency_ms?: number;
+  readonly insight_id?: string;
   readonly created: string;
   readonly updated: string;
 }

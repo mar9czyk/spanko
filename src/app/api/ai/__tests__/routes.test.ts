@@ -44,6 +44,7 @@ const EXISTING_INSIGHT = {
 interface FakeStore {
   child: typeof CHILD | null;
   insightsCount: number;
+  householdLimitOverride?: number;
   creates: Record<string, unknown>[];
   updates: { collection: string; id: string; data: Record<string, unknown> }[];
 }
@@ -55,6 +56,9 @@ function createFakePocketBase(store: FakeStore) {
       getOne: async (id: string) => {
         if (name === "children" && store.child && store.child.id === id) return store.child;
         if (name === "child_insights" && id === EXISTING_INSIGHT.id) return EXISTING_INSIGHT;
+        if (name === "households" && id === HOUSEHOLD_ID) {
+          return { id, name: "Dom", ai_daily_limit_override: store.householdLimitOverride };
+        }
         throw new Error("not found");
       },
       getList: async () => {
@@ -149,6 +153,15 @@ describe("AI Route Handlers", () => {
       );
       expect(response.status).toBe(429);
       expect(store.creates).toHaveLength(0);
+    });
+
+    it("respektuje nadpisany limit gospodarstwa (admin) zamiast domyślnego", async () => {
+      store.insightsCount = 5;
+      store.householdLimitOverride = 5;
+      const response = await evaluateInsightsPost(
+        postRequest("/api/ai/evaluate-insights", { childId: CHILD.id }),
+      );
+      expect(response.status).toBe(429);
     });
 
     it("generuje i zapisuje wniosek dla dziecka z gospodarstwa użytkownika", async () => {

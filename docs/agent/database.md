@@ -24,6 +24,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `name` (string, np. "Rodzina Nowaków")
 - `invite_code` (string, 6-znakowy alfanumeryczny kod zaproszenia, wielkie litery i cyfry, np. `SP7K92`)
 - `invite_expires_at` (datetime, ważność kodu 24h od wygenerowania)
+- `ai_daily_limit_override` (number, opcjonalne; nadpisanie dziennego limitu AI — ustawia tylko admin, rodzic nie może go edytować)
 - `created`, `updated` (autodate)
 
 #### 3. `children` (Dzieci w Gospodarstwie)
@@ -81,6 +82,12 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `valid_from` (datetime ISO)
 - `valid_until` (datetime ISO, nullable)
 
+#### 8. `ai_calls` (Log wywołań AI — źródło dla Inspektora Wniosków i limitów)
+- `child_id`, `household_id`, `insight_id` (relation, opcjonalne), `kind` (`evaluate` | `sandbox`), `model`
+- `request_snapshot_json` (wynik silnika: `diagnosticsSnapshot`, `metricsSnapshot`), `response_json`
+- `status` (`ok` | `error` | `invalid_json`), `error_message`, `prompt_tokens`, `completion_tokens`, `latency_ms`
+- Reguły: wszystkie tylko `@request.auth.is_admin = true`; zapis robi serwer kontem serwisowym (superuser). Dzienny limit AI liczony jest z `kind = 'evaluate'` z ostatnich 24h.
+
 #### 7. `admin_settings` (Konfiguracja Globalna Bramki AI i Algorytmu)
 - `id` (string, primary key)
 - `openrouter_fast_model` (string, np. `google/gemini-2.5-flash`)
@@ -117,7 +124,7 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
   - `listRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)`
   - `viewRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)`
   - `createRule`: `@request.auth.id != ''`
-  - `updateRule`: `@request.auth.household_id = id`
+  - `updateRule`: `@request.auth.household_id = id && @request.body.ai_daily_limit_override:isset = false`
   - `deleteRule`: `@request.auth.household_id = id`
 * **`children`**:
   - `listRule`: `@request.auth.household_id = household_id`
@@ -127,6 +134,7 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
   - `listRule`: `@request.auth.household_id = child_id.household_id`
   - `createRule`: `@request.auth.household_id = child_id.household_id`
   - `updateRule`: `@request.auth.household_id = child_id.household_id`
+* **`ai_calls`**: wszystkie reguły `@request.auth.is_admin = true`
 * **`admin_settings`**:
   - `listRule`: `@request.auth.is_admin = true`
   - `viewRule`: `@request.auth.is_admin = true`

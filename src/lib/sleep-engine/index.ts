@@ -4,6 +4,7 @@
 
 export * from "./diagnosticTrees";
 export * from "./matrix";
+export * from "./matrixOverride";
 export * from "./physiologicalDay";
 export * from "./threeDrives";
 export * from "./types";

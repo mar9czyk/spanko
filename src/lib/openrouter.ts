@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { getServiceClient } from "@/lib/server/auth";
-import type { AdminSettingsRecord, ChildInsightRecord } from "@/lib/types/database";
+import type {
+  AdminSettingsRecord,
+  AiCallKind,
+  AiCallStatus,
+  ChildInsightRecord,
+} from "@/lib/types/database";
 
 export const OPENROUTER_COMPLETIONS_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -51,10 +56,38 @@ export const AiInsightResponseSchema = z.union([
   }),
 ]);
 
+export const ADMIN_SETTINGS_CACHE_TTL_MS = 30_000;
+
+export interface AiCallAudit {
+  readonly kind: AiCallKind;
+  readonly childId?: string;
+  readonly householdId?: string;
+  /** Wynik silnika deterministycznego zapisywany w ai_calls.request_snapshot_json */
+  readonly requestSnapshot?: Record<string, unknown>;
+}
+
 export interface OpenRouterConfig {
   readonly apiKey?: string;
   readonly modelName?: string;
   readonly systemPrompt?: string;
+  /** Gdy podane, wywołanie jest logowane w kolekcji ai_calls */
+  readonly audit?: AiCallAudit;
+}
+
+export interface InsightEvaluationOutcome {
+  readonly insight: AiInsightItem;
+  readonly callId: string | null;
+  readonly model: string;
+  readonly status: AiCallStatus;
+  readonly errorMessage?: string;
+  readonly rawResponse?: string;
+  readonly latencyMs: number;
+}
+
+interface OpenRouterRawResult {
+  readonly content: string;
+  readonly promptTokens?: number;
+  readonly completionTokens?: number;
 }
 
 export interface InsightEvaluationContext {
@@ -84,20 +117,38 @@ export function resolveOpenRouterApiKey(): string | undefined {
   return process.env.OPENROUTER_API_KEY?.trim() || undefined;
 }
 
+let adminSettingsCache: { readonly value: AdminSettingsRecord; readonly expiresAt: number } | null =
+  null;
+
 /**
- * Pobiera konfigurację bramki AI z kolekcji admin_settings w PocketBase.
+ * Czyści pamięć podręczną ustawień (po zapisie w panelu admina).
+ */
+export function invalidateAdminSettingsCache(): void {
+  adminSettingsCache = null;
+}
+
+/**
+ * Pobiera konfigurację bramki AI z kolekcji admin_settings w PocketBase (cache 30 s).
  *
  * @returns {Promise<AdminSettingsRecord | null>} Rekord ustawień lub null w razie braku/błędu
  */
 export async function fetchAdminSettings(): Promise<AdminSettingsRecord | null> {
+  if (adminSettingsCache && adminSettingsCache.expiresAt > Date.now()) {
+    return adminSettingsCache.value;
+  }
   try {
     const serviceClient = await getServiceClient();
     if (!serviceClient) {
       return null;
     }
-    return await serviceClient
+    const result = await serviceClient
       .collection("admin_settings")
-      .getFirstListItem<AdminSettingsRecord>("");
+      .getList<AdminSettingsRecord>(1, 1);
+    const record = result.items[0] ?? null;
+    if (record) {
+      adminSettingsCache = { value: record, expiresAt: Date.now() + ADMIN_SETTINGS_CACHE_TTL_MS };
+    }
+    return record;
   } catch {
     return null;
   }
@@ -174,14 +225,14 @@ export function parseAndValidateAiResponse(rawContent: string): AiInsightItem {
  * @param {string} modelName - Identyfikator wybranego modelu
  * @param {string} systemPrompt - Treść promptu systemowego
  * @param {string} userPrompt - Treść zapytania użytkownika
- * @returns {Promise<string>} Surowa odpowiedź JSON z modelu
+ * @returns {Promise<OpenRouterRawResult>} Surowa odpowiedź JSON z modelu wraz z zużyciem tokenów
  */
 async function sendOpenRouterRequest(
   apiKey: string,
   modelName: string,
   systemPrompt: string,
   userPrompt: string,
-): Promise<string> {
+): Promise<OpenRouterRawResult> {
   const response = await fetch(OPENROUTER_COMPLETIONS_ENDPOINT, {
     method: "POST",
     headers: {
@@ -211,7 +262,11 @@ async function sendOpenRouterRequest(
   if (!rawChoiceContent) {
     throw new Error("Pusta odpowiedź z modelu OpenRouter.");
   }
-  return rawChoiceContent;
+  return {
+    content: rawChoiceContent,
+    promptTokens: jsonResponse.usage?.prompt_tokens,
+    completionTokens: jsonResponse.usage?.completion_tokens,
+  };
 }
 
 /**
@@ -251,23 +306,144 @@ export function createDeterministicFallbackInsight(
 }
 
 /**
- * Główny serwis wywołujący OpenRouter API ze wsparciem dla admin_settings oraz walidacji Zod.
+ * Buduje zrzut wejścia silnika (diagnozy i metryki) do zapisu w ai_calls.request_snapshot_json.
  *
- * @description
- * Pobiera dynamiczny model i prompt z PocketBase admin_settings, formatuje parametry
- * 3 napędów snu, wysyła zapytanie i rygorystycznie waliduje odpowiedź schematem Zod.
+ * @param {InsightEvaluationContext} context - Kontekst diagnostyczny
+ * @returns {Record<string, unknown>} Zrzut z diagnosisCode i metricsSnapshot
+ */
+export function buildRequestSnapshot(context: InsightEvaluationContext): Record<string, unknown> {
+  return {
+    diagnosticsSnapshot: context.triggeredDiagnostics.map((diag) => ({
+      category: diag.category,
+      diagnosisCode: diag.diagnosisCode,
+      severity: diag.severity,
+    })),
+    metricsSnapshot: {
+      effectiveAgeDays: context.effectiveAgeDays,
+      activeDayMode: context.activeDayMode,
+      chronicSleepDebtMin: context.chronicSleepDebtMin,
+      sleepBatteryPercent: context.sleepBatteryPercent,
+      sleepNeedsProfile: context.sleepNeedsProfile,
+    },
+  };
+}
+
+/**
+ * Zapisuje wywołanie AI w ai_calls (best effort — błąd zapisu nigdy nie przerywa odpowiedzi).
+ *
+ * @param {AiCallAudit} audit - Metadane wywołania
+ * @param {object} details - Wynik wywołania
+ * @returns {Promise<string | null>} Id rekordu logu lub null
+ */
+async function logAiCall(
+  audit: AiCallAudit,
+  details: {
+    model: string;
+    status: AiCallStatus;
+    responseJson?: unknown;
+    errorMessage?: string;
+    promptTokens?: number;
+    completionTokens?: number;
+    latencyMs: number;
+  },
+): Promise<string | null> {
+  try {
+    const serviceClient = await getServiceClient();
+    if (!serviceClient) {
+      return null;
+    }
+    const record = await serviceClient.collection("ai_calls").create({
+      child_id: audit.childId || undefined,
+      household_id: audit.householdId || undefined,
+      kind: audit.kind,
+      model: details.model,
+      request_snapshot_json: audit.requestSnapshot ?? {},
+      response_json: details.responseJson ?? null,
+      status: details.status,
+      error_message: details.errorMessage?.slice(0, 2000),
+      prompt_tokens: details.promptTokens,
+      completion_tokens: details.completionTokens,
+      latency_ms: details.latencyMs,
+    });
+    return record.id;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Wiąże wpis logu ai_calls z zapisanym wnioskiem (best effort).
+ *
+ * @param {string | null} callId - Id wpisu w ai_calls
+ * @param {string} insightId - Id wniosku child_insights
+ */
+export async function linkAiCallToInsight(callId: string | null, insightId: string): Promise<void> {
+  if (!callId) return;
+  try {
+    const serviceClient = await getServiceClient();
+    await serviceClient?.collection("ai_calls").update(callId, { insight_id: insightId });
+  } catch {
+    // Brak powiązania nie wpływa na działanie aplikacji
+  }
+}
+
+/**
+ * Parsuje odpowiedź modelu do obiektu do logu (surowy tekst, gdy to nie JSON).
+ *
+ * @param {string} rawContent - Odpowiedź modelu
+ * @returns {unknown} Obiekt JSON lub `{ raw }`
+ */
+function toLoggableResponse(rawContent: string): unknown {
+  try {
+    return JSON.parse(rawContent);
+  } catch {
+    return { raw: rawContent.slice(0, 4000) };
+  }
+}
+
+/**
+ * Wywołuje OpenRouter (model i prompt z admin_settings lub nadpisania), waliduje odpowiedź zod-em
+ * i — gdy podano `audit` — loguje wywołanie w ai_calls.
  *
  * @param {InsightEvaluationContext} context - Kontekst diagnostyczny silnika snu
- * @param {OpenRouterConfig} [configOverride] - Opcjonalne nadpisanie konfiguracji
- * @returns {Promise<AiInsightItem>} Wygenerowany i zwalidowany wniosek
+ * @param {OpenRouterConfig} [configOverride] - Opcjonalne nadpisanie konfiguracji i metadane logu
+ * @returns {Promise<InsightEvaluationOutcome>} Wniosek wraz ze statusem wywołania
  */
-export async function evaluateSleepInsightsWithOpenRouter(
+export async function runInsightEvaluation(
   context: InsightEvaluationContext,
   configOverride?: OpenRouterConfig,
-): Promise<AiInsightItem> {
+): Promise<InsightEvaluationOutcome> {
+  const startedAt = Date.now();
+  const audit = configOverride?.audit;
   const apiKey = configOverride?.apiKey ?? resolveOpenRouterApiKey();
+
+  const finish = async (
+    result: Omit<InsightEvaluationOutcome, "callId" | "latencyMs">,
+    extra: { promptTokens?: number; completionTokens?: number } = {},
+  ): Promise<InsightEvaluationOutcome> => {
+    const latencyMs = Date.now() - startedAt;
+    const callId = audit
+      ? await logAiCall(audit, {
+          model: result.model,
+          status: result.status,
+          responseJson: result.rawResponse
+            ? toLoggableResponse(result.rawResponse)
+            : result.insight,
+          errorMessage: result.errorMessage,
+          latencyMs,
+          ...extra,
+        })
+      : null;
+    return { ...result, callId, latencyMs };
+  };
+
   if (!apiKey) {
-    return createDeterministicFallbackInsight(context);
+    return finish({
+      insight: createDeterministicFallbackInsight(context),
+      model: "deterministic-fallback",
+      status: "error",
+      errorMessage: "Brak OPENROUTER_API_KEY — użyto wniosku deterministycznego.",
+    });
   }
 
   const adminSettings = await fetchAdminSettings();
@@ -280,10 +456,42 @@ export async function evaluateSleepInsightsWithOpenRouter(
   );
   const userPrompt = formatEvaluationUserPrompt(context);
 
+  let raw: OpenRouterRawResult | null = null;
   try {
-    const rawContent = await sendOpenRouterRequest(apiKey, selectedModel, systemPrompt, userPrompt);
-    return parseAndValidateAiResponse(rawContent);
-  } catch (_error) {
-    return createDeterministicFallbackInsight(context);
+    raw = await sendOpenRouterRequest(apiKey, selectedModel, systemPrompt, userPrompt);
+    const insight = parseAndValidateAiResponse(raw.content);
+    return await finish(
+      { insight, model: selectedModel, status: "ok", rawResponse: raw.content },
+      { promptTokens: raw.promptTokens, completionTokens: raw.completionTokens },
+    );
+  } catch (error) {
+    const reachedModel = raw !== null;
+    return await finish(
+      {
+        insight: createDeterministicFallbackInsight(context),
+        model: selectedModel,
+        status: reachedModel ? "invalid_json" : "error",
+        errorMessage: error instanceof Error ? error.message : "Nieznany błąd OpenRouter.",
+        rawResponse: raw?.content,
+      },
+      { promptTokens: raw?.promptTokens, completionTokens: raw?.completionTokens },
+    );
   }
+}
+
+/**
+ * Główny serwis wywołujący OpenRouter API ze wsparciem dla admin_settings oraz walidacji Zod.
+ *
+ * @description
+ * Skrót nad `runInsightEvaluation` zwracający sam wniosek (przy błędzie — wniosek deterministyczny).
+ *
+ * @param {InsightEvaluationContext} context - Kontekst diagnostyczny silnika snu
+ * @param {OpenRouterConfig} [configOverride] - Opcjonalne nadpisanie konfiguracji
+ * @returns {Promise<AiInsightItem>} Wygenerowany i zwalidowany wniosek
+ */
+export async function evaluateSleepInsightsWithOpenRouter(
+  context: InsightEvaluationContext,
+  configOverride?: OpenRouterConfig,
+): Promise<AiInsightItem> {
+  return (await runInsightEvaluation(context, configOverride)).insight;
 }

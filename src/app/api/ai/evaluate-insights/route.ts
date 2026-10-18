@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import type PocketBase from "pocketbase";
-import { evaluateSleepInsightsWithOpenRouter, fetchAdminSettings } from "@/lib/openrouter";
-import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
+import {
+  buildRequestSnapshot,
+  fetchAdminSettings,
+  type InsightEvaluationContext,
+  linkAiCallToInsight,
+  runInsightEvaluation,
+} from "@/lib/openrouter";
+import { ApiAuthError, authenticateRequest, getServiceClient } from "@/lib/server/auth";
 import {
   calculateChronicDrive,
   calculateEffectiveAgeDays,
   evaluateAll7DiagnosticCategories,
   getAgeBracket,
+  resolveSleepMatrix,
 } from "@/lib/sleep-engine";
 import type {
   DailySleepSummary,
@@ -15,7 +22,12 @@ import type {
   SleepLog,
 } from "@/lib/sleep-engine/types";
 import { aggregateDailySleepSummaries } from "@/lib/sleep-summary";
-import type { ChildInsightRecord, ChildRecord, SleepLogRecord } from "@/lib/types/database";
+import type {
+  ChildInsightRecord,
+  ChildRecord,
+  HouseholdRecord,
+  SleepLogRecord,
+} from "@/lib/types/database";
 
 export const DEFAULT_FALLBACK_BEDTIME_MINUTES = 1200;
 export const MINUTES_PER_HOUR = 60;
@@ -104,25 +116,54 @@ async function loadActiveInsight(
 }
 
 /**
- * Egzekwuje dzienny limit zapytań AI dla gospodarstwa (liczony jako wnioski z ostatnich 24h).
+ * Zlicza wywołania AI gospodarstwa z ostatnich 24h: z logu ai_calls (konto serwisowe),
+ * a bez niego — z liczby wniosków utworzonych przez gospodarstwo.
+ *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
+ * @param {string} householdId - Identyfikator gospodarstwa
+ * @returns {Promise<number>} Liczba wywołań w oknie limitu
+ */
+async function countRecentAiCalls(pb: PocketBase, householdId: string): Promise<number> {
+  const since = new Date(Date.now() - AI_LIMIT_WINDOW_MS).toISOString();
+  const serviceClient = await getServiceClient();
+
+  if (serviceClient) {
+    const calls = await serviceClient.collection("ai_calls").getList(1, 1, {
+      filter: serviceClient.filter(
+        "household_id = {:householdId} && kind = 'evaluate' && created >= {:since}",
+        { householdId, since },
+      ),
+    });
+    return calls.totalItems;
+  }
+
+  const insights = await pb.collection("child_insights").getList(1, 1, {
+    filter: pb.filter("child_id.household_id = {:householdId} && created >= {:since}", {
+      householdId,
+      since,
+    }),
+  });
+  return insights.totalItems;
+}
+
+/**
+ * Egzekwuje dzienny limit zapytań AI: nadpisanie gospodarstwa > ustawienie globalne > domyślny.
  *
  * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} householdId - Identyfikator gospodarstwa
  * @throws {ApiAuthError} 429 po przekroczeniu limitu
  */
 async function enforceDailyAiLimit(pb: PocketBase, householdId: string): Promise<void> {
-  const adminSettings = await fetchAdminSettings();
-  const limit = adminSettings?.ai_daily_limit_per_household ?? DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD;
-  const since = new Date(Date.now() - AI_LIMIT_WINDOW_MS).toISOString();
+  const [adminSettings, household] = await Promise.all([
+    fetchAdminSettings(),
+    pb.collection("households").getOne<HouseholdRecord>(householdId),
+  ]);
+  const limit =
+    household.ai_daily_limit_override ??
+    adminSettings?.ai_daily_limit_per_household ??
+    DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD;
 
-  const recent = await pb.collection("child_insights").getList(1, 1, {
-    filter: pb.filter("child_id.household_id = {:householdId} && created >= {:since}", {
-      householdId,
-      since,
-    }),
-  });
-
-  if (recent.totalItems >= limit) {
+  if ((await countRecentAiCalls(pb, householdId)) >= limit) {
     throw new ApiAuthError("Dzienny limit zapytań AI dla gospodarstwa został wyczerpany.", 429);
   }
 }
@@ -266,7 +307,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const nowIso = new Date().toISOString();
     const effectiveAgeDays = calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso);
-    const bracket = getAgeBracket(effectiveAgeDays);
+    const adminSettings = await fetchAdminSettings();
+    const bracket = getAgeBracket(
+      effectiveAgeDays,
+      resolveSleepMatrix(adminSettings?.sleep_matrix_override_json),
+    );
     const dailyTotals = aggregateDailySleepSummaries(sleepRecords);
     const chronicDrive = calculateChronicDrive(dailyTotals, bracket);
 
@@ -283,7 +328,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const allDiagnostics = evaluateAll7DiagnosticCategories(diagnosticInput);
     const significantDiagnostics = resolveSignificantDiagnostics(allDiagnostics);
 
-    const aiInsight = await evaluateSleepInsightsWithOpenRouter({
+    const evaluationContext: InsightEvaluationContext = {
       childAgeDisplay: `${Math.round(effectiveAgeDays / 30)} msc`,
       effectiveAgeDays,
       activeDayMode: child.active_day_mode,
@@ -299,7 +344,17 @@ export async function POST(request: Request): Promise<NextResponse> {
         clinicalAction: diag.clinicalAction,
       })),
       activeInsights: existingActiveInsight ? [existingActiveInsight] : [],
+    };
+
+    const evaluation = await runInsightEvaluation(evaluationContext, {
+      audit: {
+        kind: "evaluate",
+        childId: child.id,
+        householdId: user.household_id,
+        requestSnapshot: buildRequestSnapshot(evaluationContext),
+      },
     });
+    const aiInsight = evaluation.insight;
 
     const savedInsight = await saveNewInsightRecord(pb, {
       childId: child.id,
@@ -312,6 +367,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       confidenceScore: aiInsight.confidence_score,
       previousInsightId: existingActiveInsight?.id,
     });
+
+    await linkAiCallToInsight(evaluation.callId, savedInsight.id);
 
     if (existingActiveInsight?.id) {
       await archiveSupersededInsight(pb, existingActiveInsight.id, savedInsight.id);

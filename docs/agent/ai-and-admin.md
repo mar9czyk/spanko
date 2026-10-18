@@ -89,3 +89,13 @@ Dostęp do panelu administratora jest rygorystycznie chroniony warunkiem:
 - `POCKETBASE_INTERNAL_URL` (opcjonalnie; domyślnie `NEXT_PUBLIC_POCKETBASE_URL`) — adres PocketBase widziany przez serwer Next.js.
 - `POCKETBASE_SUPERUSER_EMAIL` / `POCKETBASE_SUPERUSER_PASSWORD` — konto superusera do odczytu `admin_settings` (reguły dopuszczają tylko admina). Bez nich używane są domyślne model/prompt i limit.
 - Endpointy wymagają nagłówka `Authorization: Bearer <token PocketBase>`; token jest weryfikowany `authRefresh`, a zapytania idą klientem użytkownika (reguły API gospodarstwa). Limit dzienny (`ai_daily_limit_per_household`, domyślnie 20) liczony jako wnioski z ostatnich 24h; po przekroczeniu zwracane jest 429.
+
+## Panel Admina (`/admin`) i API `/api/admin/*`
+- Każdy handler zaczyna od `requireAdmin(request)` (`src/lib/server/auth.ts`): weryfikuje token (`authRefresh`), wymaga `is_admin === true` z rekordu serwera, NIE wymaga `household_id`. Przekierowanie nie-adminów w UI to tylko wygoda.
+- Wejście walidowane zod-em (`src/lib/server/adminSchemas.ts`); schematy trzymamy poza plikami `route.ts` (Next dopuszcza tam tylko handlery).
+- `settings` (GET/PUT) – modele, prompt, `sleep_matrix_override_json` (walidowana `validateSleepMatrix`), limit globalny.
+- `sandbox` (POST) – silnik na przykładowych danych (`sandboxFixtures.ts`) + OpenRouter; nie tworzy `child_insights`, loguje `ai_calls` z `kind=sandbox`.
+- `ai-calls` (GET) – paginowany log (silnik → JSON modelu → reakcja rodzica).
+- `households` (GET/PATCH) – lista z zużyciem AI i nadpisaniem limitu (`ai_daily_limit_override`); wymaga konta serwisowego.
+- Matryca z `admin_settings` jest stosowana w `evaluate-insights` przez `resolveSleepMatrix` (fallback do `DEFAULT_SLEEP_MATRIX`). Dashboard po stronie klienta używa matrycy domyślnej.
+- Limit dzienny: `households.ai_daily_limit_override` > `admin_settings.ai_daily_limit_per_household` > 20; liczony z `ai_calls` (`kind=evaluate`, 24 h), a bez konta serwisowego z liczby wniosków.

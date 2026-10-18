@@ -126,6 +126,20 @@
           "min": "",
           "max": ""
         }
+      },
+      {
+        "id": "hhold_ai_ovr_fld",
+        "name": "ai_daily_limit_override",
+        "type": "number",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": 0,
+          "max": 1000,
+          "noDecimal": true
+        }
       }
     ],
     "indexes": [
@@ -134,7 +148,7 @@
     "listRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)",
     "viewRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)",
     "createRule": "@request.auth.id != ''",
-    "updateRule": "@request.auth.household_id = id",
+    "updateRule": "@request.auth.household_id = id && @request.body.ai_daily_limit_override:isset = false",
     "deleteRule": "@request.auth.household_id = id",
     "options": {}
   },
@@ -830,6 +844,191 @@
       }
     ],
     "indexes": [],
+    "listRule": "@request.auth.is_admin = true",
+    "viewRule": "@request.auth.is_admin = true",
+    "createRule": "@request.auth.is_admin = true",
+    "updateRule": "@request.auth.is_admin = true",
+    "deleteRule": "@request.auth.is_admin = true",
+    "options": {}
+  },
+  {
+    "id": "pbc_aicalls0000",
+    "name": "ai_calls",
+    "type": "base",
+    "system": false,
+    "schema": [
+      {
+        "id": "aic_child_id_fld",
+        "name": "child_id",
+        "type": "relation",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "collectionId": "pbc_children000",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "id": "aic_hhold_id_fl",
+        "name": "household_id",
+        "type": "relation",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "collectionId": "pbc_households0",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "id": "aic_kind_field",
+        "name": "kind",
+        "type": "select",
+        "system": false,
+        "required": true,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "maxSelect": 1,
+          "values": ["evaluate", "sandbox"]
+        }
+      },
+      {
+        "id": "aic_model_field",
+        "name": "model",
+        "type": "text",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": 0,
+          "max": 120,
+          "pattern": ""
+        }
+      },
+      {
+        "id": "aic_req_snapshot",
+        "name": "request_snapshot_json",
+        "type": "json",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "maxSize": 2000000
+        }
+      },
+      {
+        "id": "aic_response_jsn",
+        "name": "response_json",
+        "type": "json",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "maxSize": 2000000
+        }
+      },
+      {
+        "id": "aic_status_fld",
+        "name": "status",
+        "type": "select",
+        "system": false,
+        "required": true,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "maxSelect": 1,
+          "values": ["ok", "error", "invalid_json"]
+        }
+      },
+      {
+        "id": "aic_error_msg_f",
+        "name": "error_message",
+        "type": "text",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": 0,
+          "max": 2000,
+          "pattern": ""
+        }
+      },
+      {
+        "id": "aic_prompt_tok_",
+        "name": "prompt_tokens",
+        "type": "number",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "id": "aic_compl_tok_f",
+        "name": "completion_tokens",
+        "type": "number",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "id": "aic_latency_fld",
+        "name": "latency_ms",
+        "type": "number",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": 0,
+          "max": null,
+          "noDecimal": true
+        }
+      },
+      {
+        "id": "aic_insight_id_",
+        "name": "insight_id",
+        "type": "relation",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "collectionId": "pbc_childinsigh",
+          "cascadeDelete": false,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_ai_calls_household_created` ON `ai_calls` (`household_id`, `created`)"
+    ],
     "listRule": "@request.auth.is_admin = true",
     "viewRule": "@request.auth.is_admin = true",
     "createRule": "@request.auth.is_admin = true",

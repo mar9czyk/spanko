@@ -12,7 +12,7 @@ export interface AuthenticatedRequestContext {
 export class ApiAuthError extends Error {
   constructor(
     message: string,
-    readonly status: 401 | 403 | 404 | 429,
+    readonly status: 400 | 401 | 403 | 404 | 429 | 503,
   ) {
     super(message);
     this.name = "ApiAuthError";
@@ -48,6 +48,31 @@ function extractBearerToken(request: Request): string | null {
 }
 
 /**
+ * Weryfikuje token z żądania (authRefresh) i zwraca klienta PocketBase w imieniu użytkownika.
+ *
+ * @param {Request} request - Żądanie HTTP
+ * @throws {ApiAuthError} 401 przy braku/nieważnym tokenie
+ * @returns {Promise<{ pb: PocketBase; user: UserRecord }>} Klient i użytkownik z serwera
+ */
+async function verifyRequestToken(request: Request): Promise<{ pb: PocketBase; user: UserRecord }> {
+  const token = extractBearerToken(request);
+  if (!token) {
+    throw new ApiAuthError("Wymagane uwierzytelnienie.", 401);
+  }
+
+  const pb = new PocketBase(resolveServerPocketBaseUrl());
+  pb.autoCancellation(false);
+  pb.authStore.save(token, null);
+
+  try {
+    const authData = await pb.collection("users").authRefresh();
+    return { pb, user: authData.record as unknown as UserRecord };
+  } catch {
+    throw new ApiAuthError("Nieprawidłowy lub wygasły token.", 401);
+  }
+}
+
+/**
  * Uwierzytelnia żądanie tokenem PocketBase użytkownika i zwraca klienta ograniczonego do jego uprawnień.
  *
  * @description
@@ -60,28 +85,34 @@ function extractBearerToken(request: Request): string | null {
  * @returns {Promise<AuthenticatedRequestContext>} Klient i zalogowany użytkownik
  */
 export async function authenticateRequest(request: Request): Promise<AuthenticatedRequestContext> {
-  const token = extractBearerToken(request);
-  if (!token) {
-    throw new ApiAuthError("Wymagane uwierzytelnienie.", 401);
+  const { pb, user } = await verifyRequestToken(request);
+  if (!user.household_id) {
+    throw new ApiAuthError("Użytkownik nie należy do żadnego gospodarstwa domowego.", 403);
   }
+  return { pb, user: { ...user, household_id: user.household_id } };
+}
 
-  const pb = new PocketBase(resolveServerPocketBaseUrl());
-  pb.autoCancellation(false);
-  pb.authStore.save(token, null);
+export interface AdminRequestContext {
+  readonly pb: PocketBase;
+  readonly user: UserRecord;
+}
 
-  try {
-    const authData = await pb.collection("users").authRefresh();
-    const user = authData.record as unknown as UserRecord;
-    if (!user.household_id) {
-      throw new ApiAuthError("Użytkownik nie należy do żadnego gospodarstwa domowego.", 403);
-    }
-    return { pb, user: { ...user, household_id: user.household_id } };
-  } catch (error) {
-    if (error instanceof ApiAuthError) {
-      throw error;
-    }
-    throw new ApiAuthError("Nieprawidłowy lub wygasły token.", 401);
+/**
+ * Wymaga zalogowanego administratora (`is_admin === true` wg rekordu z serwera, nie z klienta).
+ *
+ * @description
+ * Nie wymaga przynależności do gospodarstwa domowego.
+ *
+ * @param {Request} request - Żądanie HTTP
+ * @throws {ApiAuthError} 401 przy braku/nieważnym tokenie, 403 gdy użytkownik nie jest adminem
+ * @returns {Promise<AdminRequestContext>} Klient (z uprawnieniami admina wg reguł) i użytkownik
+ */
+export async function requireAdmin(request: Request): Promise<AdminRequestContext> {
+  const context = await verifyRequestToken(request);
+  if (context.user.is_admin !== true) {
+    throw new ApiAuthError("Wymagane uprawnienia administratora.", 403);
   }
+  return context;
 }
 
 let serviceClient: PocketBase | null = null;
