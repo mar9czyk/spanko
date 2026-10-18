@@ -1,0 +1,136 @@
+# Dokumentacja Domenowa: Baza Danych i PocketBase
+
+Dokument opisuje model danych, kolekcje PocketBase, reguły bezpieczeństwa API, obsługę granicy doby fizjologicznej oraz mechanizm kodów zaproszeń do gospodarstwa domowego.
+
+---
+
+## 1. Architektura Danych PocketBase
+
+Baza danych działa w oparciu o silnik **PocketBase** (SQLite w trybie WAL) uruchomiony na Mikr.usie jako usługa `spanko-pb`.
+Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zainstalowany w Next.js.
+
+### 1.1. Lista Kolekcji i Schematy
+
+#### 1. `users` (Kolekcja Auth)
+- `id` (string, primary key)
+- `email` (email, unique)
+- `name` (string)
+- `avatar` (file/url)
+- `is_admin` (bool, default: `false`) — uprawnia do dostępu do panelu `/admin` i edycji `admin_settings`.
+- `household_id` (relation -> `households.id`, opcjonalne do momentu utworzenia/dołączenia do rodziny)
+
+#### 2. `households` (Gospodarstwa Domowe)
+- `id` (string, primary key)
+- `name` (string, np. "Rodzina Nowaków")
+- `invite_code` (string, 6-znakowy alfanumeryczny kod zaproszenia, wielkie litery i cyfry, np. `SP7K92`)
+- `invite_expires_at` (datetime, ważność kodu 24h od wygenerowania)
+- `created`, `updated` (autodate)
+
+#### 3. `children` (Dzieci w Gospodarstwie)
+- `id` (string, primary key)
+- `household_id` (relation -> `households.id`, required)
+- `name` (string)
+- `birth_date` (date/datetime, format ISO)
+- `due_date` (date/datetime, format ISO, opcjonalne — dla wcześniaków urodzonych $\ge 21$ dni przed terminem)
+- `active_day_mode` (select: `home` | `on_the_go` | `illness_regression`, default: `home`)
+- `anti_orthosomnia_mode` (bool, default: `false` — wyłącza dokładne minuty na korzyść elastycznego kompasu)
+- `created`, `updated` (autodate)
+
+#### 4. `sleep_logs` (Rejestr Snów i Drzemek)
+- `id` (string, primary key)
+- `child_id` (relation -> `children.id`, required)
+- `physiological_date` (string `YYYY-MM-DD` — klucz partycjonowania doby liczonej od porannej pobudki!)
+- `type` (select: `nap` | `night`)
+- `status` (select: `falling_asleep` | `sleeping` | `completed`)
+- `put_down_at` (datetime ISO — rozpoczęcie usypiania)
+- `fell_asleep_at` (datetime ISO — moment zaśnięcia)
+- `woke_up_at` (datetime ISO, nullable — moment pobudki)
+- `interventions` (json array: lista poziomów drabiny interwencji `['breast'|'bottle'|'bouncing'|'carrying'|'stroller_car'|'co_sleeping'|'patting'|'pacifier_reinsert'|'shushing_voice'|'room_presence'|'independent']`)
+- `mood` (select: `easy` | `fussy` | `crying`)
+- `night_wakings` (json array: `[{ wokeAt: string, fellAsleepAt?: string, estimatedDurationMin: number, fedMilk: boolean, interventions: string[] }]`)
+- `is_rebound_sleep` (bool, default: `false` — flaga odsypiania oznaczana przez filtr homeostatyczny)
+- `ignore_in_calibration` (bool, default: `false` — oznaczane przy anomaliach lub korekcie rodzica)
+- `created`, `updated` (autodate)
+
+#### 5. `day_context` (Zdarzenia Dnia: Karmienia i Tagi)
+- `id` (string, primary key)
+- `child_id` (relation -> `children.id`, required)
+- `physiological_date` (string `YYYY-MM-DD`)
+- `timestamp` (datetime ISO)
+- `feeding_type` (select: `breast` | `bottle` | `solid` | `none`, default: `none`)
+- `bottle_ml` (number, nullable)
+- `breast_side` (select: `left` | `right` | `both` | `none`, default: `none`)
+- `tags` (json array: `['ząbkowanie', 'gorączka', 'infekcja_ucha', 'skok_rozwojowy', 'spacer', 'ekran_przed_snem', 'goście']`)
+- `notes` (string, max 500 znaków)
+
+#### 6. `child_insights` (Ewolucyjna Baza Wniosków i Reguł Dziecka)
+- `id` (string, primary key)
+- `child_id` (relation -> `children.id`, required)
+- `category` (string, jedna z 7 kategorii problemów snu)
+- `diagnosis_code` (string, kod z deterministycznego drzewa diagnostycznego)
+- `status` (select: `hypothesis` | `active` | `validated` | `corrected_by_parent` | `superseded`)
+- `title` (string, zwięzły tytuł dla rodzica)
+- `explanation` (text, przyjazne medycznie wyjaśnienie z rekomendacją)
+- `algorithm_override_json` (json, np. `{ "wwOffsetMin": -15, "forceBedtimeAnchor": "19:45" }`)
+- `confidence_score` (number, 0.0 - 1.0)
+- `parent_feedback` (select: `accepted` | `rejected` | `adjusted` | `pending`, default: `pending`)
+- `parent_correction_note` (text, opcjonalna notatka rodzica)
+- `previous_insight_id` (relation -> `child_insights.id`, nullable — łańcuch ewolucji)
+- `superseded_by_id` (relation -> `child_insights.id`, nullable)
+- `valid_from` (datetime ISO)
+- `valid_until` (datetime ISO, nullable)
+
+#### 7. `admin_settings` (Konfiguracja Globalna Bramki AI i Algorytmu)
+- `id` (string, primary key)
+- `openrouter_fast_model` (string, np. `google/gemini-2.5-flash`)
+- `openrouter_reasoning_model` (string, np. `anthropic/claude-3.7-sonnet`)
+- `system_prompt_insights` (text, wzorzec promptu dla generatora wniosków)
+- `sleep_matrix_override_json` (json, opcjonalne nadpisanie domyślnej matrycy `DEFAULT_SLEEP_MATRIX`)
+- `ai_daily_limit_per_household` (number, domyślnie np. 10 zapytań/dobę)
+
+---
+
+## 2. Granica Doby Fizjologicznej (Physiological Day)
+
+### 2.1. Reguła Złota Doby Dziecięcej
+Doba niemowlaka **NIE pokrywa się z dobą kalendarzową (00:00 - 23:59)**.
+* **Początek doby fizjologicznej:** Moment porannej pobudki ze snu nocnego (`woke_up_at` z rekordu o `type === 'night'`).
+* **Koniec doby fizjologicznej:** Moment kolejnej porannej pobudki następnego poranka.
+* **Przypisanie nocy:** Sen nocny rozpoczęty np. w poniedziałek o 19:30, wszystkie pobudki nocne we wtorek o 01:30 i 04:00 oraz poranna pobudka we wtorek o 06:45 **należą w całości do doby fizjologicznej Poniedziałku**.
+
+### 2.2. Algorytm Wyznaczania Daty Fizjologicznej (`resolvePhysiologicalDate`)
+1. Jeśli zdarzenie przypada w trakcie trwającego lub zakończonego snu nocnego $\rightarrow$ przyjmuje `physiologicalDate` tego snu nocnego.
+2. Jeśli brak aktywnego snu nocnego, ale zdarzenie nastąpiło między 00:00 a 05:59 rano $\rightarrow$ fallback do dnia poprzedniego (`data - 24h`).
+3. W pozostałych przypadkach $\rightarrow$ bieżąca data kalendarzowa `YYYY-MM-DD`.
+
+---
+
+## 3. Reguły Bezpieczeństwa API (API Rules)
+
+PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtrujące:
+* **`households`**:
+  - `listRule`: `@request.auth.household_id = id`
+  - `viewRule`: `@request.auth.household_id = id`
+  - `updateRule`: `@request.auth.household_id = id`
+* **`children`**:
+  - `listRule`: `@request.auth.household_id = household_id`
+  - `createRule`: `@request.auth.household_id = household_id`
+  - `updateRule`: `@request.auth.household_id = household_id`
+* **`sleep_logs` & `day_context` & `child_insights`**:
+  - `listRule`: `@request.auth.household_id = child_id.household_id`
+  - `createRule`: `@request.auth.household_id = child_id.household_id`
+  - `updateRule`: `@request.auth.household_id = child_id.household_id`
+* **`admin_settings`**:
+  - `listRule`: `@request.auth.is_admin = true`
+  - `viewRule`: `@request.auth.is_admin = true`
+  - `updateRule`: `@request.auth.is_admin = true`
+
+---
+
+## 4. Kody Zaproszeń do Rodziny (Household Sharing)
+
+1. Pierwszy rodzic loguje się przez Google OAuth2 $\rightarrow$ system tworzy `household` i przypisuje użytkownika.
+2. Rodzic generuje w profilu 6-znakowy kod zaproszenia (`invite_code`), ważny 24h (`invite_expires_at`).
+3. Drugi rodzic loguje się swoim kontem Google, wybiera "Dołącz do istniejącej rodziny", wpisuje kod.
+4. Backend weryfikuje ważność kodu i ustawia `users.household_id = target_household.id`.
+5. Od tego momentu oboje rodzice widzą ten sam profil dziecka, te same logi i ten sam realtime stoper snu.
