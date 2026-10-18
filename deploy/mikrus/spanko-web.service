@@ -1,0 +1,31 @@
+[Unit]
+Description=Spanko Next.js Standalone PWA
+After=network.target spanko-pb.service
+
+[Service]
+Type=simple
+User=spanko
+Group=spanko
+WorkingDirectory=/opt/spanko/web
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+EnvironmentFile=/opt/spanko/web/.env.production
+ExecStart=/usr/bin/node /opt/spanko/web/server.js
+Restart=always
+RestartSec=3
+
+# Utwardzanie
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# Cache Next.js (obrazy/ISR); katalog może jeszcze nie istnieć — prefiks "-" ignoruje brak
+ReadWritePaths=-/opt/spanko/web/.next
+
+[Install]
+WantedBy=multi-user.target

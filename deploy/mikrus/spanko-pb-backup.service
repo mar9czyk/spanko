@@ -1,0 +1,24 @@
+[Unit]
+Description=Spanko PocketBase backup (sqlite3 .backup, rotacja 14 dni)
+
+[Service]
+Type=oneshot
+User=spanko
+Group=spanko
+# "$$" to ucieczka znaku $ w ExecStart systemd. Wymaga pakietu sqlite3. Kopiuje data.db oraz auxiliary.db spójnie (online backup SQLite).
+ExecStart=/bin/bash -c 'set -euo pipefail; \
+  stamp=$$(date +%%Y%%m%%d-%%H%%M%%S); \
+  dest=/opt/spanko/backups; mkdir -p "$$dest"; \
+  for db in data auxiliary; do \
+    if [ -f /opt/spanko/pb/pb_data/$$db.db ]; then \
+      sqlite3 /opt/spanko/pb/pb_data/$$db.db ".backup $$dest/$$db-$$stamp.db"; \
+    fi; \
+  done; \
+  find "$$dest" -name "*.db" -mtime +14 -delete'
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+# sqlite3 potrzebuje zapisu do plików -shm/-wal, nawet przy samym odczycie bazy w trybie WAL
+ReadWritePaths=/opt/spanko/pb /opt/spanko/backups

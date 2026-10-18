@@ -1,0 +1,29 @@
+# /etc/caddy/Caddyfile — zamień spanko.twojadomena.pl na swoją domenę.
+spanko.twojadomena.pl {
+	encode gzip zstd
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# Panel administracyjny PocketBase nie jest publiczny (dostęp przez tunel SSH: ssh -L 8090:127.0.0.1:8090)
+	@pbadmin path /pb/_ /pb/_/*
+	respond @pbadmin 404
+
+	# API oraz Realtime SSE PocketBase (prefiks /pb jest obcinany przez handle_path)
+	handle_path /pb/* {
+		reverse_proxy 127.0.0.1:8090 {
+			flush_interval -1
+		}
+	}
+
+	# Aplikacja Next.js Standalone
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

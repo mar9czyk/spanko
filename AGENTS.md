@@ -4,11 +4,12 @@ Mobile-first Progressive Web App combining a real-time baby sleep/routine tracke
 
 ## Tech Stack & Verification Commands
 - **Package Manager:** `pnpm`
-- **Framework:** Next.js 15 (App Router, `output: 'standalone'`, TypeScript Strict), Tailwind CSS, shadcn/ui, Framer Motion
+- **Framework:** Next.js 16 (App Router, `output: 'standalone'`, TypeScript Strict), Tailwind CSS, shadcn/ui, Framer Motion
 - **Backend:** PocketBase (SQLite + Realtime SSE + Google OAuth2)
 - **Fast Verification Loop (MANDATORY — RUN AFTER EVERY CODE CHANGE):**
   - `pnpm check` -> runs Biome lint/format + `tsc --noEmit` (must return 0 errors)
   - `pnpm test` -> runs Vitest unit tests for the deterministic sleep engine
+- **Deploy:** `pnpm deploy` (lokalny build + SSH na Mikr.us) — konfiguracja i serwer: `deploy/mikrus/README.md`
 
 ## Core Architectural Guardrails
 1. **Deterministic First, AI Second:** Never use LLMs to calculate wake windows, sleep debt, or circadian anchors. All math and diagnostic trees live in `src/lib/sleep-engine/` as pure, unit-tested TypeScript functions.

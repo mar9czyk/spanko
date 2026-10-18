@@ -1,0 +1,26 @@
+[Unit]
+Description=Spanko PocketBase Backend
+After=network.target
+
+[Service]
+Type=simple
+User=spanko
+Group=spanko
+WorkingDirectory=/opt/spanko/pb
+ExecStart=/opt/spanko/pb/pocketbase serve --http=127.0.0.1:8090
+Restart=always
+RestartSec=3
+
+# Utwardzanie
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/spanko/pb
+
+[Install]
+WantedBy=multi-user.target
