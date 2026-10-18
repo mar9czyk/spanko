@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
-import type { ChildInsightRecord } from "@/lib/types/database";
-import { INITIAL_MOCK_INSIGHTS } from "./constants";
+import type { ChildInsightRecord, ChildRecord } from "@/lib/types/database";
 import type { InsightCorrectionFormValues } from "./types";
 
-export const DEFAULT_CHILD_ID = "child_leo_01";
+export type InsightsLoadStatus = "loading" | "ready" | "empty" | "error";
 
 /**
  * Filtruje listę wniosków na aktywne, hipotezy i wpisy historyczne.
@@ -27,33 +27,65 @@ function partitionInsights(allInsights: readonly ChildInsightRecord[]) {
 /**
  * Hook zarządzający stanem widoku Karta Rozwoju Snu Dziecka oraz komunikacją z API.
  *
- * @param {string} [childId=DEFAULT_CHILD_ID] - Identyfikator aktywnego dziecka
+ * @description
+ * Ładuje aktywne dziecko gospodarstwa i jego wnioski z PocketBase. Przy braku danych lub błędzie
+ * udostępnia jawny status (`empty` / `error`) zamiast danych zastępczych.
+ *
  * @returns {object} Zestaw danych i operacji dla interfejsu wniosków
  */
-export function useInsightsState(childId = DEFAULT_CHILD_ID) {
-  const [allInsights, setAllInsights] =
-    useState<readonly ChildInsightRecord[]>(INITIAL_MOCK_INSIGHTS);
+export function useInsightsState() {
+  const [child, setChild] = useState<ChildRecord | null>(null);
+  const [loadStatus, setLoadStatus] = useState<InsightsLoadStatus>("loading");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [allInsights, setAllInsights] = useState<readonly ChildInsightRecord[]>([]);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [selectedCorrectionInsight, setSelectedCorrectionInsight] =
     useState<ChildInsightRecord | null>(null);
   const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
 
-  useEffect(() => {
-    async function loadFromPocketBase() {
-      try {
-        const records = await pb.collection("child_insights").getList<ChildInsightRecord>(1, 50, {
-          filter: pb.filter("child_id = {:childId}", { childId }),
-          sort: "-created",
-        });
-        if (records.items.length > 0) {
-          setAllInsights(records.items);
-        }
-      } catch {
-        // Fallback do INITIAL_MOCK_INSIGHTS w trybie offline
+  const loadInsights = useCallback(async () => {
+    try {
+      const activeChild = await loadActiveChild();
+      setChild(activeChild);
+      if (!activeChild) {
+        setAllInsights([]);
+        setLoadStatus("empty");
+        return;
       }
+      const records = await pb.collection("child_insights").getList<ChildInsightRecord>(1, 50, {
+        filter: pb.filter("child_id = {:childId}", { childId: activeChild.id }),
+        sort: "-created",
+      });
+      setAllInsights(records.items);
+      setLoadStatus("ready");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Nie udało się pobrać wniosków.");
+      setLoadStatus("error");
     }
-    loadFromPocketBase();
-  }, [childId]);
+  }, []);
+
+  useEffect(() => {
+    loadInsights();
+  }, [loadInsights]);
+
+  /**
+   * Wysyła korektę wniosku do API; przy niepowodzeniu przywraca stan z serwera.
+   */
+  const postCorrection = async (body: Record<string, unknown>) => {
+    try {
+      const response = await authorizedFetch("/api/ai/correct-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Nie udało się zapisać korekty.");
+      await loadInsights();
+    }
+  };
 
   const handleOpenCorrection = (insight: ChildInsightRecord) => {
     setSelectedCorrectionInsight(insight);
@@ -69,15 +101,7 @@ export function useInsightsState(childId = DEFAULT_CHILD_ID) {
       ),
     );
 
-    try {
-      await fetch("/api/ai/correct-insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ insightId, feedback: "accepted" }),
-      });
-    } catch {
-      // Optymistyczna zmiana stanu lokalnego
-    }
+    await postCorrection({ insightId, feedback: "accepted" });
   };
 
   const handleSubmitCorrection = async (values: InsightCorrectionFormValues) => {
@@ -101,40 +125,35 @@ export function useInsightsState(childId = DEFAULT_CHILD_ID) {
       ),
     );
 
-    try {
-      await fetch("/api/ai/correct-insight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          insightId: targetId,
-          feedback: values.feedback,
-          parentCorrectionNote: values.parentCorrectionNote,
-          isAnomalyException: values.isAnomalyException,
-          algorithmOverrideJson:
-            values.wakeWindowOffsetMinutes !== 0
-              ? { wwOffsetMin: values.wakeWindowOffsetMinutes }
-              : undefined,
-        }),
-      });
-    } catch {
-      // Stan lokalny zaktualizowany optymistycznie
-    }
+    await postCorrection({
+      insightId: targetId,
+      feedback: values.feedback,
+      parentCorrectionNote: values.parentCorrectionNote,
+      isAnomalyException: values.isAnomalyException,
+      algorithmOverrideJson:
+        values.wakeWindowOffsetMinutes !== 0
+          ? { wwOffsetMin: values.wakeWindowOffsetMinutes }
+          : undefined,
+    });
   };
 
   const handleTriggerAiEvaluation = async () => {
+    if (!child) return;
     setIsEvaluating(true);
+    setErrorMessage(null);
     try {
-      const response = await fetch("/api/ai/evaluate-insights", {
+      const response = await authorizedFetch("/api/ai/evaluate-insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ childId }),
+        body: JSON.stringify({ childId: child.id }),
       });
       const data = await response.json();
-      if (data.success && data.insight) {
-        setAllInsights((prev) => [data.insight, ...prev]);
+      if (!response.ok || !data.success) {
+        throw new Error(data.error ?? `HTTP ${response.status}`);
       }
-    } catch {
-      // Ignorowanie błędu w trybie offline
+      await loadInsights();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Ewaluacja AI nie powiodła się.");
     } finally {
       setIsEvaluating(false);
     }
@@ -144,6 +163,8 @@ export function useInsightsState(childId = DEFAULT_CHILD_ID) {
     partitionInsights(allInsights);
 
   return {
+    loadStatus,
+    errorMessage,
     activeInsights,
     hypothesisInsights,
     historyTimelineInsights,

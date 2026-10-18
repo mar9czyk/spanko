@@ -79,11 +79,12 @@ export function signOutUser(): void {
  * @returns {string} Kod zaproszenia, np. 'SP7K92'
  */
 export function generateInviteCode(length = INVITE_CODE_LENGTH): string {
+  const randomValues = new Uint8Array(length);
+  crypto.getRandomValues(randomValues);
   let result = "";
-  const alphabetLength = INVITE_ALPHABET.length;
-  for (let index = 0; index < length; index += 1) {
-    const randomIndex = Math.floor(Math.random() * alphabetLength);
-    result += INVITE_ALPHABET.charAt(randomIndex);
+  for (const value of randomValues) {
+    // Długość alfabetu (32) dzieli 256 bez reszty, więc modulo nie wprowadza biasu.
+    result += INVITE_ALPHABET.charAt(value % INVITE_ALPHABET.length);
   }
   return result;
 }
@@ -144,7 +145,10 @@ async function findActiveHouseholdByCode(normalizedCode: string): Promise<Househ
     now: currentIsoDate,
   });
 
-  return pb.collection("households").getFirstListItem<HouseholdRecord>(filterExpression);
+  // Reguła API wymaga zgodności invite_code z parametrem ?code=, co uniemożliwia listowanie cudzych kodów.
+  return pb
+    .collection("households")
+    .getFirstListItem<HouseholdRecord>(filterExpression, { query: { code: normalizedCode } });
 }
 
 /**

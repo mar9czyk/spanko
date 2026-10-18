@@ -62,6 +62,8 @@ export interface ChildRecord {
   readonly due_date?: string;
   readonly active_day_mode: ActiveDayMode;
   readonly anti_orthosomnia_mode: boolean;
+  /** Strefa IANA dziecka (granica doby fizjologicznej); domyślnie Europe/Warsaw */
+  readonly timezone?: string;
   readonly created: string;
   readonly updated: string;
 }

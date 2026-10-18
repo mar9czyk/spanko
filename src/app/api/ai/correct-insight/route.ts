@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { pb } from "@/lib/pocketbase";
+import type PocketBase from "pocketbase";
+import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
 import type { ChildInsightRecord, ParentFeedback, SleepLogRecord } from "@/lib/types/database";
 
 export interface CorrectInsightRequestBody {
@@ -64,121 +65,58 @@ function buildInsightUpdatePayload(payload: CorrectInsightRequestBody): Record<s
 }
 
 /**
- * Oznacza wybrany wpis snu jako anomalię ignorowaną w kalibracji normy.
+ * Wyszukuje najnowszy wpis snu dla danego dziecka.
  *
- * @param {string} sleepLogId - Identyfikator rekordu w sleep_logs
- * @returns {Promise<boolean>} Czy pomyślnie zaktualizowano wpis
- */
-async function markSleepLogAsIgnored(sleepLogId: string): Promise<boolean> {
-  try {
-    await pb.collection("sleep_logs").update(sleepLogId, {
-      ignore_in_calibration: true,
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Wyszukuje najnowszy wpis snu dla danego dziecka i oznacza go jako ignorowany.
- *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} childId - Identyfikator dziecka
- * @returns {Promise<string | null>} Identyfikator oznaczonego wpisu lub null
+ * @returns {Promise<string | null>} Identyfikator wpisu lub null
  */
-async function markLatestSleepLogAsIgnored(childId: string): Promise<string | null> {
-  try {
-    const latestLogs = await pb.collection("sleep_logs").getList<SleepLogRecord>(1, 1, {
-      filter: pb.filter("child_id = {:childId}", { childId }),
-      sort: "-created",
-    });
-
-    const targetLog = latestLogs.items[0];
-    if (targetLog) {
-      await markSleepLogAsIgnored(targetLog.id);
-      return targetLog.id;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+async function findLatestSleepLogId(pb: PocketBase, childId: string): Promise<string | null> {
+  const latestLogs = await pb.collection("sleep_logs").getList<SleepLogRecord>(1, 1, {
+    filter: pb.filter("child_id = {:childId}", { childId }),
+    sort: "-created",
+  });
+  return latestLogs.items[0]?.id ?? null;
 }
 
 /**
- * Obsługuje wyłączenie anomalii z kalibracji na podstawie przekazanych parametrów.
+ * Wyłącza anomalię z kalibracji; wpis musi należeć do dziecka, którego dotyczy wniosek.
  *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {CorrectInsightRequestBody} payload - Dane żądania
- * @param {string} [childId] - Opcjonalny identyfikator dziecka
+ * @param {string} childId - Dziecko, którego dotyczy wniosek
  * @returns {Promise<string | null>} Identyfikator zaktualizowanego logu
  */
 async function handleAnomalyCalibrationExclusion(
+  pb: PocketBase,
   payload: CorrectInsightRequestBody,
-  childId?: string,
+  childId: string,
 ): Promise<string | null> {
+  let targetLogId: string | null = null;
+
   if (payload.sleepLogIdToIgnore) {
-    await markSleepLogAsIgnored(payload.sleepLogIdToIgnore);
-    return payload.sleepLogIdToIgnore;
+    const log = await pb
+      .collection("sleep_logs")
+      .getOne<SleepLogRecord>(payload.sleepLogIdToIgnore);
+    if (log.child_id !== childId) {
+      throw new ApiAuthError("Wpis snu nie należy do tego dziecka.", 403);
+    }
+    targetLogId = log.id;
+  } else if (payload.isAnomalyException) {
+    targetLogId = await findLatestSleepLogId(pb, childId);
   }
 
-  if (payload.isAnomalyException && childId) {
-    return await markLatestSleepLogAsIgnored(childId);
+  if (targetLogId) {
+    await pb.collection("sleep_logs").update(targetLogId, { ignore_in_calibration: true });
   }
-
-  return null;
-}
-
-/**
- * Pobiera istniejący rekord wniosku z PocketBase.
- *
- * @param {string} insightId - Identyfikator wniosku
- * @returns {Promise<ChildInsightRecord | null>} Pobrany rekord lub null
- */
-async function fetchExistingInsight(insightId: string): Promise<ChildInsightRecord | null> {
-  try {
-    return await pb.collection("child_insights").getOne<ChildInsightRecord>(insightId);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Zapisuje aktualizację wniosku w PocketBase lub zwraca symulowany rekord.
- *
- * @param {string} insightId - Identyfikator wniosku
- * @param {Record<string, unknown>} updateData - Dane aktualizacji
- * @param {ChildInsightRecord | null} fallback - Rekord bazowy w trybie offline
- * @returns {Promise<ChildInsightRecord>} Zaktualizowany rekord
- */
-async function persistInsightUpdate(
-  insightId: string,
-  updateData: Record<string, unknown>,
-  fallback: ChildInsightRecord | null,
-): Promise<ChildInsightRecord> {
-  try {
-    return await pb.collection("child_insights").update<ChildInsightRecord>(insightId, updateData);
-  } catch {
-    return {
-      ...(fallback || {
-        id: insightId,
-        child_id: "child_default",
-        category: "CAT2_BEDTIME_RESISTANCE_LATENCY",
-        diagnosis_code: "OVERTIRED_FUSS",
-        title: "Korekta rodzica",
-        explanation: "Zaktualizowano preferencje.",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }),
-      ...updateData,
-      updated: new Date().toISOString(),
-    } as ChildInsightRecord;
-  }
+  return targetLogId;
 }
 
 /**
  * Route Handler POST /api/ai/correct-insight (Human-in-the-Loop)
  *
  * @description
- * Umożliwia rodzicowi zatwierdzenie, odrzucenie lub modyfikację reguły AI.
+ * Wymaga tokena użytkownika. Umożliwia rodzicowi zatwierdzenie, odrzucenie lub modyfikację reguły AI.
  * Przy anomaliach wyklucza zniekształcony wpis z kalibracji algorytmu (ignore_in_calibration = true)
  * oraz zapisuje nadpisane parametry w algorithm_override_json.
  *
@@ -187,31 +125,38 @@ async function persistInsightUpdate(
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    const { pb } = await authenticateRequest(request);
+
     const payload = (await request.json()) as CorrectInsightRequestBody;
     const validationError = validateCorrectionPayload(payload);
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const existingInsight = await fetchExistingInsight(payload.insightId);
-    const updateData = buildInsightUpdatePayload(payload);
-    const updatedInsight = await persistInsightUpdate(
-      payload.insightId,
-      updateData,
-      existingInsight,
-    );
+    // Reguły API PocketBase zwracają 404, jeśli wniosek należy do innego gospodarstwa.
+    let existingInsight: ChildInsightRecord;
+    try {
+      existingInsight = await pb
+        .collection("child_insights")
+        .getOne<ChildInsightRecord>(payload.insightId);
+    } catch {
+      return NextResponse.json({ error: "Nie znaleziono wniosku." }, { status: 404 });
+    }
 
     const ignoredSleepLogId = await handleAnomalyCalibrationExclusion(
+      pb,
       payload,
-      existingInsight?.child_id,
+      existingInsight.child_id,
     );
+    const updatedInsight = await pb
+      .collection("child_insights")
+      .update<ChildInsightRecord>(payload.insightId, buildInsightUpdatePayload(payload));
 
-    return NextResponse.json({
-      success: true,
-      insight: updatedInsight,
-      ignoredSleepLogId,
-    });
+    return NextResponse.json({ success: true, insight: updatedInsight, ignoredSleepLogId });
   } catch (error) {
+    if (error instanceof ApiAuthError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
+    }
     const errorMessage = error instanceof Error ? error.message : "Błąd aktualizacji wniosku.";
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }

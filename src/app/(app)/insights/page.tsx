@@ -19,6 +19,8 @@ import { useInsightsState } from "@/components/insights/useInsightsState";
  */
 export default function InsightsPage(): ReactNode {
   const {
+    loadStatus,
+    errorMessage,
     activeInsights,
     hypothesisInsights,
     historyTimelineInsights,
@@ -35,6 +37,21 @@ export default function InsightsPage(): ReactNode {
   return (
     <main className="w-full flex flex-col gap-4 pb-8">
       <InsightsHeader isEvaluating={isEvaluating} onTriggerEvaluation={handleTriggerAiEvaluation} />
+
+      {errorMessage && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300"
+        >
+          {errorMessage}
+        </p>
+      )}
+      {loadStatus === "loading" && <p className="text-sm text-slate-400">Ładowanie wniosków…</p>}
+      {loadStatus === "empty" && (
+        <p className="text-sm text-slate-400">
+          Nie dodano jeszcze dziecka do Twojego gospodarstwa domowego.
+        </p>
+      )}
 
       <ActiveInsightsSection
         insights={activeInsights}

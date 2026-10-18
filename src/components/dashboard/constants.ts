@@ -2,7 +2,6 @@ import type { ActiveDayMode, InterventionLevel, SleepMood } from "@/lib/types/da
 
 export const REM_COUNTDOWN_SECONDS = 60;
 export const NEWBORN_THRESHOLD_DAYS = 112; // 16 tygodni
-export const DEFAULT_BATTERY_PERCENT = 82;
 export const FALLBACK_LAST_NAP_CAPPING = "16:45";
 
 export interface DayModeConfigItem {

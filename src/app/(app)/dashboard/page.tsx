@@ -22,11 +22,36 @@ import { useDashboardState } from "@/components/dashboard/useDashboardState";
 export default function DashboardPage() {
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const state = useDashboardState();
+  const { child } = state;
+
+  if (!child) {
+    const message =
+      state.loadStatus === "loading"
+        ? "Ładowanie…"
+        : state.loadStatus === "error"
+          ? `Nie udało się pobrać danych: ${state.errorMessage ?? "nieznany błąd"}`
+          : "Nie dodano jeszcze dziecka do Twojego gospodarstwa domowego.";
+    return (
+      <main className="w-full p-6 text-sm text-slate-400" role="status">
+        {message}
+      </main>
+    );
+  }
 
   return (
     <main className="w-full flex flex-col gap-3 pb-8">
+      {state.isDemoData && (
+        <p className="rounded-lg bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
+          Dane demonstracyjne (tryb developerski)
+        </p>
+      )}
+      {state.errorMessage && (
+        <p role="alert" className="rounded-lg bg-red-500/10 px-3 py-1 text-xs text-red-300">
+          {state.errorMessage}
+        </p>
+      )}
       <DashboardHeader
-        child={state.child}
+        child={child}
         ageDisplay={state.ageDisplay}
         onSelectDayMode={state.handleSelectDayMode}
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
@@ -43,7 +68,7 @@ export default function DashboardPage() {
       />
       <HeroWidget
         currentSleepLog={state.currentSleepLog}
-        isAntiOrthosomnia={state.child.anti_orthosomnia_mode}
+        isAntiOrthosomnia={child.anti_orthosomnia_mode}
         countdownDisplay={state.countdownDisplay}
         sweetSpotTimeDisplay={state.sweetSpotTimeDisplay}
         compassRangeDisplay={state.compassRangeDisplay}
@@ -54,8 +79,8 @@ export default function DashboardPage() {
         latestLastNapEndAt={state.latestLastNapEndAt}
       />
       <PhysiologicalTimeline
-        physiologicalDateDisplay="Doba: Poniedziałek, 18 października"
-        morningWakeTimeDisplay="07:15"
+        physiologicalDateDisplay={`Doba: ${state.physiologicalDateDisplay}`}
+        morningWakeTimeDisplay={state.morningWakeTimeDisplay}
         events={state.timelineEvents}
       />
       <FloatingActionBar

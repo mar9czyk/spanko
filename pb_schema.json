@@ -65,8 +65,8 @@
     "indexes": [],
     "listRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
     "viewRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
-    "createRule": "",
-    "updateRule": "id = @request.auth.id || @request.auth.is_admin = true",
+    "createRule": "@request.body.is_admin:isset = false",
+    "updateRule": "(id = @request.auth.id && @request.body.is_admin:isset = false) || @request.auth.is_admin = true",
     "deleteRule": "id = @request.auth.id || @request.auth.is_admin = true",
     "options": {
       "allowEmailAuth": true,
@@ -131,8 +131,8 @@
     "indexes": [
       "CREATE UNIQUE INDEX `idx_households_invite_code` ON `households` (`invite_code`) WHERE `invite_code` != ''"
     ],
-    "listRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)",
-    "viewRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)",
+    "listRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)",
+    "viewRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)",
     "createRule": "@request.auth.id != ''",
     "updateRule": "@request.auth.household_id = id",
     "deleteRule": "@request.auth.household_id = id",
@@ -222,6 +222,20 @@
         "presentable": false,
         "unique": false,
         "options": {}
+      },
+      {
+        "id": "child_timezone_f",
+        "name": "timezone",
+        "type": "text",
+        "system": false,
+        "required": false,
+        "presentable": false,
+        "unique": false,
+        "options": {
+          "min": 0,
+          "max": 64,
+          "pattern": ""
+        }
       }
     ],
     "indexes": ["CREATE INDEX `idx_children_household` ON `children` (`household_id`)"],

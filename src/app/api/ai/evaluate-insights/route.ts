@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { evaluateSleepInsightsWithOpenRouter } from "@/lib/openrouter";
-import { pb } from "@/lib/pocketbase";
+import type PocketBase from "pocketbase";
+import { evaluateSleepInsightsWithOpenRouter, fetchAdminSettings } from "@/lib/openrouter";
+import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
 import {
   calculateChronicDrive,
   calculateEffectiveAgeDays,
@@ -13,28 +14,16 @@ import type {
   DiagnosticTreeResult,
   SleepLog,
 } from "@/lib/sleep-engine/types";
+import { aggregateDailySleepSummaries } from "@/lib/sleep-summary";
 import type { ChildInsightRecord, ChildRecord, SleepLogRecord } from "@/lib/types/database";
 
 export const DEFAULT_FALLBACK_BEDTIME_MINUTES = 1200;
 export const MINUTES_PER_HOUR = 60;
-export const MILLISECONDS_PER_MINUTE = 60_000;
+export const DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD = 20;
+export const AI_LIMIT_WINDOW_MS = 86_400_000;
 
 interface EvaluateInsightsRequestBody {
   readonly childId: string;
-}
-
-/**
- * Przelicza różnicę czasu w milisekundach na minuty.
- *
- * @param {string | undefined} startIso - Czas rozpoczęcia w formacie ISO
- * @param {string | undefined} endIso - Czas zakończenia w formacie ISO
- * @returns {number} Czas trwania w minutach
- */
-function calculateDurationInMinutes(startIso?: string, endIso?: string): number {
-  if (!startIso || !endIso) return 0;
-  const startTime = new Date(startIso).getTime();
-  const endTime = new Date(endIso).getTime();
-  return Math.max(0, Math.round((endTime - startTime) / MILLISECONDS_PER_MINUTE));
 }
 
 /**
@@ -64,93 +53,77 @@ function mapRecordToSleepLog(record: SleepLogRecord): SleepLog {
 }
 
 /**
- * Grupuje logi snu po dacie fizjologicznej i oblicza dobowe sumy snu.
+ * Pobiera dane dziecka; reguły API zwrócą błąd, jeśli dziecko nie należy do gospodarstwa użytkownika.
  *
- * @param {readonly SleepLogRecord[]} records - Lista logów z bazy danych
- * @returns {DailySleepSummary[]} Podsumowania dobowe dla ostatnich dni
- */
-function aggregateDailySleepSummaries(records: readonly SleepLogRecord[]): DailySleepSummary[] {
-  const groupedByDate = new Map<string, { totalSleepMin: number; isIllOrIgnored: boolean }>();
-
-  for (const record of records) {
-    if (record.status !== "completed") continue;
-    const dateKey = record.physiological_date;
-    const duration = calculateDurationInMinutes(
-      record.fell_asleep_at || record.put_down_at,
-      record.woke_up_at,
-    );
-
-    const existing = groupedByDate.get(dateKey) || { totalSleepMin: 0, isIllOrIgnored: false };
-    groupedByDate.set(dateKey, {
-      totalSleepMin: existing.totalSleepMin + duration,
-      isIllOrIgnored: existing.isIllOrIgnored || record.ignore_in_calibration,
-    });
-  }
-
-  return Array.from(groupedByDate.entries()).map(([dateKey, values]) => ({
-    physiologicalDate: dateKey,
-    totalSleepMin: values.totalSleepMin,
-    isIllOrIgnored: values.isIllOrIgnored,
-  }));
-}
-
-/**
- * Pobiera dane dziecka z PocketBase lub tworzy obiekt zastępczy w trybie offline.
- *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} childId - Identyfikator dziecka
+ * @throws {ApiAuthError} 404 gdy dziecko nie istnieje lub nie jest dostępne dla użytkownika
  * @returns {Promise<ChildRecord>} Rekord dziecka
  */
-async function loadChildRecord(childId: string): Promise<ChildRecord> {
+async function loadChildRecord(pb: PocketBase, childId: string): Promise<ChildRecord> {
   try {
     return await pb.collection("children").getOne<ChildRecord>(childId);
   } catch {
-    return {
-      id: childId,
-      household_id: "household_default",
-      name: "Dziecko",
-      birth_date: new Date(Date.now() - 150 * 86_400_000).toISOString(),
-      active_day_mode: "home",
-      anti_orthosomnia_mode: false,
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    };
+    throw new ApiAuthError("Nie znaleziono dziecka.", 404);
   }
 }
 
 /**
- * Pobiera logi snu dla dziecka z ostatnich 14 dni z PocketBase.
+ * Pobiera logi snu dla dziecka z PocketBase.
  *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} childId - Identyfikator dziecka
  * @returns {Promise<SleepLogRecord[]>} Lista logów snu
  */
-async function loadSleepLogRecords(childId: string): Promise<SleepLogRecord[]> {
-  try {
-    const listResult = await pb.collection("sleep_logs").getList<SleepLogRecord>(1, 100, {
-      filter: pb.filter("child_id = {:childId}", { childId }),
-      sort: "-created",
-    });
-    return listResult.items;
-  } catch {
-    return [];
-  }
+async function loadSleepLogRecords(pb: PocketBase, childId: string): Promise<SleepLogRecord[]> {
+  const listResult = await pb.collection("sleep_logs").getList<SleepLogRecord>(1, 100, {
+    filter: pb.filter("child_id = {:childId}", { childId }),
+    sort: "-created",
+  });
+  return listResult.items;
 }
 
 /**
  * Pobiera aktualnie aktywny lub oczekujący wniosek dziecka.
  *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} childId - Identyfikator dziecka
  * @returns {Promise<ChildInsightRecord | null>} Aktywny wniosek lub null
  */
-async function loadActiveInsight(childId: string): Promise<ChildInsightRecord | null> {
-  try {
-    const result = await pb.collection("child_insights").getFirstListItem<ChildInsightRecord>(
-      pb.filter("child_id = {:childId} && (status = 'active' || status = 'hypothesis')", {
-        childId,
-      }),
-    );
-    return result;
-  } catch {
-    return null;
+async function loadActiveInsight(
+  pb: PocketBase,
+  childId: string,
+): Promise<ChildInsightRecord | null> {
+  const result = await pb.collection("child_insights").getList<ChildInsightRecord>(1, 1, {
+    filter: pb.filter("child_id = {:childId} && (status = 'active' || status = 'hypothesis')", {
+      childId,
+    }),
+    sort: "-created",
+  });
+  return result.items[0] ?? null;
+}
+
+/**
+ * Egzekwuje dzienny limit zapytań AI dla gospodarstwa (liczony jako wnioski z ostatnich 24h).
+ *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
+ * @param {string} householdId - Identyfikator gospodarstwa
+ * @throws {ApiAuthError} 429 po przekroczeniu limitu
+ */
+async function enforceDailyAiLimit(pb: PocketBase, householdId: string): Promise<void> {
+  const adminSettings = await fetchAdminSettings();
+  const limit = adminSettings?.ai_daily_limit_per_household ?? DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD;
+  const since = new Date(Date.now() - AI_LIMIT_WINDOW_MS).toISOString();
+
+  const recent = await pb.collection("child_insights").getList(1, 1, {
+    filter: pb.filter("child_id.household_id = {:householdId} && created >= {:since}", {
+      householdId,
+      since,
+    }),
+  });
+
+  if (recent.totalItems >= limit) {
+    throw new ApiAuthError("Dzienny limit zapytań AI dla gospodarstwa został wyczerpany.", 429);
   }
 }
 
@@ -191,20 +164,24 @@ function buildDiagnosticInput(params: {
 /**
  * Zapisuje nowy rekord wniosku w kolekcji child_insights.
  *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {object} payload - Parametry nowego wniosku
  * @returns {Promise<ChildInsightRecord>} Nowo utworzony wniosek
  */
-async function saveNewInsightRecord(payload: {
-  childId: string;
-  category: string;
-  diagnosisCode: string;
-  status: "active" | "hypothesis";
-  title: string;
-  explanation: string;
-  algorithmOverrideJson: Record<string, unknown>;
-  confidenceScore: number;
-  previousInsightId?: string;
-}): Promise<ChildInsightRecord> {
+async function saveNewInsightRecord(
+  pb: PocketBase,
+  payload: {
+    childId: string;
+    category: string;
+    diagnosisCode: string;
+    status: "active" | "hypothesis";
+    title: string;
+    explanation: string;
+    algorithmOverrideJson: Record<string, unknown>;
+    confidenceScore: number;
+    previousInsightId?: string;
+  },
+): Promise<ChildInsightRecord> {
   const newRecordData = {
     child_id: payload.childId,
     category: payload.category,
@@ -219,34 +196,26 @@ async function saveNewInsightRecord(payload: {
     valid_from: new Date().toISOString(),
   };
 
-  try {
-    return await pb.collection("child_insights").create<ChildInsightRecord>(newRecordData);
-  } catch {
-    return {
-      ...newRecordData,
-      id: `insight_${Date.now()}`,
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    };
-  }
+  return await pb.collection("child_insights").create<ChildInsightRecord>(newRecordData);
 }
 
 /**
  * Aktualizuje poprzedni aktywny wniosek ustawiając status superseded i wskaźnik nowszego wniosku.
  *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} previousId - Identyfikator zastępowanego wniosku
  * @param {string} newerId - Identyfikator nowego wniosku
  */
-async function archiveSupersededInsight(previousId: string, newerId: string): Promise<void> {
-  try {
-    await pb.collection("child_insights").update(previousId, {
-      status: "superseded",
-      superseded_by_id: newerId,
-      valid_until: new Date().toISOString(),
-    });
-  } catch {
-    // Brak akcji w trybie offline/mock
-  }
+async function archiveSupersededInsight(
+  pb: PocketBase,
+  previousId: string,
+  newerId: string,
+): Promise<void> {
+  await pb.collection("child_insights").update(previousId, {
+    status: "superseded",
+    superseded_by_id: newerId,
+    valid_until: new Date().toISOString(),
+  });
 }
 
 /**
@@ -278,15 +247,22 @@ function resolveSignificantDiagnostics(
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    const { pb, user } = await authenticateRequest(request);
+
     const body = (await request.json()) as EvaluateInsightsRequestBody;
     const childId = body?.childId;
     if (!childId) {
       return NextResponse.json({ error: "Wymagane pole childId." }, { status: 400 });
     }
 
-    const child = await loadChildRecord(childId);
-    const sleepRecords = await loadSleepLogRecords(childId);
-    const existingActiveInsight = await loadActiveInsight(childId);
+    const child = await loadChildRecord(pb, childId);
+    if (child.household_id !== user.household_id) {
+      throw new ApiAuthError("Brak dostępu do tego dziecka.", 403);
+    }
+    await enforceDailyAiLimit(pb, user.household_id);
+
+    const sleepRecords = await loadSleepLogRecords(pb, childId);
+    const existingActiveInsight = await loadActiveInsight(pb, childId);
 
     const nowIso = new Date().toISOString();
     const effectiveAgeDays = calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso);
@@ -325,7 +301,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       activeInsights: existingActiveInsight ? [existingActiveInsight] : [],
     });
 
-    const savedInsight = await saveNewInsightRecord({
+    const savedInsight = await saveNewInsightRecord(pb, {
       childId: child.id,
       category: aiInsight.category,
       diagnosisCode: aiInsight.diagnosis_code,
@@ -338,7 +314,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     if (existingActiveInsight?.id) {
-      await archiveSupersededInsight(existingActiveInsight.id, savedInsight.id);
+      await archiveSupersededInsight(pb, existingActiveInsight.id, savedInsight.id);
     }
 
     return NextResponse.json({
@@ -347,6 +323,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       supersededInsightId: existingActiveInsight?.id,
     });
   } catch (error) {
+    if (error instanceof ApiAuthError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
+    }
     const errorMessage =
       error instanceof Error ? error.message : "Nieznany błąd ewaluacji wniosków.";
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });

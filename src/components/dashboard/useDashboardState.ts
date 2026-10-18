@@ -1,77 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
 import {
+  calculateChronicDrive,
   calculateCircadianParameters,
   calculateEffectiveAgeDays,
+  DEFAULT_TIME_ZONE,
+  formatDateToCalendarString,
   getAgeBracket,
   predictNextSleepSlot,
+  resolvePhysiologicalDate,
 } from "@/lib/sleep-engine";
+import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
   ActiveDayMode,
   BreastSide,
   ChildInsightRecord,
   ChildRecord,
+  DayContextRecord,
   FeedingType,
   InterventionLevel,
   SleepLogRecord,
   SleepMood,
 } from "@/lib/types/database";
-import { DEFAULT_BATTERY_PERCENT, FALLBACK_LAST_NAP_CAPPING } from "./constants";
+import { FALLBACK_LAST_NAP_CAPPING } from "./constants";
+import {
+  DEV_FIXTURE_CHILD,
+  DEV_FIXTURE_INSIGHT,
+  DEV_FIXTURE_TIMELINE,
+  IS_DEV_FIXTURES_ENABLED,
+} from "./devFixtures";
 import type { TimelineEvent } from "./types";
 
-const INITIAL_CHILD: ChildRecord = {
-  id: "mock_child_tymon",
-  household_id: "mock_household",
-  name: "Tymon",
-  birth_date: "2026-07-15T08:00:00.000Z",
-  active_day_mode: "home",
-  anti_orthosomnia_mode: false,
-  created: new Date().toISOString(),
-  updated: new Date().toISOString(),
-};
+export type DashboardLoadStatus = "loading" | "ready" | "empty" | "error";
 
-const INITIAL_INSIGHT: ChildInsightRecord = {
-  id: "mock_insight_1",
-  child_id: "mock_child_tymon",
-  category: "Korekta okna czuwania",
-  diagnosis_code: "SHORT_CYCLE_COMPENSATION",
-  status: "active",
-  title: "Skróć okno czuwania po krótkiej drzemce",
-  explanation:
-    "Poprzednia drzemka trwała tylko 35 min. Kolejne okno czuwania skrócone o 20 min, by zapobiec przemęczeniu.",
-  confidence_score: 0.92,
-  parent_feedback: "pending",
-  created: new Date().toISOString(),
-  updated: new Date().toISOString(),
-};
+const MIN_PER_HOUR = 60;
+const MS_PER_SECOND = 1000;
+const PLACEHOLDER_TIME = "—";
+const RECENT_LOGS_LIMIT = 100;
+const MORNING_WAKE_SAMPLE_SIZE = 5;
 
-const INITIAL_TIMELINE: readonly TimelineEvent[] = [
-  {
-    id: "event_1",
-    kind: "nap",
-    type: "nap",
-    status: "completed",
-    startTime: "09:30",
-    endTime: "10:15",
-    durationMinutes: 45,
-    mood: "easy",
-  },
-  {
-    id: "event_2",
-    kind: "feeding",
-    time: "10:25",
-    feedingType: "breast",
-    breastSide: "left",
-  },
-  {
-    id: "event_3",
-    kind: "tag",
-    time: "11:00",
-    tags: ["spacer", "wózek"],
-  },
-];
+const REASON_DESCRIPTIONS: Record<string, string> = {
+  BASE_AGE_INTERPOLATION: "Okno dopasowane do wieku dziecka",
+  MICRO_NAP_PENALTY_35PCT: "Bardzo krótka poprzednia drzemka (okno skrócone)",
+  SHORT_CYCLE_NAP_PENALTY_20M: "Krótka poprzednia drzemka (-20 min)",
+  RESTORATIVE_NAP_BONUS: "Długa, regenerująca drzemka (+12 min)",
+  CHRONIC_SLEEP_DEBT_COMPENSATION: "Kompensacja długu sennego",
+  ILLNESS_PROTECTIVE_MODE: "Tryb ochronny: choroba/regresja",
+  FLEXIBLE_ON_THE_GO_WINDOW: "Elastyczne okno w drodze",
+  CIRCADIAN_WMZ_AVOIDANCE_SHIFT: "Przesunięcie poza Strefę Zakazaną",
+};
 
 /**
  * Zwraca czytelny ciąg wieku dziecka w tygodniach i miesiącach.
@@ -89,88 +69,313 @@ export function formatChildAge(days: number): string {
 }
 
 /**
+ * Formatuje moment ISO do zegara HH:mm w czasie lokalnym urządzenia.
+ *
+ * @param {string | undefined} iso - Moment w formacie ISO
+ * @returns {string} Godzina lub znak zastępczy
+ */
+function formatClock(iso?: string): string {
+  if (!iso) return PLACEHOLDER_TIME;
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Formatuje liczbę sekund jako HH:MM:SS (wartości ujemne zwracają 00:00:00).
+ *
+ * @param {number} totalSeconds - Liczba sekund
+ * @returns {string} Sformatowany czas
+ */
+function formatCountdown(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+/**
+ * Zamienia log snu na element osi czasu.
+ *
+ * @param {SleepLogRecord} log - Zakończony wpis snu
+ * @returns {TimelineEvent} Zdarzenie osi czasu
+ */
+function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
+  const startIso = log.fell_asleep_at || log.put_down_at;
+  return {
+    id: log.id,
+    kind: "nap",
+    type: log.type,
+    status: log.status,
+    startTime: formatClock(startIso),
+    endTime: log.woke_up_at ? formatClock(log.woke_up_at) : undefined,
+    durationMinutes: calculateDurationInMinutes(startIso, log.woke_up_at),
+    mood: log.mood,
+  };
+}
+
+/**
+ * Zamienia wpis day_context na element osi czasu (karmienie lub tagi dnia).
+ *
+ * @param {DayContextRecord} record - Rekord day_context
+ * @returns {TimelineEvent} Zdarzenie osi czasu
+ */
+function mapDayContextToTimelineEvent(record: DayContextRecord): TimelineEvent {
+  if (record.feeding_type === "none") {
+    return {
+      id: record.id,
+      kind: "tag",
+      time: formatClock(record.timestamp),
+      tags: record.tags ?? [],
+      notes: record.notes,
+    };
+  }
+  return {
+    id: record.id,
+    kind: "feeding",
+    time: formatClock(record.timestamp),
+    feedingType: record.feeding_type,
+    breastSide: record.breast_side,
+    bottleMl: record.bottle_ml,
+    notes: record.notes,
+  };
+}
+
+/**
  * Główny hook zarządzający stanem widoku Dashboard oraz subskrypcją SSE PocketBase.
  *
  * @description
- * Koordynuje deterministyczny silnik snu (SweetSpot, Capping, Bateria) z subskrypcją
- * `pb.collection('sleep_logs').subscribe('*')`, zapewniając natychmiastową synchronizację
- * między urządzeniami obojga rodziców w czasie rzeczywistym.
+ * Ładuje dziecko, wnioski, logi snu i kontekst dnia z PocketBase, wylicza predykcje
+ * deterministycznym silnikiem snu i synchronizuje stoper przez
+ * `pb.collection('sleep_logs').subscribe('*')`. Przy braku danych lub błędzie zwraca jawny
+ * status (`empty` / `error`); dane demonstracyjne są dostępne wyłącznie w trybie developerskim.
  *
  * @returns {object} Stan i funkcje sterujące pulpitem
  */
 export function useDashboardState() {
-  const [child, setChild] = useState<ChildRecord>(INITIAL_CHILD);
-  const [activeInsight, setActiveInsight] = useState<ChildInsightRecord | null>(INITIAL_INSIGHT);
+  const [loadStatus, setLoadStatus] = useState<DashboardLoadStatus>("loading");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDemoData, setIsDemoData] = useState(false);
+  const [child, setChild] = useState<ChildRecord | null>(null);
+  const [activeInsight, setActiveInsight] = useState<ChildInsightRecord | null>(null);
+  const [recentLogs, setRecentLogs] = useState<readonly SleepLogRecord[]>([]);
+  const [dayContext, setDayContext] = useState<readonly DayContextRecord[]>([]);
+  const [localTimelineEvents, setLocalTimelineEvents] = useState<readonly TimelineEvent[]>([]);
   const [currentSleepLog, setCurrentSleepLog] = useState<SleepLogRecord | null>(null);
-  const [timelineEvents, setTimelineEvents] = useState<readonly TimelineEvent[]>(INITIAL_TIMELINE);
   const [pendingMorningWakingReview, setPendingMorningWakingReview] = useState<readonly string[]>(
     [],
   );
-
-  const [nowIso, setNowIso] = useState<string>("2026-10-18T12:00:00.000Z");
+  const [nowIso, setNowIso] = useState<string>(() => new Date().toISOString());
 
   useEffect(() => {
-    setNowIso(new Date().toISOString());
+    const timer = setInterval(() => setNowIso(new Date().toISOString()), MS_PER_SECOND);
+    return () => clearInterval(timer);
   }, []);
 
-  const effectiveAgeDays = calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso);
-  const ageBracket = getAgeBracket(effectiveAgeDays);
+  const loadDashboardData = useCallback(async () => {
+    try {
+      const activeChild = await loadActiveChild();
+      if (!activeChild) {
+        if (IS_DEV_FIXTURES_ENABLED) {
+          setChild(DEV_FIXTURE_CHILD);
+          setActiveInsight(DEV_FIXTURE_INSIGHT);
+          setLocalTimelineEvents(DEV_FIXTURE_TIMELINE);
+          setIsDemoData(true);
+          setLoadStatus("ready");
+        } else {
+          setLoadStatus("empty");
+        }
+        return;
+      }
 
-  const circadianParams = calculateCircadianParameters({
-    morningWakeTimesLast5DaysMinutesFromMidnight: [420, 435, 415, 425, 430],
-    bracket: ageBracket,
-  });
+      const childFilter = pb.filter("child_id = {:childId}", { childId: activeChild.id });
+      const [logsResult, insightResult] = await Promise.all([
+        pb.collection("sleep_logs").getList<SleepLogRecord>(1, RECENT_LOGS_LIMIT, {
+          filter: childFilter,
+          sort: "-created",
+        }),
+        pb.collection("child_insights").getList<ChildInsightRecord>(1, 1, {
+          filter: pb.filter("child_id = {:childId} && status = 'active'", {
+            childId: activeChild.id,
+          }),
+          sort: "-created",
+        }),
+      ]);
 
-  const lastWakeUpMs = new Date(nowIso).getTime() - 60 * 60 * 1000;
-  const sweetSpotPrediction = predictNextSleepSlot({
-    lastWakeUpIso: new Date(lastWakeUpMs).toISOString(),
-    previousNapDurationMin: 45,
-    napIndexToday: 1,
-    bracket: ageBracket,
-    effectiveAgeDays,
-    chronicSleepDebtMin: 20,
-    dayMode: child.active_day_mode,
-    biologicalBedtimeMinFromMidnight: circadianParams.biologicalBedtimeMinFromMidnight,
-    insightWwOffsetMin: -15,
-  });
+      setChild(activeChild);
+      setRecentLogs(logsResult.items);
+      setCurrentSleepLog(logsResult.items.find((log) => log.status !== "completed") ?? null);
+      setActiveInsight(insightResult.items[0] ?? null);
+      setLoadStatus("ready");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Nie udało się pobrać danych.");
+      setLoadStatus("error");
+    }
+  }, []);
 
   useEffect(() => {
-    try {
-      pb.collection("sleep_logs").subscribe("*", (eventRecord) => {
-        if (eventRecord.action === "create" || eventRecord.action === "update") {
-          const updatedLog = eventRecord.record as unknown as SleepLogRecord;
-          if (updatedLog.status !== "completed") {
-            setCurrentSleepLog(updatedLog);
-          } else {
-            setCurrentSleepLog(null);
-          }
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  const timeZone = child?.timezone || DEFAULT_TIME_ZONE;
+  const latestNightLog = recentLogs.find((log) => log.type === "night");
+  const physiologicalDate = useMemo(
+    () =>
+      resolvePhysiologicalDate({
+        eventTimestamp: nowIso,
+        timeZone,
+        activeOrRecentNightSleep: latestNightLog
+          ? {
+              physiologicalDate: latestNightLog.physiological_date,
+              fellAsleepAt: latestNightLog.fell_asleep_at || latestNightLog.put_down_at || nowIso,
+              wokeUpAt: latestNightLog.woke_up_at,
+            }
+          : null,
+      }),
+    [nowIso, timeZone, latestNightLog],
+  );
+
+  useEffect(() => {
+    if (!child || isDemoData) return;
+    pb.collection("day_context")
+      .getList<DayContextRecord>(1, 100, {
+        filter: pb.filter("child_id = {:childId} && physiological_date = {:date}", {
+          childId: child.id,
+          date: physiologicalDate,
+        }),
+        sort: "-timestamp",
+      })
+      .then((result) => setDayContext(result.items))
+      .catch((error) =>
+        setErrorMessage(error instanceof Error ? error.message : "Błąd pobierania kontekstu dnia."),
+      );
+  }, [child, isDemoData, physiologicalDate]);
+
+  useEffect(() => {
+    if (!child || isDemoData) return;
+    const childId = child.id;
+    pb.collection("sleep_logs")
+      .subscribe<SleepLogRecord>("*", (eventRecord) => {
+        const updatedLog = eventRecord.record;
+        if (updatedLog.child_id !== childId) return;
+        if (eventRecord.action === "delete") {
+          setRecentLogs((prev) => prev.filter((log) => log.id !== updatedLog.id));
+          setCurrentSleepLog((prev) => (prev?.id === updatedLog.id ? null : prev));
+          return;
         }
-      });
-    } catch {
-      // Tryb offline/development bez aktywnego serwera PocketBase
-    }
+        setRecentLogs((prev) => [updatedLog, ...prev.filter((log) => log.id !== updatedLog.id)]);
+        setCurrentSleepLog(updatedLog.status !== "completed" ? updatedLog : null);
+      })
+      .catch((error) =>
+        setErrorMessage(error instanceof Error ? error.message : "Brak synchronizacji na żywo."),
+      );
 
     return () => {
-      try {
-        pb.collection("sleep_logs").unsubscribe("*");
-      } catch {
-        // Ignorowanie błędu odsubskrybowania w trybie offline
-      }
+      pb.collection("sleep_logs").unsubscribe("*");
     };
-  }, []);
+  }, [child, isDemoData]);
 
-  const handleSelectDayMode = (mode: ActiveDayMode) => {
-    setChild((prev) => ({ ...prev, active_day_mode: mode }));
+  const effectiveAgeDays = child
+    ? calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso)
+    : 0;
+  const ageBracket = getAgeBracket(effectiveAgeDays);
+
+  const chronicDrive = useMemo(
+    () =>
+      calculateChronicDrive(
+        aggregateDailySleepSummaries(recentLogs).filter(
+          (day) => day.physiologicalDate !== physiologicalDate,
+        ),
+        ageBracket,
+      ),
+    [recentLogs, physiologicalDate, ageBracket],
+  );
+
+  const morningWakeTimes = recentLogs
+    .filter((log) => log.type === "night" && log.status === "completed" && log.woke_up_at)
+    .slice(0, MORNING_WAKE_SAMPLE_SIZE)
+    .map((log) => {
+      const wake = new Date(log.woke_up_at ?? nowIso);
+      return wake.getHours() * MIN_PER_HOUR + wake.getMinutes();
+    });
+
+  const circadianParams = calculateCircadianParameters({
+    morningWakeTimesLast5DaysMinutesFromMidnight: morningWakeTimes,
+    bracket: ageBracket,
+  });
+
+  const lastCompletedLog = recentLogs.find((log) => log.status === "completed" && log.woke_up_at);
+  const todayNapsCount = recentLogs.filter(
+    (log) =>
+      log.type === "nap" &&
+      log.status === "completed" &&
+      log.physiological_date === physiologicalDate,
+  ).length;
+  const insightWwOffset = activeInsight?.algorithm_override_json?.wwOffsetMin;
+
+  const sweetSpotPrediction =
+    child && lastCompletedLog?.woke_up_at
+      ? predictNextSleepSlot({
+          lastWakeUpIso: lastCompletedLog.woke_up_at,
+          previousNapDurationMin:
+            lastCompletedLog.type === "nap"
+              ? calculateDurationInMinutes(
+                  lastCompletedLog.fell_asleep_at || lastCompletedLog.put_down_at,
+                  lastCompletedLog.woke_up_at,
+                )
+              : null,
+          napIndexToday: todayNapsCount,
+          bracket: ageBracket,
+          effectiveAgeDays,
+          chronicSleepDebtMin: chronicDrive.chronicSleepDebtMin,
+          dayMode: child.active_day_mode,
+          biologicalBedtimeMinFromMidnight: circadianParams.biologicalBedtimeMinFromMidnight,
+          insightWwOffsetMin: typeof insightWwOffset === "number" ? insightWwOffset : 0,
+        })
+      : null;
+
+  const timelineEvents = useMemo<readonly TimelineEvent[]>(() => {
+    const todayLogs = recentLogs
+      .filter((log) => log.physiological_date === physiologicalDate && log.status === "completed")
+      .map(mapSleepLogToTimelineEvent);
+    return [...localTimelineEvents, ...dayContext.map(mapDayContextToTimelineEvent), ...todayLogs];
+  }, [recentLogs, dayContext, localTimelineEvents, physiologicalDate]);
+
+  const reportError = (error: unknown, fallback: string) =>
+    setErrorMessage(error instanceof Error ? error.message : fallback);
+
+  const persistChildPatch = async (patch: Partial<ChildRecord>) => {
+    if (!child) return;
+    setChild({ ...child, ...patch });
+    if (isDemoData) return;
+    try {
+      await pb.collection("children").update(child.id, patch);
+    } catch (error) {
+      setChild(child);
+      reportError(error, "Nie udało się zapisać ustawień dziecka.");
+    }
   };
 
-  const handleToggleAntiOrthosomnia = () => {
-    setChild((prev) => ({ ...prev, anti_orthosomnia_mode: !prev.anti_orthosomnia_mode }));
-  };
+  const handleSelectDayMode = (mode: ActiveDayMode) => persistChildPatch({ active_day_mode: mode });
 
-  const handleAcceptInsight = (insightId: string) => {
+  const handleToggleAntiOrthosomnia = () =>
+    persistChildPatch({ anti_orthosomnia_mode: !child?.anti_orthosomnia_mode });
+
+  const handleAcceptInsight = async (insightId: string) => {
     setActiveInsight((prev) =>
       prev?.id === insightId ? { ...prev, parent_feedback: "accepted" } : prev,
     );
+    if (isDemoData) return;
+    try {
+      const response = await authorizedFetch("/api/ai/correct-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ insightId, feedback: "accepted" }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      reportError(error, "Nie udało się zapisać opinii o wniosku.");
+      await loadDashboardData();
+    }
   };
 
   const handleAdjustInsight = (insightId: string) => {
@@ -179,130 +384,159 @@ export function useDashboardState() {
     );
   };
 
-  const handleCycleSleepStatus = () => {
+  const saveSleepLog = async (log: SleepLogRecord, patch: Partial<SleepLogRecord>) => {
+    const next = { ...log, ...patch };
+    setCurrentSleepLog(next.status === "completed" ? null : next);
+    if (isDemoData) return;
+    try {
+      await pb.collection("sleep_logs").update(log.id, patch);
+    } catch (error) {
+      setCurrentSleepLog(log);
+      reportError(error, "Nie udało się zapisać snu.");
+    }
+  };
+
+  const startSleepLog = async () => {
+    if (!child) return;
+    const nowIsoValue = new Date().toISOString();
+    const hour = new Date().getHours();
+    const draft = {
+      child_id: child.id,
+      physiological_date: physiologicalDate,
+      type: hour >= 18 || hour < 6 ? ("night" as const) : ("nap" as const),
+      status: "falling_asleep" as const,
+      put_down_at: nowIsoValue,
+      interventions: [],
+      night_wakings: [],
+      is_rebound_sleep: false,
+      ignore_in_calibration: false,
+    };
+    if (isDemoData) {
+      setCurrentSleepLog({
+        ...draft,
+        id: `dev_sleep_${Date.now()}`,
+        created: nowIsoValue,
+        updated: nowIsoValue,
+      });
+      return;
+    }
+    try {
+      setCurrentSleepLog(await pb.collection("sleep_logs").create<SleepLogRecord>(draft));
+    } catch (error) {
+      reportError(error, "Nie udało się rozpocząć snu.");
+    }
+  };
+
+  const handleCycleSleepStatus = async () => {
     if (!currentSleepLog || currentSleepLog.status === "completed") {
-      const isEvening = new Date().getHours() >= 18 || new Date().getHours() < 6;
-      const newLog: SleepLogRecord = {
-        id: `sleep_${Date.now()}`,
-        child_id: child.id,
-        physiological_date: "2026-10-18",
-        type: isEvening ? "night" : "nap",
-        status: "falling_asleep",
-        put_down_at: new Date().toISOString(),
-        is_rebound_sleep: false,
-        ignore_in_calibration: false,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
-      setCurrentSleepLog(newLog);
+      await startSleepLog();
       return;
     }
 
     if (currentSleepLog.status === "falling_asleep") {
-      setCurrentSleepLog((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "sleeping",
-              fell_asleep_at: new Date().toISOString(),
-            }
-          : null,
-      );
+      await saveSleepLog(currentSleepLog, {
+        status: "sleeping",
+        fell_asleep_at: new Date().toISOString(),
+      });
       return;
     }
 
     if (currentSleepLog.status === "sleeping") {
-      const wokeIso = new Date().toISOString();
-      const finishedLog: SleepLogRecord = {
-        ...currentSleepLog,
-        status: "completed",
-        woke_up_at: wokeIso,
-      };
-
       if (currentSleepLog.type === "night" && currentSleepLog.night_wakings?.length) {
-        const wakingHourLabels = currentSleepLog.night_wakings.map((wake) =>
-          new Date(wake.wokeAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        setPendingMorningWakingReview(
+          currentSleepLog.night_wakings.map((wake) => formatClock(wake.wokeAt)),
         );
-        setPendingMorningWakingReview(wakingHourLabels);
       }
-
-      setCurrentSleepLog(null);
-      const newTimelineItem: TimelineEvent = {
-        id: finishedLog.id,
-        kind: "nap",
-        type: finishedLog.type,
+      await saveSleepLog(currentSleepLog, {
         status: "completed",
-        startTime: new Date(
-          finishedLog.fell_asleep_at || finishedLog.put_down_at || wokeIso,
-        ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        endTime: new Date(wokeIso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        durationMinutes: 40,
-        mood: "easy",
-      };
-      setTimelineEvents((prev) => [newTimelineItem, ...prev]);
+        woke_up_at: new Date().toISOString(),
+      });
     }
   };
 
-  const handleQuickNightWake = () => {
+  const handleQuickNightWake = async () => {
     if (!currentSleepLog) return;
-    const nowTime = new Date().toISOString();
-    const existingWakings = currentSleepLog.night_wakings || [];
     const updatedWakings = [
-      ...existingWakings,
+      ...(currentSleepLog.night_wakings || []),
       {
-        wokeAt: nowTime,
+        wokeAt: new Date().toISOString(),
         estimatedDurationMin: 15,
         fedMilk: true,
         interventions: ["bottle" as const],
       },
     ];
-    setCurrentSleepLog({
-      ...currentSleepLog,
-      night_wakings: updatedWakings,
-    });
+    await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
   };
 
   const handleResolveMorningWaking = (_minutes: number) => {
     setPendingMorningWakingReview([]);
   };
 
+  const saveDayContext = async (draft: {
+    feeding_type: FeedingType;
+    bottle_ml?: number;
+    breast_side?: BreastSide;
+    tags?: readonly string[];
+    notes?: string;
+  }) => {
+    if (!child) return;
+    const timestamp = new Date().toISOString();
+    if (isDemoData) {
+      const record = {
+        ...draft,
+        id: `dev_ctx_${Date.now()}`,
+        child_id: child.id,
+        physiological_date: physiologicalDate,
+        timestamp,
+        created: timestamp,
+        updated: timestamp,
+      };
+      setDayContext((prev) => [record, ...prev]);
+      return;
+    }
+    try {
+      const created = await pb.collection("day_context").create<DayContextRecord>({
+        ...draft,
+        child_id: child.id,
+        physiological_date: physiologicalDate,
+        timestamp,
+      });
+      setDayContext((prev) => [created, ...prev]);
+    } catch (error) {
+      reportError(error, "Nie udało się zapisać wpisu.");
+    }
+  };
+
   const handleSaveFeeding = (
     type: FeedingType,
     details: { side?: BreastSide; ml?: number; notes?: string },
-  ) => {
-    const timeNow = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const feedingEvent: TimelineEvent = {
-      id: `feed_${Date.now()}`,
-      kind: "feeding",
-      time: timeNow,
-      feedingType: type,
-      breastSide: details.side,
-      bottleMl: details.ml,
+  ) =>
+    saveDayContext({
+      feeding_type: type,
+      breast_side: details.side,
+      bottle_ml: details.ml,
       notes: details.notes,
-    };
-    setTimelineEvents((prev) => [feedingEvent, ...prev]);
-  };
+    });
 
-  const handleSaveMoodAndIntervention = (
+  const handleSaveMoodAndIntervention = async (
     mood: SleepMood,
     interventions: readonly InterventionLevel[],
   ) => {
     if (!currentSleepLog) return;
-    setCurrentSleepLog((prev) => (prev ? { ...prev, mood, interventions } : null));
+    await saveSleepLog(currentSleepLog, { mood, interventions });
   };
 
-  const handleSaveDayTag = (tag: string) => {
-    const timeNow = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const tagEvent: TimelineEvent = {
-      id: `tag_${Date.now()}`,
-      kind: "tag",
-      time: timeNow,
-      tags: [tag],
-    };
-    setTimelineEvents((prev) => [tagEvent, ...prev]);
-  };
+  const handleSaveDayTag = (tag: string) => saveDayContext({ feeding_type: "none", tags: [tag] });
+
+  const sweetSpotTime = sweetSpotPrediction?.sweetSpotIso;
+  const secondsToSweetSpot = sweetSpotTime
+    ? (new Date(sweetSpotTime).getTime() - new Date(nowIso).getTime()) / MS_PER_SECOND
+    : 0;
 
   return {
+    loadStatus,
+    errorMessage,
+    isDemoData,
     child,
     effectiveAgeDays,
     ageDisplay: formatChildAge(effectiveAgeDays),
@@ -310,22 +544,22 @@ export function useDashboardState() {
     currentSleepLog,
     timelineEvents,
     pendingMorningWakingReview,
-    sleepBatteryPercent: DEFAULT_BATTERY_PERCENT,
-    sleepNeedsProfile: "average" as const,
+    physiologicalDateDisplay: formatDateToCalendarString(
+      new Date(`${physiologicalDate}T12:00:00Z`),
+      "UTC",
+    ),
+    morningWakeTimeDisplay: formatClock(latestNightLog?.woke_up_at),
+    sleepBatteryPercent: chronicDrive.sleepBatteryPercent,
+    sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
     latestLastNapEndAt: circadianParams.latestLastNapEndAt || FALLBACK_LAST_NAP_CAPPING,
-    sweetSpotTimeDisplay: new Date(sweetSpotPrediction.sweetSpotIso).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-    compassRangeDisplay: `${new Date(sweetSpotPrediction.compassWindowStartIso).toLocaleTimeString(
-      [],
-      { hour: "2-digit", minute: "2-digit" },
-    )} — ${new Date(sweetSpotPrediction.compassWindowEndIso).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}`,
-    countdownDisplay: "00:32:15",
-    reasonDescription: "Krótka poprzednia drzemka (-20 min)",
+    sweetSpotTimeDisplay: formatClock(sweetSpotPrediction?.sweetSpotIso),
+    compassRangeDisplay: sweetSpotPrediction
+      ? `${formatClock(sweetSpotPrediction.compassWindowStartIso)} — ${formatClock(sweetSpotPrediction.compassWindowEndIso)}`
+      : PLACEHOLDER_TIME,
+    countdownDisplay: sweetSpotPrediction ? formatCountdown(secondsToSweetSpot) : PLACEHOLDER_TIME,
+    reasonDescription: sweetSpotPrediction
+      ? (REASON_DESCRIPTIONS[sweetSpotPrediction.reasonCode] ?? sweetSpotPrediction.reasonCode)
+      : "Brak zakończonego snu — zapisz pierwszą pobudkę, aby zobaczyć prognozę",
     handleSelectDayMode,
     handleToggleAntiOrthosomnia,
     handleAcceptInsight,

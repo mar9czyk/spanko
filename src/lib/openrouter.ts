@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pb } from "@/lib/pocketbase";
+import { getServiceClient } from "@/lib/server/auth";
 import type { AdminSettingsRecord, ChildInsightRecord } from "@/lib/types/database";
 
 export const OPENROUTER_COMPLETIONS_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
@@ -91,8 +91,13 @@ export function resolveOpenRouterApiKey(): string | undefined {
  */
 export async function fetchAdminSettings(): Promise<AdminSettingsRecord | null> {
   try {
-    const record = await pb.collection("admin_settings").getFirstListItem<AdminSettingsRecord>("");
-    return record;
+    const serviceClient = await getServiceClient();
+    if (!serviceClient) {
+      return null;
+    }
+    return await serviceClient
+      .collection("admin_settings")
+      .getFirstListItem<AdminSettingsRecord>("");
   } catch {
     return null;
   }

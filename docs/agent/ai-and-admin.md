@@ -84,3 +84,8 @@ Dostęp do panelu administratora jest rygorystycznie chroniony warunkiem:
 4. **Gospodarstwa Domowe i Monitoring Limitów:**
    - Wykaz zarejestrowanych rodzin.
    - Licznik dziennych zapytań AI i konfiguracja `ai_daily_limit_per_household`.
+
+## Zmienne środowiskowe serwera (endpointy `/api/ai/*`)
+- `POCKETBASE_INTERNAL_URL` (opcjonalnie; domyślnie `NEXT_PUBLIC_POCKETBASE_URL`) — adres PocketBase widziany przez serwer Next.js.
+- `POCKETBASE_SUPERUSER_EMAIL` / `POCKETBASE_SUPERUSER_PASSWORD` — konto superusera do odczytu `admin_settings` (reguły dopuszczają tylko admina). Bez nich używane są domyślne model/prompt i limit.
+- Endpointy wymagają nagłówka `Authorization: Bearer <token PocketBase>`; token jest weryfikowany `authRefresh`, a zapytania idą klientem użytkownika (reguły API gospodarstwa). Limit dzienny (`ai_daily_limit_per_household`, domyślnie 20) liczony jako wnioski z ostatnich 24h; po przekroczeniu zwracane jest 429.

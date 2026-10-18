@@ -29,6 +29,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 #### 3. `children` (Dzieci w Gospodarstwie)
 - `id` (string, primary key)
 - `household_id` (relation -> `households.id`, required)
+- `timezone` (string IANA, np. `Europe/Warsaw`; domyślnie `Europe/Warsaw` — wyznacza granicę doby fizjologicznej niezależnie od strefy serwera)
 - `name` (string)
 - `birth_date` (date/datetime, format ISO)
 - `due_date` (date/datetime, format ISO, opcjonalne — dla wcześniaków urodzonych $\ge 21$ dni przed terminem)
@@ -111,10 +112,10 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 * **`users`**:
   - `listRule`: `id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true`
   - `viewRule`: `id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true`
-  - `updateRule`: `id = @request.auth.id || @request.auth.is_admin = true` (umożliwia użytkownikowi aktualizację własnego profilu, w tym przypisanie `household_id` przy dołączaniu do rodziny)
+  - `updateRule`: `(id = @request.auth.id && @request.body.is_admin:isset = false) || @request.auth.is_admin = true` (blokuje samonadanie `is_admin`; umożliwia użytkownikowi aktualizację własnego profilu, w tym przypisanie `household_id` przy dołączaniu do rodziny)
 * **`households`**:
-  - `listRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)`
-  - `viewRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)`
+  - `listRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)`
+  - `viewRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)`
   - `createRule`: `@request.auth.id != ''`
   - `updateRule`: `@request.auth.household_id = id`
   - `deleteRule`: `@request.auth.household_id = id`
@@ -138,6 +139,6 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 1. Pierwszy rodzic loguje się przez Google OAuth2 $\rightarrow$ system tworzy `household` i przypisuje użytkownika (`users.household_id = new_household.id`).
 2. Rodzic generuje w profilu 6-znakowy kod zaproszenia (`invite_code`), ważny 24h (`invite_expires_at`).
 3. Drugi rodzic loguje się swoim kontem Google, wybiera "Dołącz do istniejącej rodziny", wpisuje kod.
-4. Klient wyszukuje gospodarstwo domowe po kodzie zaproszenia (`invite_code = code && invite_expires_at > now`). Dzięki regule `listRule` (`@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time`), zalogowany użytkownik niemający jeszcze `household_id` może bezpiecznie zlokalizować właściwe gospodarstwo.
+4. Klient wyszukuje gospodarstwo domowe po kodzie zaproszenia (`invite_code = code && invite_expires_at > now`). Klient przekazuje kod także jako `?code=` (`query: { code }`), a reguła `listRule`/`viewRule` wymaga `invite_code = @request.query.code`, więc nie da się wylistować cudzych kodów. Zalogowany użytkownik niemający jeszcze `household_id` może bezpiecznie zlokalizować właściwe gospodarstwo.
 5. Klient aktualizuje rekord użytkownika (`users.update(id, { household_id: target_household.id })`), co autoryzuje reguła `updateRule` dla `users` (`id = @request.auth.id`), a następnie odświeża sesję (`authRefresh`).
 6. Od tego momentu oboje rodzice posiadają ten sam `household_id` i mają pełny dostęp w czasie rzeczywistym do profilu dziecka, wpisów snu i stopera.

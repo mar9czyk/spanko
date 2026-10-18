@@ -13,6 +13,7 @@ export type { SleepLog };
 
 export const DEFAULT_NIGHT_FALLBACK_CUTOFF_HOUR = 6;
 export const MILLISECONDS_IN_DAY = 86_400_000;
+export const DEFAULT_TIME_ZONE = "Europe/Warsaw";
 
 export interface NightSleepReference {
   /** Data fizjologiczna snu nocnego w formacie YYYY-MM-DD */
@@ -30,6 +31,8 @@ export interface ResolvePhysiologicalDateOptions {
   readonly activeOrRecentNightSleep?: NightSleepReference | SleepLog | null;
   /** Godzina graniczna fallbacku nocnego (domyślnie 6:00 rano) */
   readonly fallbackCutoffHour?: number;
+  /** Strefa IANA, w której liczona jest doba (domyślnie Europe/Warsaw, niezależnie od strefy serwera) */
+  readonly timeZone?: string;
 }
 
 /**
@@ -45,28 +48,88 @@ export function parseTimestampToMilliseconds(timestamp: Date | string | number):
   return new Date(timestamp).getTime();
 }
 
-/**
- * Formatuje obiekt Date do ciągu znaków w formacie kalendarzowym YYYY-MM-DD.
- *
- * @param {Date} date - Obiekt daty
- * @returns {string} Sformatowana data kalendarzowa
- */
-export function formatDateToCalendarString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+interface CalendarParts {
+  readonly year: number;
+  readonly month: number;
+  readonly day: number;
+  readonly hour: number;
 }
 
 /**
- * Oblicza datę kalendarzową poprzedniego dnia (data minus 24 godziny).
+ * Rozkłada moment w czasie na składowe kalendarzowe w podanej strefie czasowej.
+ *
+ * @param {Date} date - Moment w czasie
+ * @param {string} timeZone - Strefa IANA
+ * @returns {CalendarParts} Rok, miesiąc, dzień i godzina (0-23) w strefie
+ */
+function getCalendarParts(date: Date, timeZone: string): CalendarParts {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  });
+  const values: Record<string, number> = {};
+  for (const part of formatter.formatToParts(date)) {
+    if (part.type !== "literal") {
+      values[part.type] = Number(part.value);
+    }
+  }
+  return {
+    year: values.year ?? 1970,
+    month: values.month ?? 1,
+    day: values.day ?? 1,
+    hour: values.hour ?? 0,
+  };
+}
+
+/**
+ * Formatuje składowe kalendarzowe do YYYY-MM-DD.
+ *
+ * @param {number} year - Rok
+ * @param {number} month - Miesiąc (1-12)
+ * @param {number} day - Dzień
+ * @returns {string} Data YYYY-MM-DD
+ */
+function formatCalendarParts(year: number, month: number, day: number): string {
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/**
+ * Formatuje obiekt Date do ciągu YYYY-MM-DD w podanej strefie czasowej.
+ *
+ * @param {Date} date - Obiekt daty
+ * @param {string} [timeZone=DEFAULT_TIME_ZONE] - Strefa IANA
+ * @returns {string} Sformatowana data kalendarzowa
+ */
+export function formatDateToCalendarString(
+  date: Date,
+  timeZone: string = DEFAULT_TIME_ZONE,
+): string {
+  const { year, month, day } = getCalendarParts(date, timeZone);
+  return formatCalendarParts(year, month, day);
+}
+
+/**
+ * Oblicza datę kalendarzową poprzedniego dnia w podanej strefie (odporne na zmianę czasu).
  *
  * @param {Date} date - Obiekt bieżącej daty
+ * @param {string} [timeZone=DEFAULT_TIME_ZONE] - Strefa IANA
  * @returns {string} Data poprzedniego dnia w formacie YYYY-MM-DD
  */
-export function getPreviousCalendarDateString(date: Date): string {
-  const previousDay = new Date(date.getTime() - MILLISECONDS_IN_DAY);
-  return formatDateToCalendarString(previousDay);
+export function getPreviousCalendarDateString(
+  date: Date,
+  timeZone: string = DEFAULT_TIME_ZONE,
+): string {
+  const { year, month, day } = getCalendarParts(date, timeZone);
+  const previous = new Date(Date.UTC(year, month - 1, day - 1));
+  return formatCalendarParts(
+    previous.getUTCFullYear(),
+    previous.getUTCMonth() + 1,
+    previous.getUTCDate(),
+  );
 }
 
 /**
@@ -96,14 +159,14 @@ function isDuringNightSleep(
  *
  * @param {Date} eventDate - Obiekt daty zdarzenia
  * @param {number} cutoffHour - Godzina graniczna fallbacku
+ * @param {string} timeZone - Strefa IANA
  * @returns {string} Wyznaczona data fizjologiczna YYYY-MM-DD
  */
-function resolveFallbackDate(eventDate: Date, cutoffHour: number): string {
-  const currentHour = eventDate.getHours();
-  if (currentHour < cutoffHour) {
-    return getPreviousCalendarDateString(eventDate);
+function resolveFallbackDate(eventDate: Date, cutoffHour: number, timeZone: string): string {
+  if (getCalendarParts(eventDate, timeZone).hour < cutoffHour) {
+    return getPreviousCalendarDateString(eventDate, timeZone);
   }
-  return formatDateToCalendarString(eventDate);
+  return formatDateToCalendarString(eventDate, timeZone);
 }
 
 /**
@@ -125,6 +188,7 @@ export function resolvePhysiologicalDate(options: ResolvePhysiologicalDateOption
     eventTimestamp,
     activeOrRecentNightSleep,
     fallbackCutoffHour = DEFAULT_NIGHT_FALLBACK_CUTOFF_HOUR,
+    timeZone = DEFAULT_TIME_ZONE,
   } = options;
 
   const eventMilliseconds = parseTimestampToMilliseconds(eventTimestamp);
@@ -137,10 +201,10 @@ export function resolvePhysiologicalDate(options: ResolvePhysiologicalDateOption
     if (activeOrRecentNightSleep.wokeUpAt) {
       const wakeUpMilliseconds = parseTimestampToMilliseconds(activeOrRecentNightSleep.wokeUpAt);
       if (eventMilliseconds >= wakeUpMilliseconds) {
-        return formatDateToCalendarString(new Date(wakeUpMilliseconds));
+        return formatDateToCalendarString(new Date(wakeUpMilliseconds), timeZone);
       }
     }
   }
 
-  return resolveFallbackDate(eventDate, fallbackCutoffHour);
+  return resolveFallbackDate(eventDate, fallbackCutoffHour, timeZone);
 }
