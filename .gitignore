@@ -44,3 +44,6 @@ next-env.d.ts
 scripts/deploy.env
 !.env.production.example
 !.env.production.local.example
+
+# local PocketBase
+/pb/

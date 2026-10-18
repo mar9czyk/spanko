@@ -13,6 +13,8 @@ const pocketBaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || DEFAULT_POCKETBA
  * Globalna instancja klienta PocketBase dla aplikacji Spanko.
  */
 export const pb = new PocketBase(pocketBaseUrl);
+// Równoległe i podwójne (React StrictMode) zapytania do tej samej kolekcji nie mogą się wzajemnie anulować.
+pb.autoCancellation(false);
 
 /**
  * Pobiera singleton instancji PocketBase.

@@ -1,1039 +1,1393 @@
 [
   {
     "id": "_pb_users_auth_",
-    "name": "users",
-    "type": "auth",
-    "system": false,
-    "schema": [
-      {
-        "id": "users_name_field",
-        "name": "name",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": null,
-          "max": null,
-          "pattern": ""
-        }
-      },
-      {
-        "id": "users_avatar_field",
-        "name": "avatar",
-        "type": "file",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "mimeTypes": ["image/jpeg", "image/png", "image/svg+xml", "image/gif", "image/webp"],
-          "thumbs": null,
-          "maxSelect": 1,
-          "maxSize": 5242880,
-          "protected": false
-        }
-      },
-      {
-        "id": "users_is_admin_fl",
-        "name": "is_admin",
-        "type": "bool",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {}
-      },
-      {
-        "id": "users_household_f",
-        "name": "household_id",
-        "type": "relation",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_households0",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      }
-    ],
-    "indexes": [],
     "listRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
     "viewRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
     "createRule": "@request.body.is_admin:isset = false",
     "updateRule": "(id = @request.auth.id && @request.body.is_admin:isset = false) || @request.auth.is_admin = true",
     "deleteRule": "id = @request.auth.id || @request.auth.is_admin = true",
-    "options": {
-      "allowEmailAuth": true,
-      "allowOAuth2Auth": true,
-      "allowUsernameAuth": false,
-      "exceptEmailDomains": null,
-      "manageRule": null,
-      "minPasswordLength": 8,
-      "onlyEmailDomains": null,
-      "onlyVerified": false,
-      "requireEmail": true
+    "name": "users",
+    "type": "auth",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cost": 0,
+        "help": "",
+        "hidden": true,
+        "id": "password901924565",
+        "max": 0,
+        "min": 8,
+        "name": "password",
+        "pattern": "",
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "password"
+      },
+      {
+        "autogeneratePattern": "[a-zA-Z0-9]{50}",
+        "help": "",
+        "hidden": true,
+        "id": "text2504183744",
+        "max": 60,
+        "min": 30,
+        "name": "tokenKey",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "exceptDomains": [],
+        "help": "",
+        "hidden": false,
+        "id": "email3885137012",
+        "name": "email",
+        "onlyDomains": [],
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "email"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "bool1547992806",
+        "name": "emailVisibility",
+        "presentable": false,
+        "required": false,
+        "system": true,
+        "type": "bool"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "bool256245529",
+        "name": "verified",
+        "presentable": false,
+        "required": false,
+        "system": true,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text1579384326",
+        "max": 255,
+        "min": 0,
+        "name": "name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "file376926767",
+        "maxSelect": 1,
+        "maxSize": 0,
+        "mimeTypes": ["image/jpeg", "image/png", "image/svg+xml", "image/gif", "image/webp"],
+        "name": "avatar",
+        "presentable": false,
+        "protected": false,
+        "required": false,
+        "system": false,
+        "thumbs": [],
+        "type": "file"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "users_is_admin_fl",
+        "name": "is_admin",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "pbc_households0",
+        "help": "",
+        "hidden": false,
+        "id": "users_household_f",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "household_id",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
+      "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)"
+    ],
+    "system": false,
+    "authRule": "",
+    "manageRule": null,
+    "authAlert": {
+      "enabled": true,
+      "emailTemplate": {
+        "subject": "Login from a new location",
+        "body": "<p>Hello,</p>\n<p>We noticed a login to your {APP_NAME} account from a new location:</p>\n<p><em>{ALERT_INFO}</em></p>\n<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>\n<p>If this was you, you may disregard this email.</p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+      }
+    },
+    "oauth2": {
+      "providers": [],
+      "mappedFields": {
+        "id": "",
+        "name": "name",
+        "username": "",
+        "avatarURL": "avatar"
+      },
+      "enabled": true
+    },
+    "passwordAuth": {
+      "enabled": true,
+      "identityFields": ["email"]
+    },
+    "mfa": {
+      "enabled": false,
+      "duration": 600,
+      "rule": ""
+    },
+    "otp": {
+      "enabled": false,
+      "duration": 180,
+      "length": 8,
+      "emailTemplate": {
+        "subject": "OTP for {APP_NAME}",
+        "body": "<p>Hello,</p>\n<p>Your one-time password is: <strong>{OTP}</strong></p>\n<p><i>If you didn't ask for the one-time password, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+      }
+    },
+    "authToken": {
+      "duration": 432000
+    },
+    "passwordResetToken": {
+      "duration": 1800
+    },
+    "emailChangeToken": {
+      "duration": 1800
+    },
+    "verificationToken": {
+      "duration": 86400
+    },
+    "fileToken": {
+      "duration": 180
+    },
+    "verificationTemplate": {
+      "subject": "Verify your {APP_NAME} email",
+      "body": "<p>Hello,</p>\n<p>Thank you for joining us at {APP_NAME}.</p>\n<p>Click on the button below to verify your email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-verification/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Verify</a>\n</p>\n<p><i>If you didn't recently register, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+    },
+    "resetPasswordTemplate": {
+      "subject": "Reset your {APP_NAME} password",
+      "body": "<p>Hello,</p>\n<p>Click on the button below to reset your password.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Reset password</a>\n</p>\n<p><i>If you didn't ask to reset your password, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+    },
+    "confirmEmailChangeTemplate": {
+      "subject": "Confirm your {APP_NAME} new email address",
+      "body": "<p>Hello,</p>\n<p>Click on the button below to confirm your new email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-email-change/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Confirm new email</a>\n</p>\n<p><i>If you didn't ask to change your email address, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
     }
   },
   {
     "id": "pbc_households0",
+    "listRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)",
+    "viewRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.household_id = id && @request.body.ai_daily_limit_override:isset = false",
+    "deleteRule": "@request.auth.household_id = id",
     "name": "households",
     "type": "base",
-    "system": false,
-    "schema": [
+    "fields": [
       {
-        "id": "hhold_name_field",
-        "name": "name",
-        "type": "text",
-        "system": false,
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
         "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "hhold_name_field",
+        "max": 120,
+        "min": 1,
+        "name": "name",
+        "pattern": "",
         "presentable": true,
-        "unique": false,
-        "options": {
-          "min": 1,
-          "max": 120,
-          "pattern": ""
-        }
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "hhold_inv_code_f",
+        "max": 6,
+        "min": 6,
         "name": "invite_code",
-        "type": "text",
-        "system": false,
-        "required": false,
+        "pattern": "^[A-Z0-9]{6}$",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 6,
-          "max": 6,
-          "pattern": "^[A-Z0-9]{6}$"
-        }
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "hhold_inv_exp_fl",
+        "max": "",
+        "min": "",
         "name": "invite_expires_at",
-        "type": "date",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
+        "required": false,
+        "system": false,
+        "type": "date"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "hhold_ai_ovr_fld",
+        "max": 1000,
+        "min": 0,
         "name": "ai_daily_limit_override",
-        "type": "number",
-        "system": false,
-        "required": false,
+        "onlyInt": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": 1000,
-          "noDecimal": true
-        }
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_household",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_household",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
       }
     ],
     "indexes": [
       "CREATE UNIQUE INDEX `idx_households_invite_code` ON `households` (`invite_code`) WHERE `invite_code` != ''"
     ],
-    "listRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)",
-    "viewRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)",
-    "createRule": "@request.auth.id != ''",
-    "updateRule": "@request.auth.household_id = id && @request.body.ai_daily_limit_override:isset = false",
-    "deleteRule": "@request.auth.household_id = id",
-    "options": {}
+    "system": false
   },
   {
     "id": "pbc_children000",
-    "name": "children",
-    "type": "base",
-    "system": false,
-    "schema": [
-      {
-        "id": "child_household_",
-        "name": "household_id",
-        "type": "relation",
-        "system": false,
-        "required": true,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_households0",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
-      },
-      {
-        "id": "child_name_field",
-        "name": "name",
-        "type": "text",
-        "system": false,
-        "required": true,
-        "presentable": true,
-        "unique": false,
-        "options": {
-          "min": 1,
-          "max": 100,
-          "pattern": ""
-        }
-      },
-      {
-        "id": "child_birth_date",
-        "name": "birth_date",
-        "type": "date",
-        "system": false,
-        "required": true,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
-      },
-      {
-        "id": "child_due_date_f",
-        "name": "due_date",
-        "type": "date",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
-      },
-      {
-        "id": "child_day_mode_f",
-        "name": "active_day_mode",
-        "type": "select",
-        "system": false,
-        "required": true,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["home", "on_the_go", "illness_regression"]
-        }
-      },
-      {
-        "id": "child_anti_ortho",
-        "name": "anti_orthosomnia_mode",
-        "type": "bool",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {}
-      },
-      {
-        "id": "child_timezone_f",
-        "name": "timezone",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": 64,
-          "pattern": ""
-        }
-      }
-    ],
-    "indexes": ["CREATE INDEX `idx_children_household` ON `children` (`household_id`)"],
     "listRule": "@request.auth.household_id = household_id",
     "viewRule": "@request.auth.household_id = household_id",
     "createRule": "@request.auth.household_id = household_id",
     "updateRule": "@request.auth.household_id = household_id",
     "deleteRule": "@request.auth.household_id = household_id",
-    "options": {}
+    "name": "children",
+    "type": "base",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_households0",
+        "help": "",
+        "hidden": false,
+        "id": "child_household_",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "household_id",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "child_name_field",
+        "max": 100,
+        "min": 1,
+        "name": "name",
+        "pattern": "",
+        "presentable": true,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "child_birth_date",
+        "max": "",
+        "min": "",
+        "name": "birth_date",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "child_due_date_f",
+        "max": "",
+        "min": "",
+        "name": "due_date",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "child_day_mode_f",
+        "maxSelect": 1,
+        "name": "active_day_mode",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": ["home", "on_the_go", "illness_regression"]
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "child_anti_ortho",
+        "name": "anti_orthosomnia_mode",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "child_timezone_f",
+        "max": 64,
+        "min": 0,
+        "name": "timezone",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_children0",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_children0",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": ["CREATE INDEX `idx_children_household` ON `children` (`household_id`)"],
+    "system": false
   },
   {
     "id": "pbc_sleeplogs00",
+    "listRule": "@request.auth.household_id = child_id.household_id",
+    "viewRule": "@request.auth.household_id = child_id.household_id",
+    "createRule": "@request.auth.household_id = child_id.household_id",
+    "updateRule": "@request.auth.household_id = child_id.household_id",
+    "deleteRule": "@request.auth.household_id = child_id.household_id",
     "name": "sleep_logs",
     "type": "base",
-    "system": false,
-    "schema": [
+    "fields": [
       {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_children000",
+        "help": "",
+        "hidden": false,
         "id": "slog_child_id_fl",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "child_id",
-        "type": "relation",
-        "system": false,
-        "required": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_children000",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": true,
+        "system": false,
+        "type": "relation"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "slog_phys_date_f",
+        "max": 10,
+        "min": 10,
         "name": "physiological_date",
-        "type": "text",
-        "system": false,
-        "required": true,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
         "presentable": true,
-        "unique": false,
-        "options": {
-          "min": 10,
-          "max": 10,
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        }
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "slog_type_field_",
+        "maxSelect": 1,
         "name": "type",
-        "type": "select",
-        "system": false,
-        "required": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["nap", "night"]
-        }
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": ["nap", "night"]
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "slog_status_fld_",
+        "maxSelect": 1,
         "name": "status",
-        "type": "select",
-        "system": false,
+        "presentable": false,
         "required": true,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["falling_asleep", "sleeping", "completed"]
-        }
-      },
-      {
-        "id": "slog_put_down_fl",
-        "name": "put_down_at",
-        "type": "date",
         "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
-      },
-      {
-        "id": "slog_fell_asleep",
-        "name": "fell_asleep_at",
-        "type": "date",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
-      },
-      {
-        "id": "slog_woke_up_at_",
-        "name": "woke_up_at",
-        "type": "date",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
-      },
-      {
-        "id": "slog_interventns",
-        "name": "interventions",
-        "type": "json",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSize": 2000000
-        }
-      },
-      {
-        "id": "slog_mood_field_",
-        "name": "mood",
         "type": "select",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["easy", "fussy", "crying"]
-        }
+        "values": ["falling_asleep", "sleeping", "completed"]
       },
       {
+        "help": "",
+        "hidden": false,
+        "id": "slog_put_down_fl",
+        "max": "",
+        "min": "",
+        "name": "put_down_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "slog_fell_asleep",
+        "max": "",
+        "min": "",
+        "name": "fell_asleep_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "slog_woke_up_at_",
+        "max": "",
+        "min": "",
+        "name": "woke_up_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "slog_interventns",
+        "maxSize": 2000000,
+        "name": "interventions",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "slog_mood_field_",
+        "maxSelect": 1,
+        "name": "mood",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": ["easy", "fussy", "crying"]
+      },
+      {
+        "help": "",
+        "hidden": false,
         "id": "slog_night_waks_",
+        "maxSize": 2000000,
         "name": "night_wakings",
-        "type": "json",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSize": 2000000
-        }
+        "required": false,
+        "system": false,
+        "type": "json"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "slog_rebound_slp",
         "name": "is_rebound_sleep",
-        "type": "bool",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {}
+        "required": false,
+        "system": false,
+        "type": "bool"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "slog_ignore_calb",
         "name": "ignore_in_calibration",
-        "type": "bool",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {}
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_sleeplogs",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_sleeplogs",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
       }
     ],
     "indexes": [
       "CREATE INDEX `idx_sleep_logs_child_phys_date` ON `sleep_logs` (`child_id`, `physiological_date`)"
     ],
+    "system": false
+  },
+  {
+    "id": "pbc_daycontext0",
     "listRule": "@request.auth.household_id = child_id.household_id",
     "viewRule": "@request.auth.household_id = child_id.household_id",
     "createRule": "@request.auth.household_id = child_id.household_id",
     "updateRule": "@request.auth.household_id = child_id.household_id",
     "deleteRule": "@request.auth.household_id = child_id.household_id",
-    "options": {}
-  },
-  {
-    "id": "pbc_daycontext0",
     "name": "day_context",
     "type": "base",
-    "system": false,
-    "schema": [
+    "fields": [
       {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_children000",
+        "help": "",
+        "hidden": false,
         "id": "dctx_child_id_fl",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "child_id",
-        "type": "relation",
-        "system": false,
-        "required": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_children000",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": true,
+        "system": false,
+        "type": "relation"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "dctx_phys_date_f",
+        "max": 10,
+        "min": 10,
         "name": "physiological_date",
-        "type": "text",
-        "system": false,
-        "required": true,
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 10,
-          "max": 10,
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-        }
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "dctx_timestamp_f",
+        "max": "",
+        "min": "",
         "name": "timestamp",
-        "type": "date",
-        "system": false,
-        "required": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
+        "required": true,
+        "system": false,
+        "type": "date"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "dctx_feeding_typ",
+        "maxSelect": 1,
         "name": "feeding_type",
-        "type": "select",
-        "system": false,
+        "presentable": false,
         "required": true,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["breast", "bottle", "solid", "none"]
-        }
-      },
-      {
-        "id": "dctx_bottle_ml_f",
-        "name": "bottle_ml",
-        "type": "number",
         "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": 1000,
-          "noDecimal": true
-        }
-      },
-      {
-        "id": "dctx_breast_side",
-        "name": "breast_side",
         "type": "select",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["left", "right", "both", "none"]
-        }
+        "values": ["breast", "bottle", "solid", "none"]
       },
       {
+        "help": "",
+        "hidden": false,
+        "id": "dctx_bottle_ml_f",
+        "max": 1000,
+        "min": 0,
+        "name": "bottle_ml",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "dctx_breast_side",
+        "maxSelect": 1,
+        "name": "breast_side",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": ["left", "right", "both", "none"]
+      },
+      {
+        "help": "",
+        "hidden": false,
         "id": "dctx_tags_field_",
+        "maxSize": 2000000,
         "name": "tags",
-        "type": "json",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSize": 2000000
-        }
+        "required": false,
+        "system": false,
+        "type": "json"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "dctx_notes_field",
+        "max": 500,
+        "min": 0,
         "name": "notes",
-        "type": "text",
-        "system": false,
-        "required": false,
+        "pattern": "",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": null,
-          "max": 500,
-          "pattern": ""
-        }
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_daycontex",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_daycontex",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
       }
     ],
     "indexes": [
       "CREATE INDEX `idx_day_context_child_date` ON `day_context` (`child_id`, `physiological_date`)"
     ],
+    "system": false
+  },
+  {
+    "id": "pbc_childinsigh",
     "listRule": "@request.auth.household_id = child_id.household_id",
     "viewRule": "@request.auth.household_id = child_id.household_id",
     "createRule": "@request.auth.household_id = child_id.household_id",
     "updateRule": "@request.auth.household_id = child_id.household_id",
     "deleteRule": "@request.auth.household_id = child_id.household_id",
-    "options": {}
-  },
-  {
-    "id": "pbc_childinsigh",
     "name": "child_insights",
     "type": "base",
-    "system": false,
-    "schema": [
+    "fields": [
       {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_children000",
+        "help": "",
+        "hidden": false,
         "id": "cins_child_id_fl",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "child_id",
-        "type": "relation",
-        "system": false,
-        "required": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_children000",
-          "cascadeDelete": true,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": true,
+        "system": false,
+        "type": "relation"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "cins_category_fl",
+        "max": 100,
+        "min": 1,
         "name": "category",
-        "type": "text",
-        "system": false,
-        "required": true,
+        "pattern": "",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 1,
-          "max": 100,
-          "pattern": ""
-        }
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "cins_diag_code_f",
+        "max": 100,
+        "min": 1,
         "name": "diagnosis_code",
-        "type": "text",
-        "system": false,
-        "required": true,
+        "pattern": "",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 1,
-          "max": 100,
-          "pattern": ""
-        }
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "cins_status_fld_",
+        "maxSelect": 1,
         "name": "status",
-        "type": "select",
-        "system": false,
-        "required": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["hypothesis", "active", "validated", "corrected_by_parent", "superseded"]
-        }
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": ["hypothesis", "active", "validated", "corrected_by_parent", "superseded"]
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "cins_title_field",
+        "max": 200,
+        "min": 1,
         "name": "title",
-        "type": "text",
-        "system": false,
-        "required": true,
+        "pattern": "",
         "presentable": true,
-        "unique": false,
-        "options": {
-          "min": 1,
-          "max": 200,
-          "pattern": ""
-        }
-      },
-      {
-        "id": "cins_explanatn_f",
-        "name": "explanation",
-        "type": "text",
-        "system": false,
+        "primaryKey": false,
         "required": true,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 1,
-          "max": 5000,
-          "pattern": ""
-        }
+        "system": false,
+        "type": "text"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "cins_explanatn_f",
+        "max": 5000,
+        "min": 1,
+        "name": "explanation",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
         "id": "cins_algo_ovr_fl",
+        "maxSize": 2000000,
         "name": "algorithm_override_json",
-        "type": "json",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSize": 2000000
-        }
+        "required": false,
+        "system": false,
+        "type": "json"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "cins_conf_score_",
+        "max": 1,
+        "min": 0,
         "name": "confidence_score",
-        "type": "number",
-        "system": false,
-        "required": false,
+        "onlyInt": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": 1,
-          "noDecimal": false
-        }
+        "required": false,
+        "system": false,
+        "type": "number"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "cins_parent_fb_f",
+        "maxSelect": 1,
         "name": "parent_feedback",
+        "presentable": false,
+        "required": false,
+        "system": false,
         "type": "select",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["accepted", "rejected", "adjusted", "pending"]
-        }
+        "values": ["accepted", "rejected", "adjusted", "pending"]
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "cins_parent_note",
+        "max": 2000,
+        "min": 0,
         "name": "parent_correction_note",
-        "type": "text",
-        "system": false,
-        "required": false,
+        "pattern": "",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": null,
-          "max": 2000,
-          "pattern": ""
-        }
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
       },
       {
+        "cascadeDelete": false,
+        "collectionId": "pbc_childinsigh",
+        "help": "",
+        "hidden": false,
         "id": "cins_prev_ins_fl",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "previous_insight_id",
-        "type": "relation",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_childinsigh",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": false,
+        "system": false,
+        "type": "relation"
       },
       {
+        "cascadeDelete": false,
+        "collectionId": "pbc_childinsigh",
+        "help": "",
+        "hidden": false,
         "id": "cins_sup_by_fld_",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "superseded_by_id",
-        "type": "relation",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_childinsigh",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": false,
+        "system": false,
+        "type": "relation"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "cins_valid_from_",
+        "max": "",
+        "min": "",
         "name": "valid_from",
-        "type": "date",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
+        "required": false,
+        "system": false,
+        "type": "date"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "cins_valid_until",
+        "max": "",
+        "min": "",
         "name": "valid_until",
-        "type": "date",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": "",
-          "max": ""
-        }
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_childinsi",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_childinsi",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
       }
     ],
     "indexes": [
       "CREATE INDEX `idx_child_insights_child_status` ON `child_insights` (`child_id`, `status`)"
     ],
-    "listRule": "@request.auth.household_id = child_id.household_id",
-    "viewRule": "@request.auth.household_id = child_id.household_id",
-    "createRule": "@request.auth.household_id = child_id.household_id",
-    "updateRule": "@request.auth.household_id = child_id.household_id",
-    "deleteRule": "@request.auth.household_id = child_id.household_id",
-    "options": {}
+    "system": false
   },
   {
     "id": "pbc_adminsettin",
-    "name": "admin_settings",
-    "type": "base",
-    "system": false,
-    "schema": [
-      {
-        "id": "admn_fast_model_",
-        "name": "openrouter_fast_model",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": null,
-          "max": 100,
-          "pattern": ""
-        }
-      },
-      {
-        "id": "admn_reason_modl",
-        "name": "openrouter_reasoning_model",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": null,
-          "max": 100,
-          "pattern": ""
-        }
-      },
-      {
-        "id": "admn_sys_prompt_",
-        "name": "system_prompt_insights",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": null,
-          "max": 20000,
-          "pattern": ""
-        }
-      },
-      {
-        "id": "admn_matrix_ovr_",
-        "name": "sleep_matrix_override_json",
-        "type": "json",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSize": 2000000
-        }
-      },
-      {
-        "id": "admn_ai_limit_fl",
-        "name": "ai_daily_limit_per_household",
-        "type": "number",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": 1000,
-          "noDecimal": true
-        }
-      }
-    ],
-    "indexes": [],
     "listRule": "@request.auth.is_admin = true",
     "viewRule": "@request.auth.is_admin = true",
     "createRule": "@request.auth.is_admin = true",
     "updateRule": "@request.auth.is_admin = true",
     "deleteRule": "@request.auth.is_admin = true",
-    "options": {}
+    "name": "admin_settings",
+    "type": "base",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "admn_fast_model_",
+        "max": 100,
+        "min": 0,
+        "name": "openrouter_fast_model",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "admn_reason_modl",
+        "max": 100,
+        "min": 0,
+        "name": "openrouter_reasoning_model",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "admn_sys_prompt_",
+        "max": 20000,
+        "min": 0,
+        "name": "system_prompt_insights",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "admn_matrix_ovr_",
+        "maxSize": 2000000,
+        "name": "sleep_matrix_override_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "admn_ai_limit_fl",
+        "max": 1000,
+        "min": 0,
+        "name": "ai_daily_limit_per_household",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_adminsett",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_adminsett",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [],
+    "system": false
   },
   {
     "id": "pbc_aicalls0000",
+    "listRule": "@request.auth.is_admin = true",
+    "viewRule": "@request.auth.is_admin = true",
+    "createRule": "@request.auth.is_admin = true",
+    "updateRule": "@request.auth.is_admin = true",
+    "deleteRule": "@request.auth.is_admin = true",
     "name": "ai_calls",
     "type": "base",
-    "system": false,
-    "schema": [
+    "fields": [
       {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "pbc_children000",
+        "help": "",
+        "hidden": false,
         "id": "aic_child_id_fld",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "child_id",
-        "type": "relation",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_children000",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": false,
+        "system": false,
+        "type": "relation"
       },
       {
+        "cascadeDelete": false,
+        "collectionId": "pbc_households0",
+        "help": "",
+        "hidden": false,
         "id": "aic_hhold_id_fl",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "household_id",
-        "type": "relation",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_households0",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": false,
+        "system": false,
+        "type": "relation"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "aic_kind_field",
+        "maxSelect": 1,
         "name": "kind",
-        "type": "select",
-        "system": false,
-        "required": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["evaluate", "sandbox"]
-        }
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": ["evaluate", "sandbox"]
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "aic_model_field",
+        "max": 120,
+        "min": 0,
         "name": "model",
-        "type": "text",
-        "system": false,
-        "required": false,
+        "pattern": "",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": 120,
-          "pattern": ""
-        }
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "aic_req_snapshot",
+        "maxSize": 2000000,
         "name": "request_snapshot_json",
-        "type": "json",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSize": 2000000
-        }
+        "required": false,
+        "system": false,
+        "type": "json"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "aic_response_jsn",
+        "maxSize": 2000000,
         "name": "response_json",
-        "type": "json",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSize": 2000000
-        }
+        "required": false,
+        "system": false,
+        "type": "json"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "aic_status_fld",
+        "maxSelect": 1,
         "name": "status",
-        "type": "select",
-        "system": false,
+        "presentable": false,
         "required": true,
-        "presentable": false,
-        "unique": false,
-        "options": {
-          "maxSelect": 1,
-          "values": ["ok", "error", "invalid_json"]
-        }
+        "system": false,
+        "type": "select",
+        "values": ["ok", "error", "invalid_json"]
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
         "id": "aic_error_msg_f",
+        "max": 2000,
+        "min": 0,
         "name": "error_message",
-        "type": "text",
-        "system": false,
-        "required": false,
+        "pattern": "",
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": 2000,
-          "pattern": ""
-        }
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "aic_prompt_tok_",
+        "max": null,
+        "min": 0,
         "name": "prompt_tokens",
-        "type": "number",
-        "system": false,
-        "required": false,
+        "onlyInt": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": null,
-          "noDecimal": true
-        }
+        "required": false,
+        "system": false,
+        "type": "number"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "aic_compl_tok_f",
+        "max": null,
+        "min": 0,
         "name": "completion_tokens",
-        "type": "number",
-        "system": false,
-        "required": false,
+        "onlyInt": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": null,
-          "noDecimal": true
-        }
+        "required": false,
+        "system": false,
+        "type": "number"
       },
       {
+        "help": "",
+        "hidden": false,
         "id": "aic_latency_fld",
+        "max": null,
+        "min": 0,
         "name": "latency_ms",
-        "type": "number",
-        "system": false,
-        "required": false,
+        "onlyInt": true,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "min": 0,
-          "max": null,
-          "noDecimal": true
-        }
+        "required": false,
+        "system": false,
+        "type": "number"
       },
       {
+        "cascadeDelete": false,
+        "collectionId": "pbc_childinsigh",
+        "help": "",
+        "hidden": false,
         "id": "aic_insight_id_",
+        "maxSelect": 1,
+        "minSelect": 0,
         "name": "insight_id",
-        "type": "relation",
-        "system": false,
-        "required": false,
         "presentable": false,
-        "unique": false,
-        "options": {
-          "collectionId": "pbc_childinsigh",
-          "cascadeDelete": false,
-          "minSelect": null,
-          "maxSelect": 1,
-          "displayFields": null
-        }
+        "required": false,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_aicalls00",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_aicalls00",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
       }
     ],
     "indexes": [
       "CREATE INDEX `idx_ai_calls_household_created` ON `ai_calls` (`household_id`, `created`)"
     ],
-    "listRule": "@request.auth.is_admin = true",
-    "viewRule": "@request.auth.is_admin = true",
-    "createRule": "@request.auth.is_admin = true",
-    "updateRule": "@request.auth.is_admin = true",
-    "deleteRule": "@request.auth.is_admin = true",
-    "options": {}
+    "system": false
   }
 ]

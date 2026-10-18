@@ -121,8 +121,8 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
   - `viewRule`: `id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true`
   - `updateRule`: `(id = @request.auth.id && @request.body.is_admin:isset = false) || @request.auth.is_admin = true` (blokuje samonadanie `is_admin`; umożliwia użytkownikowi aktualizację własnego profilu, w tym przypisanie `household_id` przy dołączaniu do rodziny)
 * **`households`**:
-  - `listRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)`
-  - `viewRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @request.time)`
+  - `listRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)`
+  - `viewRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)`
   - `createRule`: `@request.auth.id != ''`
   - `updateRule`: `@request.auth.household_id = id && @request.body.ai_daily_limit_override:isset = false`
   - `deleteRule`: `@request.auth.household_id = id`
