@@ -178,7 +178,7 @@ export function useDashboardState() {
     try {
       const activeChild = await loadActiveChild();
       if (!activeChild) {
-        if (IS_DEV_FIXTURES_ENABLED) {
+        if (IS_DEV_FIXTURES_ENABLED && !pb.authStore.isValid) {
           setChild(DEV_FIXTURE_CHILD);
           setActiveInsight(DEV_FIXTURE_INSIGHT);
           setLocalTimelineEvents(DEV_FIXTURE_TIMELINE);

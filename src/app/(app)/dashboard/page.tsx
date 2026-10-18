@@ -42,7 +42,10 @@ export default function DashboardPage() {
     <main className="w-full flex flex-col gap-3 pb-8">
       {state.isDemoData && (
         <p className="rounded-lg bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
-          Dane demonstracyjne (tryb developerski)
+          Dane demonstracyjne (tryb developerski) —{" "}
+          <a href="/login" className="underline">
+            zaloguj się
+          </a>
         </p>
       )}
       {state.errorMessage && (

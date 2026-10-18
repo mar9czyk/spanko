@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Logowanie DEV (lokalnie, bez Google)
+```bash
+pb/pocketbase.exe serve --http=127.0.0.1:8090   # lokalny PocketBase ze schematem z pb_schema.json
+pnpm dev:seed                                   # tworzy użytkowników testowych i dane przykładowe
+pnpm dev                                        # potem http://localhost:3000/login -> „Zaloguj jako testowy użytkownik (DEV)”
+```
+Wymaga `POCKETBASE_SUPERUSER_EMAIL/PASSWORD` w `.env.development.local`. Opis: `docs/agent/database.md`.

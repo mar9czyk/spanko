@@ -185,7 +185,7 @@
       "enabled": true
     },
     "passwordAuth": {
-      "enabled": true,
+      "enabled": false,
       "identityFields": ["email"]
     },
     "mfa": {

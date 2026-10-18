@@ -150,3 +150,9 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 4. Klient wyszukuje gospodarstwo domowe po kodzie zaproszenia (`invite_code = code && invite_expires_at > now`). Klient przekazuje kod także jako `?code=` (`query: { code }`), a reguła `listRule`/`viewRule` wymaga `invite_code = @request.query.code`, więc nie da się wylistować cudzych kodów. Zalogowany użytkownik niemający jeszcze `household_id` może bezpiecznie zlokalizować właściwe gospodarstwo.
 5. Klient aktualizuje rekord użytkownika (`users.update(id, { household_id: target_household.id })`), co autoryzuje reguła `updateRule` dla `users` (`id = @request.auth.id`), a następnie odświeża sesję (`authRefresh`).
 6. Od tego momentu oboje rodzice posiadają ten sam `household_id` i mają pełny dostęp w czasie rzeczywistym do profilu dziecka, wpisów snu i stopera.
+
+## Tryb DEV logowania (tylko lokalnie)
+- `pb_schema.json` ma `users.passwordAuth.enabled = false` (produkcja: wyłącznie Google OAuth). `pnpm dev:seed` włącza logowanie hasłem w lokalnym PocketBase i idempotentnie tworzy: `dev@spanko.test`, `dev-admin@spanko.test` (is_admin), gospodarstwo „Dom testowy (DEV)”, dziecko „Tymon (DEV)” oraz 5 dni `sleep_logs`/`day_context`.
+- Dane logowania (`DEV_USER_*`, `DEV_ADMIN_*`) generuje skrypt do `.env.development.local` (gitignored). Hasła nie trafiają do bundla — loguje je serwerowy `POST /api/dev/login`, który zwraca 404 poza `NODE_ENV=development` z lokalnym PocketBase.
+- Przycisk „Zaloguj jako testowy użytkownik (DEV)” na `/login` jest widoczny tylko gdy `IS_DEV_LOGIN_ENABLED` (`src/lib/dev-auth.ts`). Dane demo (`devFixtures.ts`) pokazują się tylko bez sesji.
+- Na produkcyjnym PocketBase NIE importuj ręcznie włączonego passwordAuth; po imporcie schematu pozostaje wyłączone.

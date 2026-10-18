@@ -8,6 +8,7 @@
     "start": "next start",
     "check": "biome check --write . && tsc --noEmit",
     "test": "vitest run",
+    "dev:seed": "node --env-file=.env.development.local scripts/dev-seed.mjs",
     "deploy": "bash ./scripts/deploy.sh"
   },
   "dependencies": {
