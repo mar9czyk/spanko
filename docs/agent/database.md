@@ -108,10 +108,16 @@ Doba niemowlaka **NIE pokrywa się z dobą kalendarzową (00:00 - 23:59)**.
 ## 3. Reguły Bezpieczeństwa API (API Rules)
 
 PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtrujące:
+* **`users`**:
+  - `listRule`: `id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true`
+  - `viewRule`: `id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true`
+  - `updateRule`: `id = @request.auth.id || @request.auth.is_admin = true` (umożliwia użytkownikowi aktualizację własnego profilu, w tym przypisanie `household_id` przy dołączaniu do rodziny)
 * **`households`**:
-  - `listRule`: `@request.auth.household_id = id`
-  - `viewRule`: `@request.auth.household_id = id`
+  - `listRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)`
+  - `viewRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)`
+  - `createRule`: `@request.auth.id != ''`
   - `updateRule`: `@request.auth.household_id = id`
+  - `deleteRule`: `@request.auth.household_id = id`
 * **`children`**:
   - `listRule`: `@request.auth.household_id = household_id`
   - `createRule`: `@request.auth.household_id = household_id`
@@ -129,8 +135,9 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 
 ## 4. Kody Zaproszeń do Rodziny (Household Sharing)
 
-1. Pierwszy rodzic loguje się przez Google OAuth2 $\rightarrow$ system tworzy `household` i przypisuje użytkownika.
+1. Pierwszy rodzic loguje się przez Google OAuth2 $\rightarrow$ system tworzy `household` i przypisuje użytkownika (`users.household_id = new_household.id`).
 2. Rodzic generuje w profilu 6-znakowy kod zaproszenia (`invite_code`), ważny 24h (`invite_expires_at`).
 3. Drugi rodzic loguje się swoim kontem Google, wybiera "Dołącz do istniejącej rodziny", wpisuje kod.
-4. Backend weryfikuje ważność kodu i ustawia `users.household_id = target_household.id`.
-5. Od tego momentu oboje rodzice widzą ten sam profil dziecka, te same logi i ten sam realtime stoper snu.
+4. Klient wyszukuje gospodarstwo domowe po kodzie zaproszenia (`invite_code = code && invite_expires_at > now`). Dzięki regule `listRule` (`@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time`), zalogowany użytkownik niemający jeszcze `household_id` może bezpiecznie zlokalizować właściwe gospodarstwo.
+5. Klient aktualizuje rekord użytkownika (`users.update(id, { household_id: target_household.id })`), co autoryzuje reguła `updateRule` dla `users` (`id = @request.auth.id`), a następnie odświeża sesję (`authRefresh`).
+6. Od tego momentu oboje rodzice posiadają ten sam `household_id` i mają pełny dostęp w czasie rzeczywistym do profilu dziecka, wpisów snu i stopera.

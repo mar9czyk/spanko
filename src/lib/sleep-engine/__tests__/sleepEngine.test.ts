@@ -4,6 +4,7 @@ import {
   calculateCircadianParameters,
   calculateEffectiveAgeDays,
   DEFAULT_SLEEP_MATRIX,
+  DIAGNOSIS_CODES,
   evaluateAll7DiagnosticCategories,
   evaluateCat1SleepAssociations,
   evaluateCat2BedtimeResistance,
@@ -169,7 +170,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat1SleepAssociations([logWithHighAssoc]);
-    expect(result.diagnosisCode).toBe("CAT1_STRONG_SLEEP_ASSOCIATION");
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT1_HIGH_INTERVENTION);
     expect(result.isTriggered).toBe(true);
     expect(result.severity).toBe("high");
   });
@@ -182,7 +183,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
       mood: "crying",
     };
     const overtiredResult = evaluateCat2BedtimeResistance([overtiredLog], 50);
-    expect(overtiredResult.diagnosisCode).toBe("CAT2_OVERTIRED_RESISTANCE");
+    expect(overtiredResult.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT2_OVERTIRED);
 
     const undertiredLog: SleepLog = {
       ...dummyNightLog,
@@ -191,7 +192,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
       mood: "easy",
     };
     const undertiredResult = evaluateCat2BedtimeResistance([undertiredLog], 10);
-    expect(undertiredResult.diagnosisCode).toBe("CAT2_UNDERTIRED_BEDTIME_FADING");
+    expect(undertiredResult.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT2_UNDERTIRED);
     expect(undertiredResult.algorithmOverride?.bedtimeFadingMinutes).toBe(20);
   });
 
@@ -222,7 +223,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat3EarlyWakingAndSplitNight(mockInput);
-    expect(result.diagnosisCode).toBe("CAT3_SPLIT_NIGHT_PRESSURE_DEPLETED");
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT3_SPLIT_NIGHT);
     expect(result.algorithmOverride?.maxDaytimeSleepCapMinutes).toBe(-30);
   });
 
@@ -246,7 +247,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat3EarlyWakingAndSplitNight(mockInput);
-    expect(result.diagnosisCode).toBe("CAT3_OVERTIRED_EARLY_WAKE");
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT2_OVERTIRED);
   });
 
   it("CAT4: klasyfikuje krótkie drzemki jako rozwojowe u dzieci <6 miesięcy", () => {
@@ -278,7 +279,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat4ShortNapsAndTransitions(mockInput);
-    expect(result.diagnosisCode).toBe("CAT4_DEVELOPMENTAL_SHORT_NAPS");
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT4_DEVELOPMENTAL);
     expect(result.severity).toBe("info");
   });
 
@@ -302,7 +303,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat5RegressionsAndCrisis(mockInput);
-    expect(result.diagnosisCode).toBe("CAT5_EXTINCTION_BURST_DETECTED");
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT5_EXTINCTION_BURST);
     expect(result.severity).toBe("high");
   });
 
@@ -322,17 +323,17 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat5RegressionsAndCrisis(mockInput);
-    expect(result.diagnosisCode).toBe("CAT5_ILLNESS_OR_TEETHING");
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT5_ILLNESS_OR_TEETHING);
     expect(result.algorithmOverride?.recommendedDayMode).toBe("illness_regression");
   });
 
   it("CAT6: nakłada bezwzględny guardrail kliniczny i regułę 60s dla noworodków <16 tyg.", () => {
     const resultNewborn = evaluateCat6NewbornCare(70);
-    expect(resultNewborn.diagnosisCode).toBe("CAT6_CLINICAL_GUARDRAIL_NEWBORN");
+    expect(resultNewborn.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT6_NEWBORN_GUARDRAIL);
     expect(resultNewborn.severity).toBe("high");
 
     const resultOlder = evaluateCat6NewbornCare(140);
-    expect(resultOlder.diagnosisCode).toBe("CAT6_MATURE_CIRCADIAN_RHYTHM");
+    expect(resultOlder.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT6_MATURE);
   });
 
   it("CAT7: różnicuje fizjologiczny głód u maluchów <6 msc od asocjacji Comfort Nursing", () => {
@@ -349,7 +350,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
       },
     };
     const resultYoung = evaluateCat7NightWeaning(mockInputYoung);
-    expect(resultYoung.diagnosisCode).toBe("CAT7_NUTRITIONAL_NIGHT_HUNGER");
+    expect(resultYoung.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT7_NUTRITIONAL_HUNGER);
 
     const nursingNightLog: SleepLog = {
       ...dummyNightLog,
@@ -368,7 +369,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
       },
     };
     const resultOlder = evaluateCat7NightWeaning(mockInputOlder);
-    expect(resultOlder.diagnosisCode).toBe("CAT7_COMFORT_NURSING_ASSOCIATION");
+    expect(resultOlder.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT7_HABITUAL_FEEDING);
   });
 
   it("evaluateAll7DiagnosticCategories: zwraca kompletny zestaw 7 kategorii diagnostycznych", () => {

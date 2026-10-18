@@ -7,6 +7,10 @@
  * są przypisywane do doby, w której rozpoczęła się dana noc.
  */
 
+import type { SleepLog } from "./types";
+
+export type { SleepLog };
+
 export const DEFAULT_NIGHT_FALLBACK_CUTOFF_HOUR = 6;
 export const MILLISECONDS_IN_DAY = 86_400_000;
 
@@ -22,8 +26,8 @@ export interface NightSleepReference {
 export interface ResolvePhysiologicalDateOptions {
   /** Czas badanego zdarzenia (np. wpis karmienia, pobudki, sen) */
   readonly eventTimestamp: Date | string | number;
-  /** Informacja o aktywnym lub niedawno zakończonym śnie nocnym */
-  readonly activeOrRecentNightSleep?: NightSleepReference | null;
+  /** Informacja o aktywnym lub niedawno zakończonym śnie nocnym (referencja lub SleepLog) */
+  readonly activeOrRecentNightSleep?: NightSleepReference | SleepLog | null;
   /** Godzina graniczna fallbacku nocnego (domyślnie 6:00 rano) */
   readonly fallbackCutoffHour?: number;
 }
@@ -69,10 +73,13 @@ export function getPreviousCalendarDateString(date: Date): string {
  * Sprawdza, czy czas zdarzenia mieści się w przedziale trwania danego snu nocnego.
  *
  * @param {number} eventMilliseconds - Czas zdarzenia w milisekundach
- * @param {NightSleepReference} nightSleep - Referencja do snu nocnego
+ * @param {NightSleepReference | SleepLog} nightSleep - Referencja lub wpis snu nocnego
  * @returns {boolean} True jeśli zdarzenie przypada w trakcie trwania snu
  */
-function isDuringNightSleep(eventMilliseconds: number, nightSleep: NightSleepReference): boolean {
+function isDuringNightSleep(
+  eventMilliseconds: number,
+  nightSleep: NightSleepReference | SleepLog,
+): boolean {
   const startMilliseconds = parseTimestampToMilliseconds(nightSleep.fellAsleepAt);
   if (eventMilliseconds < startMilliseconds) {
     return false;

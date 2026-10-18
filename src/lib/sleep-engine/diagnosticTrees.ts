@@ -3,8 +3,8 @@ import type { DiagnosticEvaluationInput, DiagnosticTreeResult, SleepLog } from "
 
 export const NEWBORN_MAX_AGE_DAYS = 112;
 export const WEANING_MIN_AGE_DAYS = 180;
-export const FOUR_MONTH_MIN_DAYS = 110;
-export const FOUR_MONTH_MAX_DAYS = 150;
+export const FOUR_MONTH_MIN_DAYS = 105;
+export const FOUR_MONTH_MAX_DAYS = 135;
 export const EXTINCTION_BURST_MIN_DAYS = 14;
 export const EXTINCTION_BURST_MAX_DAYS = 28;
 export const SPLIT_NIGHT_MIN_DURATION_MINUTES = 60;
@@ -13,6 +13,31 @@ export const BEDTIME_FADING_STEP_MINUTES = 20;
 export const HIGH_NIGHT_WAKINGS_THRESHOLD = 3;
 export const SHORT_NAP_THRESHOLD_MINUTES = 45;
 export const COMFORT_NURSING_MAX_ML = 30;
+
+export const DIAGNOSIS_CODES = {
+  CAT1_HIGH_INTERVENTION: "HIGH_INTERVENTION_SLEEP_ASSOCIATION",
+  CAT1_HEALTHY: "HEALTHY_SLEEP_CONSOLIDATION",
+  CAT2_OVERTIRED: "OVERTIRED_CORTISOL_SPIKE",
+  CAT2_UNDERTIRED: "UNDERTIRED_WMZ_CONFLICT",
+  CAT2_OPTIMAL: "OPTIMAL_BEDTIME_LATENCY",
+  CAT3_SPLIT_NIGHT: "SPLIT_NIGHT_EXCESS_DAY_SLEEP",
+  CAT3_EARLY_WAKING: "EARLY_MORNING_WAKING_PHASE_ADVANCE",
+  CAT3_NORMAL: "NORMAL_CIRCADIAN_WAKE",
+  CAT4_SINGLE_CYCLE: "SINGLE_CYCLE_SHORT_NAPS",
+  CAT4_TRANSITION_READY: "NAP_TRANSITION_READY",
+  CAT4_DEVELOPMENTAL: "DEVELOPMENTAL_SHORT_NAPS",
+  CAT4_STABLE: "NAP_STRUCTURE_STABLE",
+  CAT5_FOUR_MONTH: "FOUR_MONTH_SLEEP_REGRESSION",
+  CAT5_EXTINCTION_BURST: "EXTINCTION_BURST",
+  CAT5_ILLNESS_OR_TEETHING: "ACUTE_ILLNESS_OR_TEETHING_DISRUPTION",
+  CAT5_STABLE: "STABLE_DEVELOPMENT",
+  CAT6_NEWBORN_GUARDRAIL: "NEWBORN_ACTIVE_SLEEP_GUARDRAIL",
+  CAT6_DAY_NIGHT_CONFUSION: "DAY_NIGHT_CONFUSION",
+  CAT6_MATURE: "MATURE_CIRCADIAN_RHYTHM",
+  CAT7_HABITUAL_FEEDING: "HABITUAL_NIGHT_FEEDING_ASSOCIATION",
+  CAT7_NUTRITIONAL_HUNGER: "NUTRITIONAL_NIGHT_HUNGER",
+  CAT7_BALANCED: "BALANCED_NIGHT_NUTRITION",
+} as const;
 
 /**
  * Oblicza średnią liczbę nocnych wybudzeń z ostatnich zarejestrowanych nocy.
@@ -65,7 +90,7 @@ export function evaluateCat1SleepAssociations(logs: readonly SleepLog[]): Diagno
   if (averageWakings >= HIGH_NIGHT_WAKINGS_THRESHOLD && isHighAssoc) {
     return {
       category: "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
-      diagnosisCode: "CAT1_STRONG_SLEEP_ASSOCIATION",
+      diagnosisCode: DIAGNOSIS_CODES.CAT1_HIGH_INTERVENTION,
       severity: "high",
       confidenceScore: 0.85,
       isTriggered: true,
@@ -79,7 +104,7 @@ export function evaluateCat1SleepAssociations(logs: readonly SleepLog[]): Diagno
 
   return {
     category: "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
-    diagnosisCode: "CAT1_HEALTHY_SLEEP_CONSOLIDATION",
+    diagnosisCode: DIAGNOSIS_CODES.CAT1_HEALTHY,
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
@@ -113,7 +138,7 @@ function calculateAverageBedtimeLatency(logs: readonly SleepLog[]): number {
 function buildOvertiredResistanceResult(): DiagnosticTreeResult {
   return {
     category: "CAT2_BEDTIME_RESISTANCE_LATENCY",
-    diagnosisCode: "CAT2_OVERTIRED_RESISTANCE",
+    diagnosisCode: DIAGNOSIS_CODES.CAT2_OVERTIRED,
     severity: "medium",
     confidenceScore: 0.8,
     isTriggered: true,
@@ -133,7 +158,7 @@ function buildOvertiredResistanceResult(): DiagnosticTreeResult {
 function buildUndertiredResistanceResult(): DiagnosticTreeResult {
   return {
     category: "CAT2_BEDTIME_RESISTANCE_LATENCY",
-    diagnosisCode: "CAT2_UNDERTIRED_BEDTIME_FADING",
+    diagnosisCode: DIAGNOSIS_CODES.CAT2_UNDERTIRED,
     severity: "medium",
     confidenceScore: 0.85,
     isTriggered: true,
@@ -169,7 +194,7 @@ export function evaluateCat2BedtimeResistance(
 
   return {
     category: "CAT2_BEDTIME_RESISTANCE_LATENCY",
-    diagnosisCode: "CAT2_OPTIMAL_BEDTIME_LATENCY",
+    diagnosisCode: DIAGNOSIS_CODES.CAT2_OPTIMAL,
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
@@ -217,7 +242,7 @@ function resolveEarlyMorningWakeResult(chronicDebtMinutes: number): DiagnosticTr
   if (chronicDebtMinutes > 60) {
     return {
       category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
-      diagnosisCode: "CAT3_OVERTIRED_EARLY_WAKE",
+      diagnosisCode: DIAGNOSIS_CODES.CAT2_OVERTIRED,
       severity: "medium",
       confidenceScore: 0.75,
       isTriggered: true,
@@ -230,7 +255,7 @@ function resolveEarlyMorningWakeResult(chronicDebtMinutes: number): DiagnosticTr
   }
   return {
     category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
-    diagnosisCode: "CAT3_CIRCADIAN_EARLY_WAKE",
+    diagnosisCode: DIAGNOSIS_CODES.CAT3_EARLY_WAKING,
     severity: "medium",
     confidenceScore: 0.8,
     isTriggered: true,
@@ -261,7 +286,7 @@ function evaluateFlynnEvansTree(input: DiagnosticEvaluationInput): DiagnosticTre
 
   return {
     category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
-    diagnosisCode: "CAT3_NORMAL_CIRCADIAN_WAKE",
+    diagnosisCode: DIAGNOSIS_CODES.CAT3_NORMAL,
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
@@ -283,7 +308,7 @@ export function evaluateCat3EarlyWakingAndSplitNight(
   if (detectSplitNight(input.recentSleepLogs)) {
     return {
       category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
-      diagnosisCode: "CAT3_SPLIT_NIGHT_PRESSURE_DEPLETED",
+      diagnosisCode: DIAGNOSIS_CODES.CAT3_SPLIT_NIGHT,
       severity: "high",
       confidenceScore: 0.9,
       isTriggered: true,
@@ -309,7 +334,7 @@ function resolveShortNapResult(effectiveAgeDays: number): DiagnosticTreeResult {
   if (effectiveAgeDays < WEANING_MIN_AGE_DAYS) {
     return {
       category: "CAT4_SHORT_NAPS_TRANSITIONS",
-      diagnosisCode: "CAT4_DEVELOPMENTAL_SHORT_NAPS",
+      diagnosisCode: DIAGNOSIS_CODES.CAT4_DEVELOPMENTAL,
       severity: "info",
       confidenceScore: 0.85,
       isTriggered: true,
@@ -321,7 +346,7 @@ function resolveShortNapResult(effectiveAgeDays: number): DiagnosticTreeResult {
   }
   return {
     category: "CAT4_SHORT_NAPS_TRANSITIONS",
-    diagnosisCode: "CAT4_CATNAPPING_CYCLE_CONNECTING",
+    diagnosisCode: DIAGNOSIS_CODES.CAT4_SINGLE_CYCLE,
     severity: "medium",
     confidenceScore: 0.8,
     isTriggered: true,
@@ -358,7 +383,7 @@ export function evaluateCat4ShortNapsAndTransitions(
 
   return {
     category: "CAT4_SHORT_NAPS_TRANSITIONS",
-    diagnosisCode: "CAT4_NAP_STRUCTURE_STABLE",
+    diagnosisCode: DIAGNOSIS_CODES.CAT4_STABLE,
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
@@ -397,7 +422,7 @@ function checkIllnessOrTeething(input: DiagnosticEvaluationInput): DiagnosticTre
 
   return {
     category: "CAT5_REGRESSION_ILLNESS_CRISIS",
-    diagnosisCode: "CAT5_ILLNESS_OR_TEETHING",
+    diagnosisCode: DIAGNOSIS_CODES.CAT5_ILLNESS_OR_TEETHING,
     severity: "medium",
     confidenceScore: 0.95,
     isTriggered: true,
@@ -422,7 +447,7 @@ function checkFourMonthRegression(input: DiagnosticEvaluationInput): DiagnosticT
   if (isFourMonthWindow && calculateAverageNightWakings(input.recentSleepLogs) >= 3) {
     return {
       category: "CAT5_REGRESSION_ILLNESS_CRISIS",
-      diagnosisCode: "CAT5_FOUR_MONTH_REGRESSION",
+      diagnosisCode: DIAGNOSIS_CODES.CAT5_FOUR_MONTH,
       severity: "high",
       confidenceScore: 0.85,
       isTriggered: true,
@@ -449,7 +474,7 @@ export function evaluateCat5RegressionsAndCrisis(
   if (isInsideExtinctionBurstWindow(input.child.currentPlanStartDateIso)) {
     return {
       category: "CAT5_REGRESSION_ILLNESS_CRISIS",
-      diagnosisCode: "CAT5_EXTINCTION_BURST_DETECTED",
+      diagnosisCode: DIAGNOSIS_CODES.CAT5_EXTINCTION_BURST,
       severity: "high",
       confidenceScore: 0.9,
       isTriggered: true,
@@ -466,7 +491,7 @@ export function evaluateCat5RegressionsAndCrisis(
 
   return {
     category: "CAT5_REGRESSION_ILLNESS_CRISIS",
-    diagnosisCode: "CAT5_STABLE_DEVELOPMENT",
+    diagnosisCode: DIAGNOSIS_CODES.CAT5_STABLE,
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
@@ -486,7 +511,7 @@ export function evaluateCat6NewbornCare(effectiveAgeDays: number): DiagnosticTre
   if (effectiveAgeDays < NEWBORN_MAX_AGE_DAYS) {
     return {
       category: "CAT6_NEWBORN_DAY_NIGHT_ACTIVE_SLEEP",
-      diagnosisCode: "CAT6_CLINICAL_GUARDRAIL_NEWBORN",
+      diagnosisCode: DIAGNOSIS_CODES.CAT6_NEWBORN_GUARDRAIL,
       severity: "high",
       confidenceScore: 1.0,
       isTriggered: true,
@@ -500,7 +525,7 @@ export function evaluateCat6NewbornCare(effectiveAgeDays: number): DiagnosticTre
 
   return {
     category: "CAT6_NEWBORN_DAY_NIGHT_ACTIVE_SLEEP",
-    diagnosisCode: "CAT6_MATURE_CIRCADIAN_RHYTHM",
+    diagnosisCode: DIAGNOSIS_CODES.CAT6_MATURE,
     severity: "info",
     confidenceScore: 0.95,
     isTriggered: false,
@@ -539,7 +564,7 @@ export function evaluateCat7NightWeaning(input: DiagnosticEvaluationInput): Diag
   if (currentMetrics.effectiveAgeDays < WEANING_MIN_AGE_DAYS) {
     return {
       category: "CAT7_NIGHT_WEANING_FEEDING",
-      diagnosisCode: "CAT7_NUTRITIONAL_NIGHT_HUNGER",
+      diagnosisCode: DIAGNOSIS_CODES.CAT7_NUTRITIONAL_HUNGER,
       severity: "info",
       confidenceScore: 0.95,
       isTriggered: false,
@@ -552,7 +577,7 @@ export function evaluateCat7NightWeaning(input: DiagnosticEvaluationInput): Diag
   if (isComfortNursingPattern(recentSleepLogs)) {
     return {
       category: "CAT7_NIGHT_WEANING_FEEDING",
-      diagnosisCode: "CAT7_COMFORT_NURSING_ASSOCIATION",
+      diagnosisCode: DIAGNOSIS_CODES.CAT7_HABITUAL_FEEDING,
       severity: "medium",
       confidenceScore: 0.85,
       isTriggered: true,
@@ -566,7 +591,7 @@ export function evaluateCat7NightWeaning(input: DiagnosticEvaluationInput): Diag
 
   return {
     category: "CAT7_NIGHT_WEANING_FEEDING",
-    diagnosisCode: "CAT7_BALANCED_NIGHT_NUTRITION",
+    diagnosisCode: DIAGNOSIS_CODES.CAT7_BALANCED,
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,

@@ -131,8 +131,8 @@
     "indexes": [
       "CREATE UNIQUE INDEX `idx_households_invite_code` ON `households` (`invite_code`) WHERE `invite_code` != ''"
     ],
-    "listRule": "@request.auth.household_id = id",
-    "viewRule": "@request.auth.household_id = id",
+    "listRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)",
+    "viewRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_expires_at > @request.time)",
     "createRule": "@request.auth.id != ''",
     "updateRule": "@request.auth.household_id = id",
     "deleteRule": "@request.auth.household_id = id",

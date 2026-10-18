@@ -1,46 +1,36 @@
-/**
- * Typy domenowe i schematy rekordów PocketBase dla aplikacji Spanko.
- */
+import type {
+  AgeBracketConfig,
+  DayMode,
+  InsightStatus,
+  InterventionType,
+  NightWakingEntry,
+  ProblemCategory,
+  SleepLog,
+  SleepMood,
+  SleepStatus,
+  SleepType,
+} from "@/lib/sleep-engine/types";
 
-export type ActiveDayMode = "home" | "on_the_go" | "illness_regression";
+export type {
+  AgeBracketConfig,
+  DayMode,
+  InsightStatus,
+  InterventionType,
+  NightWakingEntry,
+  ProblemCategory,
+  SleepLog,
+  SleepMood,
+  SleepStatus,
+  SleepType,
+};
 
-export type SleepType = "nap" | "night";
-
-export type SleepStatus = "falling_asleep" | "sleeping" | "completed";
-
-export type SleepMood = "easy" | "fussy" | "crying";
-
-export type InterventionLevel =
-  | "breast"
-  | "bottle"
-  | "bouncing"
-  | "carrying"
-  | "stroller_car"
-  | "co_sleeping"
-  | "patting"
-  | "pacifier_reinsert"
-  | "shushing_voice"
-  | "room_presence"
-  | "independent";
-
-export interface NightWakingDetail {
-  readonly wokeAt: string;
-  readonly fellAsleepAt?: string;
-  readonly estimatedDurationMin: number;
-  readonly fedMilk: boolean;
-  readonly interventions: readonly InterventionLevel[];
-}
+export type ActiveDayMode = DayMode;
+export type InterventionLevel = InterventionType;
+export type NightWakingDetail = NightWakingEntry;
 
 export type FeedingType = "breast" | "bottle" | "solid" | "none";
 
 export type BreastSide = "left" | "right" | "both" | "none";
-
-export type InsightStatus =
-  | "hypothesis"
-  | "active"
-  | "validated"
-  | "corrected_by_parent"
-  | "superseded";
 
 export type ParentFeedback = "accepted" | "rejected" | "adjusted" | "pending";
 
