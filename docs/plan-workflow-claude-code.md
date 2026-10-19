@@ -15,7 +15,7 @@ Dokument steruje sesjami Claude Code przy Spanko. Każda sesja zaczyna od przecz
 **Cel:** czyste repo i konfiguracja, która usuwa ręczne kroki.
 
 - [x] A1. Przejrzyj i zacommituj zmianę w `scripts/dev-seed.mjs` (sprawdź `pnpm check`). _(Zrobione w 509d8d1.)_
-- [ ] A2. Gałąź bazowa: lokalnie i na remote `spanko` jest `master`, a aplikacja zakłada `main`. **Nie zmieniaj nazw gałęzi na remote bez zgody właścicielki** — opisz opcje (zmiana na `main` vs. pozostanie przy `master`) i zapytaj. _(Status: opcje przedstawione właścicielce, czeka na decyzję.)_
+- [x] A2. Gałąź bazowa: lokalnie i na remote `spanko` jest `master`, a aplikacja zakłada `main`. **Nie zmieniaj nazw gałęzi na remote bez zgody właścicielki** — opisz opcje (zmiana na `main` vs. pozostanie przy `master`) i zapytaj. _(Zmieniono na `main`; master na GitHub do usunięcia po zmianie domyślnej gałęzi.)_
 - [x] A3. Utwórz `.claude/settings.json` (wspólny, w repo):
   - `"model": "opusplan"`,
   - `permissions.allow`: `pnpm check`, `pnpm test`, `pnpm lint`, `pnpm build`, `git status/diff/log`,
