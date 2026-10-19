@@ -154,8 +154,74 @@ for (let daysAgo = 5; daysAgo >= 1; daysAgo--) {
     });
   }
 }
+// Drugie, starsze dziecko (~14 mies., 1 drzemka) — do testów panelu admina i wielu dzieci w gospodarstwie.
+// Tworzone po Tymonie, więc aplikacja (aktywne = najstarsze dziecko) nadal pokazuje Tymona.
+const OLDER_CHILD_NAME = "Hania (DEV)";
+const olderBirth = new Date(Date.now() - 425 * 86_400_000).toISOString();
+let older = await findOne(
+  "children",
+  pb.filter("household_id = {:h} && name = {:n}", { h: household.id, n: OLDER_CHILD_NAME }),
+);
+older ??= await pb.collection("children").create({
+  household_id: household.id,
+  name: OLDER_CHILD_NAME,
+  birth_date: olderBirth,
+  active_day_mode: "home",
+  anti_orthosomnia_mode: false,
+  timezone: "Europe/Warsaw",
+});
+
+for (const col of ["sleep_logs", "day_context"]) {
+  const old = await pb
+    .collection(col)
+    .getFullList({ filter: pb.filter("child_id = {:c}", { c: older.id }) });
+  for (const r of old) await pb.collection(col).delete(r.id);
+}
+
+for (let daysAgo = 5; daysAgo >= 1; daysAgo--) {
+  const pd = dateStr(daysAgo);
+  await pb.collection("sleep_logs").create({
+    child_id: older.id,
+    physiological_date: pd,
+    type: "night",
+    status: "completed",
+    put_down_at: at(daysAgo + 1, 19, 15),
+    fell_asleep_at: at(daysAgo + 1, 19, 30),
+    woke_up_at: at(daysAgo, 6, 45),
+    mood: "easy",
+    night_wakings: [],
+    is_rebound_sleep: false,
+    ignore_in_calibration: false,
+  });
+  const napStart = new Date(at(daysAgo, 12, 30));
+  await pb.collection("sleep_logs").create({
+    child_id: older.id,
+    physiological_date: pd,
+    type: "nap",
+    status: "completed",
+    put_down_at: napStart.toISOString(),
+    fell_asleep_at: new Date(napStart.getTime() + 10 * 60_000).toISOString(),
+    woke_up_at: new Date(napStart.getTime() + 120 * 60_000).toISOString(),
+    mood: "easy",
+  });
+  for (const [h, type] of [
+    [8, "solid"],
+    [12, "solid"],
+    [17, "solid"],
+    [19, "bottle"],
+  ]) {
+    await pb.collection("day_context").create({
+      child_id: older.id,
+      physiological_date: pd,
+      timestamp: at(daysAgo, h, 0),
+      feeding_type: type,
+      ...(type === "bottle" ? { bottle_ml: 150 } : {}),
+    });
+  }
+}
+
 console.log(
-  `Gotowe. Dziecko: ${child.name}. Użytkownicy: ${Object.values(accounts)
+  `Gotowe. Dzieci: ${child.name}, ${older.name}. Użytkownicy: ${Object.values(accounts)
     .map((a) => a.email)
     .join(", ")}`,
 );
