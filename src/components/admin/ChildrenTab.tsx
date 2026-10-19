@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { formatDuration } from "@/i18n/translate";
 import { adminRequest, jsonBody } from "./adminApi";
 import { inputClass, PrimaryButton, StatusMessage } from "./ui";
 
@@ -214,8 +215,8 @@ function ChildProfileView({ childId, onBack }: { childId: string; onBack: () => 
               <p>
                 Wiek efektywny: <b>{engine.effectiveAgeDays} dni</b> · bateria snu:{" "}
                 <b>{engine.chronicDrive.sleepBatteryPercent}%</b> · dług:{" "}
-                <b>{engine.chronicDrive.chronicSleepDebtMin} min</b> · norma:{" "}
-                <b>{engine.chronicDrive.individualSleepNeedMin} min</b> (
+                <b>{formatDuration(engine.chronicDrive.chronicSleepDebtMin)}</b> · norma:{" "}
+                <b>{formatDuration(engine.chronicDrive.individualSleepNeedMin)}</b> (
                 {engine.chronicDrive.sleepNeedsProfile})
               </p>
               <ul className="mt-2 flex flex-col gap-1.5">
