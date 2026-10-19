@@ -21,4 +21,5 @@ Mobile-first Progressive Web App combining a real-time baby sleep/routine tracke
 - Database schema, PocketBase rules & invite codes -> `docs/agent/database.md`
 - Deterministic 3-Drive Sleep Engine & 7 Diagnostic Trees -> `docs/agent/sleep-engine.md`
 - OpenRouter JSON schemas, Insight Versioning & Admin Panel -> `docs/agent/ai-and-admin.md`
+- Silnik Celów (cele snu, plany, metody, progresja) -> `docs/agent/goals-engine.md`
 - UI/UX guidelines, Dark Mode palette & 3 AM workflow -> `docs/agent/ux-guidelines.md`
