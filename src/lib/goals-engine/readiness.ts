@@ -7,6 +7,7 @@ import {
   ILLNESS_TAGS,
   METHOD_CATALOG,
   MIN_BASELINE_DAYS,
+  PUPD_WARNING_AGE_DAYS,
   TEETHING_TAG,
 } from "./catalog";
 import type {
@@ -69,6 +70,9 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
     blockers.push("NO_PROBLEM_TO_SOLVE");
 
   if (input.todayTags.includes(TEETHING_TAG)) warnings.push("TEETHING_ACTIVE");
+  if (input.method === "pick_up_put_down" && input.effectiveAgeDays > PUPD_WARNING_AGE_DAYS) {
+    warnings.push("PUPD_OLDER_CHILD");
+  }
   if (hasEnoughData && input.baseline.dayCount < LOW_DATA_QUALITY_DAYS) {
     warnings.push("LOW_DATA_QUALITY");
   }

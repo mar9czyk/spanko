@@ -14,7 +14,8 @@ import type {
   StepParams,
 } from "./types";
 
-const LADDER_STEP_DAYS = 3;
+// heurystyka: 2 doby na szczebel, by łagodne wygaszanie mieściło się w 7–14 nocach
+const LADDER_STEP_DAYS = 2;
 const WEANING_STEP_DAYS = 2;
 const CONSOLIDATE_DAYS = 3;
 const DEFAULT_RUNG: InterventionRung = "carry";
@@ -24,20 +25,23 @@ const MAX_FEED_ML = 240;
 const MIN_REDUCED_ML = 10;
 const WEANING_VOLUME_FRACTIONS = [0.75, 0.5, 0.25] as const;
 
-/** Odstępy sprawdzania (min) wg klasycznej tabeli Ferbera, doby 1–7. */
+/**
+ * Odstępy sprawdzania (min) wg spec v2.0: doba 1: 3/5/10, doba 2: 5/10/12, doba 3: 10/12/15,
+ * od doby 4: 12/15/17 bez dalszego wydłużania. Efekt zwykle po 4–7 nocach.
+ */
 export const FERBER_INTERVALS_MIN: readonly (readonly number[])[] = [
   [3, 5, 10],
   [5, 10, 12],
   [10, 12, 15],
   [12, 15, 17],
-  [15, 17, 20],
-  [17, 20, 25],
-  [20, 25, 30],
 ];
+/** Ile dób trwa ostatni (stały) poziom odstępów — razem z dobami 1–3 daje 7 nocy. */
+const FERBER_LAST_LEVEL_DAYS = 4;
 
 const CHAIR_STAGES: readonly ChairDistance[] = ["bedside", "mid_room", "doorway", "outside"];
+// Krzesło: 4 pozycje × 3 noce = 12 nocy (zakres 10–14); weź–odłóż: 14–21 nocy
 const CHAIR_STAGE_DAYS = 3;
-const PICK_UP_PUT_DOWN_DAYS = 7;
+const PICK_UP_PUT_DOWN_DAYS = 14;
 const EXTINCTION_DAYS = 3;
 
 function appendStep(
@@ -68,9 +72,13 @@ function ladderSteps(baseline: GoalBaseline): PlanStep[] {
 
 function ferberSteps(extra: StepParams): PlanStep[] {
   const steps: PlanStep[] = [];
-  for (const intervals of FERBER_INTERVALS_MIN) {
-    appendStep(steps, "FERBER_DAY", 1, { ...extra, checkIntervalsMin: intervals });
-  }
+  FERBER_INTERVALS_MIN.forEach((intervals, index) => {
+    const isLast = index === FERBER_INTERVALS_MIN.length - 1;
+    appendStep(steps, "FERBER_DAY", isLast ? FERBER_LAST_LEVEL_DAYS : 1, {
+      ...extra,
+      checkIntervalsMin: intervals,
+    });
+  });
   appendStep(steps, "CONSOLIDATE", CONSOLIDATE_DAYS, {
     ...extra,
     checkIntervalsMin: FERBER_INTERVALS_MIN[FERBER_INTERVALS_MIN.length - 1],

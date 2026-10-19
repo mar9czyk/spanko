@@ -235,6 +235,12 @@ export const pl = {
   "goal.card.why": "Dlaczego?",
   "goal.card.preparing": "Przygotowuję plan na dziś…",
   "goal.card.end": "Zakończ cel",
+  "goal.card.confirmQuestion":
+    "Według zapisów cel jest spełniony. Czy Ty też czujesz, że noce są już spokojniejsze? Jeśli nie, po prostu kontynuuj plan.",
+  "goal.card.confirmAchieved": "Tak, cel osiągnięty",
+  "safeSleep.title": "Bezpieczny sen",
+  "safeSleep.source":
+    "Zalecenia Amerykańskiej Akademii Pediatrii (AAP 2022) do 12. miesiąca życia.",
   "goal.error.load": "Nie udało się pobrać celu.",
   "goal.error.daily": "Nie udało się pobrać zadań dnia.",
   "goal.error.task": "Nie udało się zapisać zadania.",
@@ -563,6 +569,12 @@ export const en: Record<MessageKey, string> = {
   "goal.card.why": "Why?",
   "goal.card.preparing": "Preparing today's plan…",
   "goal.card.end": "End goal",
+  "goal.card.confirmQuestion":
+    "Your logs show the goal is met. Do nights feel calmer to you too? If not, just keep following the plan.",
+  "goal.card.confirmAchieved": "Yes, goal reached",
+  "safeSleep.title": "Safe sleep",
+  "safeSleep.source":
+    "American Academy of Pediatrics guidance (AAP 2022) for babies under 12 months.",
   "goal.error.load": "Could not load the goal.",
   "goal.error.daily": "Could not load today's tasks.",
   "goal.error.task": "Could not save the task.",

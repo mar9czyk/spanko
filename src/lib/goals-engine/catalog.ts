@@ -55,6 +55,12 @@ export const METHOD_CATALOG: Readonly<Record<GoalMethod, MethodDefinition>> = {
   extinction: { method: "extinction", minAgeDays: 180, isFirm: true },
 };
 
+/**
+ * Weź–odłóż po 6. mies. często bardziej pobudza niż uspokaja (opinia ekspercka, m.in. Baboo):
+ * ostrzeżenie, nie blokada (decyzja planu etap D).
+ */
+export const PUPD_WARNING_AGE_DAYS = 180;
+
 export const ILLNESS_TAGS: readonly string[] = ["gorączka", "infekcja_ucha", "szczepienie"];
 export const TEETHING_TAG = "ząbkowanie";
 

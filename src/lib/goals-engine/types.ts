@@ -53,7 +53,7 @@ export type ReadinessBlocker =
   | "RED_FLAGS_NOT_ACKNOWLEDGED"
   | "NO_PROBLEM_TO_SOLVE";
 
-export type ReadinessWarning = "TEETHING_ACTIVE" | "LOW_DATA_QUALITY";
+export type ReadinessWarning = "TEETHING_ACTIVE" | "LOW_DATA_QUALITY" | "PUPD_OLDER_CHILD";
 
 export interface ReadinessResult {
   readonly ready: boolean;

@@ -4,6 +4,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { SafeSleepNotice } from "@/components/insights/SafeSleepNotice";
 import { useI18n } from "@/i18n/I18nProvider";
 import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
 import {
@@ -13,6 +14,7 @@ import {
   GOAL_TITLES,
   localize,
   METHOD_DESCRIPTIONS,
+  METHOD_FEEDING_NOTE,
   METHOD_TITLES,
   RED_FLAGS,
   WARNING_TEXT,
@@ -168,9 +170,7 @@ export default function NewGoalPage() {
 
       {step === "method" && goal && (
         <section className="flex flex-col gap-2.5">
-          <p className="text-sm text-slate-400">
-            Wybierz metodę — to Ty decydujesz, jak stanowczo.
-          </p>
+          <p className="text-sm text-slate-400">{t("goal.new.pickMethod")}</p>
           {GOAL_CATALOG[goal].methods.map((m) => (
             <button
               key={m}
@@ -194,6 +194,7 @@ export default function NewGoalPage() {
               </span>
             </button>
           ))}
+          <p className="text-xs text-slate-400 px-1">{localize(METHOD_FEEDING_NOTE, LOCALE)}</p>
         </section>
       )}
 
@@ -217,6 +218,8 @@ export default function NewGoalPage() {
               <span className="text-xs text-slate-200">{t("goal.new.ack")}</span>
             </label>
           </div>
+
+          <SafeSleepNotice child={child} />
 
           {preview && (
             <>

@@ -171,6 +171,7 @@ export function useInsightsState() {
     partitionInsights(allInsights);
 
   return {
+    child,
     loadStatus,
     errorMessage,
     activeInsights,

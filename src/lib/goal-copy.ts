@@ -53,20 +53,20 @@ export const METHOD_TITLES: Readonly<Record<GoalMethod, Localized>> = {
 
 export const METHOD_DESCRIPTIONS: Readonly<Record<GoalMethod, Localized>> = {
   gentle_fading: {
-    pl: "Najmniej płaczu, najwolniej. Zmniejszasz swoją pomoc co kilka dni.",
-    en: "Least crying, slowest. You reduce your help every few days.",
+    pl: "Najmniej płaczu, najwolniej. Zmniejszasz swoją pomoc co 2 noce, zwykle 1–2 tygodnie.",
+    en: "Least crying, slowest. You reduce your help every 2 nights, usually 1–2 weeks.",
   },
   chair_method: {
-    pl: "Siedzisz przy łóżeczku i co 3 dni odsuwasz się dalej. Umiarkowane tempo.",
-    en: "Sit by the cot and move further away every 3 days. Moderate pace.",
+    pl: "Siedzisz przy łóżeczku i co 3 noce odsuwasz się dalej (4 pozycje). Zwykle 10–14 nocy.",
+    en: "Sit by the cot and move further away every 3 nights (4 positions). Usually 10–14 nights.",
   },
   pick_up_put_down: {
-    pl: "Uspokajasz na rękach i odkładasz, gdy dziecko się wyciszy. Wymaga cierpliwości.",
-    en: "Soothe in arms, then put down once calm. Takes patience.",
+    pl: "Uspokajasz na rękach i odkładasz, gdy dziecko się wyciszy. Zwykle 2–3 tygodnie; najlepiej działa do 6. miesiąca.",
+    en: "Soothe in arms, then put down once calm. Usually 2–3 weeks; works best up to 6 months.",
   },
   check_and_console: {
-    pl: "Stanowcza: wychodzisz i wracasz w rosnących odstępach, by krótko uspokoić. Zwykle 4–7 nocy.",
-    en: "Firm: you leave and return at growing intervals to briefly reassure. Usually 4–7 nights.",
+    pl: "Stanowcza: wychodzisz i wracasz w rosnących odstępach na krótką wizytę (do minuty). Zwykle 4–7 nocy.",
+    en: "Firm: you leave and return at growing intervals for a short visit (up to a minute). Usually 4–7 nights.",
   },
   extinction: {
     pl: "Najstarsza i najszybsza, ale najtrudniejsza: bez wchodzenia do pokoju, jeśli dziecko jest bezpieczne.",
@@ -74,6 +74,18 @@ export const METHOD_DESCRIPTIONS: Readonly<Record<GoalMethod, Localized>> = {
   },
 };
 
+/**
+ * Pod metodami: stanowisko ABM obok AASM/AAP (decyzja planu etap D, jedno zdanie).
+ */
+export const METHOD_FEEDING_NOTE: Localized = {
+  pl: "Karmisz piersią? AASM i AAP uznają metody behawioralne za bezpieczne, a ABM (Academy of Breastfeeding Medicine) przypomina, że ograniczanie nocnych karmień może zmniejszyć laktację, więc wybierz łagodniejsze tempo i obserwuj ilość pokarmu.",
+  en: "Breastfeeding? AASM and AAP consider behavioural methods safe, while ABM (Academy of Breastfeeding Medicine) notes that cutting night feeds can lower milk supply, so choose a gentler pace and watch your supply.",
+};
+
+/**
+ * Sygnały, przy których przed treningiem snu trzeba porozmawiać z lekarzem
+ * (AAP, AASM; wyczerpanie rodzica: EPDS / Hiscock 2008).
+ */
 export const RED_FLAGS: readonly Localized[] = [
   {
     pl: "Dziecko słabo przybiera na wadze lub pediatra zalecił nocne karmienia",
@@ -86,6 +98,26 @@ export const RED_FLAGS: readonly Localized[] = [
   {
     pl: "Dziecko głośno chrapie, ma przerwy w oddychaniu lub wybudza się z krztuszeniem",
     en: "My baby snores loudly, pauses breathing or wakes choking",
+  },
+  {
+    pl: "Dziecko jest bardzo niespokojne ruchowo w nocy, kopie lub przebiera nogami (warto sprawdzić żelazo)",
+    en: "My baby is very restless at night, kicking or moving their legs (iron is worth checking)",
+  },
+  {
+    pl: "Dziecko ma atopowe zapalenie skóry, swędzenie, astmę lub nocny kaszel",
+    en: "My baby has eczema, itching, asthma or a night-time cough",
+  },
+  {
+    pl: "Zdarzyły się drgawki, napady, sztywnienie lub „wyłączanie się” dziecka",
+    en: "My baby has had seizures, fits, stiffening or 'switching off' episodes",
+  },
+  {
+    pl: "Gorączka 38°C lub więcej u dziecka poniżej 3 miesięcy, letarg, trudność z obudzeniem, sztywność karku, uwypuklone ciemiączko lub powtarzające się wymioty — to pilny kontakt z lekarzem",
+    en: "Fever of 38°C or more under 3 months, lethargy, hard to wake, stiff neck, bulging soft spot or repeated vomiting — contact a doctor urgently",
+  },
+  {
+    pl: "Czuję się skrajnie wyczerpana/y, przygnębiona/y lub mam myśli, że sobie nie radzę — porozmawiaj z lekarzem, to częste i da się pomóc",
+    en: "I feel exhausted, low or like I can't cope — talk to a doctor, this is common and help works",
   },
 ];
 
@@ -128,6 +160,10 @@ export const WARNING_TEXT: Readonly<Record<ReadinessWarning, Localized>> = {
   LOW_DATA_QUALITY: {
     pl: "Mało danych — plan będzie mniej dopasowany.",
     en: "Little data — the plan will be less tailored.",
+  },
+  PUPD_OLDER_CHILD: {
+    pl: "Po 6. miesiącu branie na ręce często bardziej pobudza niż uspokaja. Możesz spróbować, ale metoda krzesła bywa skuteczniejsza.",
+    en: "After 6 months, picking up often stimulates more than it soothes. You can try, but the chair method often works better.",
   },
 };
 
@@ -173,8 +209,8 @@ export function describeTask(task: DailyTask, locale: CopyLocale = "pl"): string
     case "CHECK_INTERVALS": {
       const list = (params.checkIntervalsMin ?? []).join(" → ");
       return isPl
-        ? `Przy płaczu sprawdzaj po ${list} min (potem co ostatni odstęp). Krótko uspokój, nie biorąc na ręce.`
-        : `If crying, check after ${list} min (then repeat the last). Reassure briefly without picking up.`;
+        ? `Przy płaczu sprawdzaj po ${list} min (potem co ostatni odstęp). Wizyta do minuty: uspokój głosem lub dotykiem, nie biorąc na ręce.`
+        : `If crying, check after ${list} min (then repeat the last). Visit for up to a minute: reassure with voice or touch, without picking up.`;
     }
     case "RESPONSE_RUNG":
       return isPl
@@ -206,7 +242,10 @@ export const REASON_TEXT: Readonly<Record<string, Localized>> = {
     pl: "Dziecko chore — plan wstrzymany, wracamy po wyzdrowieniu.",
     en: "Baby unwell — plan paused, resume once better.",
   },
-  TARGET_REACHED: { pl: "Cel osiągnięty! 🎉", en: "Goal reached! 🎉" },
+  TARGET_REACHED: {
+    pl: "Cel spełniony w co najmniej 5 z ostatnich 7 nocy! 🎉",
+    en: "Target met on at least 5 of the last 7 nights! 🎉",
+  },
   STEP_IN_PROGRESS: { pl: "Trzymaj się dzisiejszego kroku.", en: "Stick to today's step." },
   STEP_COMPLETED: { pl: "Krok zaliczony — przechodzimy dalej.", en: "Step done — moving on." },
   REGRESSION_DETECTED: {
@@ -219,6 +258,39 @@ export const REASON_TEXT: Readonly<Record<string, Localized>> = {
     en: "Missing data from recent nights — log the wake-up.",
   },
 };
+
+const FERBER_EXPECTED_LAST_NIGHT = 7;
+const FERBER_HARDEST_NIGHTS = 3;
+
+/**
+ * Komunikat postępu zależny od metody i nocy planu (np. oczekiwany efekt Ferbera po 4–7 nocach).
+ *
+ * @param {GoalMethod} method - Metoda celu
+ * @param {number} dayNumber - Numer nocy planu (1-based)
+ * @param {CopyLocale} locale - Język
+ * @returns {string | null} Komunikat lub null, gdy metoda go nie ma
+ */
+export function methodProgressNote(
+  method: GoalMethod,
+  dayNumber: number,
+  locale: CopyLocale = "pl",
+): string | null {
+  if (method !== "check_and_console") return null;
+  const isPl = locale === "pl";
+  if (dayNumber <= FERBER_HARDEST_NIGHTS) {
+    return isPl
+      ? "Pierwsze noce bywają najtrudniejsze, płacz często na chwilę się nasila. Poprawa zwykle przychodzi po 4–7 nocach."
+      : "The first nights are often the hardest and crying may briefly increase. Improvement usually comes after 4–7 nights.";
+  }
+  if (dayNumber <= FERBER_EXPECTED_LAST_NIGHT) {
+    return isPl
+      ? "To noce, w których zwykle widać poprawę. Trzymaj stałe odstępy."
+      : "These are the nights when improvement usually shows. Keep the intervals steady.";
+  }
+  return isPl
+    ? "Jeśli po tygodniu nie widać poprawy, porozmawiaj z pediatrą albo wróć do łagodniejszej metody."
+    : "If there's no improvement after a week, talk to your paediatrician or switch to a gentler method.";
+}
 
 /**
  * Zwraca tekst z lokalizacją.
