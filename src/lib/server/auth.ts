@@ -129,6 +129,17 @@ export async function authenticateRequest(request: Request): Promise<Authenticat
   return { pb, user: { ...user, household_id: user.household_id } };
 }
 
+/**
+ * Wymaga zalogowanego (niezablokowanego) użytkownika, bez wymogu przynależności do gospodarstwa.
+ *
+ * @param {Request} request - Żądanie HTTP
+ * @throws {ApiAuthError} 401 przy braku/nieważnym tokenie, 403 dla zablokowanego konta
+ * @returns {Promise<{ pb: PocketBase; user: UserRecord }>} Klient w imieniu użytkownika i jego rekord
+ */
+export function requireUser(request: Request): Promise<{ pb: PocketBase; user: UserRecord }> {
+  return verifyRequestToken(request);
+}
+
 export interface AdminRequestContext {
   readonly pb: PocketBase;
   readonly user: UserRecord;

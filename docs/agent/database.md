@@ -147,6 +147,7 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
   - `listRule`: `id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true`
   - `viewRule`: `id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true`
   - `updateRule`: `(id = @request.auth.id && @request.body.is_admin:isset = false) || @request.auth.is_admin = true` (blokuje samonadanie `is_admin`; umożliwia użytkownikowi aktualizację własnego profilu, w tym przypisanie `household_id` przy dołączaniu do rodziny)
+  - Samodzielne usunięcie konta: `DELETE /api/account` (panel `/settings`, potwierdzenie e-mailem). Ostatni członek gospodarstwa usuwa najpierw gospodarstwo (kaskada: dzieci i ich dane) własnym tokenem, potem konto; konto admina usuwa tylko inny admin (409).
 * **`households`**:
   - `listRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)`
   - `viewRule`: `@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)`
