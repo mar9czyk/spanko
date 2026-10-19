@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { pastDayStripNowIso, shiftPhysiologicalDate } from "@/components/dashboard/dayHistory";
 import { FloatingActionBar } from "@/components/dashboard/FloatingActionBar";
 import { HeroWidget } from "@/components/dashboard/HeroWidget";
 import { MorningNightSummaryBanner } from "@/components/dashboard/MorningNightSummaryBanner";
 import { PhysiologicalTimeline } from "@/components/dashboard/PhysiologicalTimeline";
 import { QuickEntryBottomSheet } from "@/components/dashboard/QuickEntryBottomSheet";
 import { SmartInsightCard } from "@/components/dashboard/SmartInsightCard";
+import { formatClock } from "@/components/dashboard/timelineMapping";
 import { useDashboardState } from "@/components/dashboard/useDashboardState";
+import { usePastDays } from "@/components/dashboard/usePastDays";
+import { WakeListenerCard } from "@/components/dashboard/WakeListenerCard";
 import { ChooseGoalCard, GoalPathCard } from "@/components/goals/GoalPathCard";
 import { NightTipCard } from "@/components/goals/NightTipCard";
 import { useGoalState } from "@/components/goals/useGoalState";
@@ -35,6 +39,28 @@ export default function DashboardPage() {
     locale: locale,
     enabled: Boolean(child) && !state.isDemoData,
   });
+  // Oglądana wcześniejsza doba; null = bieżąca
+  const [viewedDate, setViewedDate] = useState<string | null>(null);
+  const pastDays = usePastDays(child?.id, viewedDate, 1);
+  const pastDay = pastDays.days[0];
+  const today = state.physiologicalDate;
+  const navigation =
+    today && !state.isDemoData
+      ? {
+          onPrevious: () => setViewedDate(shiftPhysiologicalDate(viewedDate ?? today, -1)),
+          onNext: viewedDate
+            ? () => {
+                const next = shiftPhysiologicalDate(viewedDate, 1);
+                setViewedDate(next >= today ? null : next);
+              }
+            : undefined,
+          onToday: viewedDate ? () => setViewedDate(null) : undefined,
+        }
+      : undefined;
+  const handleSelectChild = (childId: string) => {
+    setViewedDate(null);
+    state.handleSelectChild(childId);
+  };
   const isNightSleepActive =
     state.currentSleepLog?.type === "night" && state.currentSleepLog.status !== "completed";
 
@@ -74,7 +100,7 @@ export default function DashboardPage() {
         child={child}
         householdChildren={state.children}
         ageDisplay={state.ageDisplay}
-        onSelectChild={state.handleSelectChild}
+        onSelectChild={handleSelectChild}
         onSelectDayMode={state.handleSelectDayMode}
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
         onChangeChildPhoto={state.isDemoData ? undefined : state.handleChangeChildPhoto}
@@ -118,16 +144,49 @@ export default function DashboardPage() {
         sleepNeedsProfile={state.sleepNeedsProfile}
         latestLastNapEndAt={state.latestLastNapEndAt}
       />
-      <PhysiologicalTimeline
-        physiologicalDateDisplay={t("dashboard.dayPrefix", {
-          date: state.physiologicalDateDisplay,
-        })}
-        morningWakeTimeDisplay={state.morningWakeTimeDisplay}
-        events={state.timelineEvents}
-        morningWakeIso={state.morningWakeIso}
-        nowIso={state.nowIso}
-        currentSleepLog={state.currentSleepLog}
-      />
+      {!state.isDemoData && state.currentSleepLog && (
+        <WakeListenerCard
+          childId={child.id}
+          isSleeping={state.currentSleepLog.status === "sleeping"}
+          sleepType={state.currentSleepLog.type}
+          onConfirmWake={
+            state.currentSleepLog.type === "night"
+              ? state.handleDetectedNightWake
+              : state.handleCycleSleepStatus
+          }
+        />
+      )}
+      {viewedDate ? (
+        <PhysiologicalTimeline
+          key={viewedDate}
+          physiologicalDateDisplay={t("dashboard.dayPrefix", { date: viewedDate })}
+          morningWakeTimeDisplay={formatClock(pastDay?.dayStartIso)}
+          events={pastDay?.events ?? []}
+          morningWakeIso={pastDay?.dayStartIso}
+          nowIso={(pastDay && pastDayStripNowIso(pastDay)) ?? state.nowIso}
+          currentSleepLog={null}
+          navigation={navigation}
+          emptyText={
+            pastDays.status === "error"
+              ? t("timeline.loadPastError")
+              : pastDays.status === "ready"
+                ? t("timeline.emptyPast")
+                : t("common.loading")
+          }
+        />
+      ) : (
+        <PhysiologicalTimeline
+          physiologicalDateDisplay={t("dashboard.dayPrefix", {
+            date: state.physiologicalDateDisplay,
+          })}
+          morningWakeTimeDisplay={state.morningWakeTimeDisplay}
+          events={state.timelineEvents}
+          morningWakeIso={state.morningWakeIso}
+          nowIso={state.nowIso}
+          currentSleepLog={state.currentSleepLog}
+          navigation={navigation}
+        />
+      )}
       <FloatingActionBar
         currentSleepLog={state.currentSleepLog}
         onCycleSleepStatus={state.handleCycleSleepStatus}

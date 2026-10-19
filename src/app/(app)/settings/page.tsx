@@ -8,6 +8,7 @@ import { PreferencesMenu } from "@/components/settings/PreferencesMenu";
 import { ProfileSection } from "@/components/settings/ProfileSection";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { useCurrentUser } from "@/components/settings/useCurrentUser";
+import { WakeAlertsSection } from "@/components/settings/WakeAlertsSection";
 import { useI18n } from "@/i18n/I18nProvider";
 
 /**
@@ -42,6 +43,8 @@ export default function SettingsPage(): ReactNode {
       <SettingsCard title={t("settings.preferences")} hint={t("settings.preferencesHint")}>
         <PreferencesMenu />
       </SettingsCard>
+
+      {session.status === "signedIn" && <WakeAlertsSection />}
 
       {session.status === "signedIn" && <AccountSection user={session.user} />}
 
