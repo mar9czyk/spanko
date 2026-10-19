@@ -17,6 +17,7 @@ import {
   minutesSinceLastFeeding,
   predictNextSleepSlot,
   resolvePhysiologicalDate,
+  resolveSleepRestedness,
 } from "@/lib/sleep-engine";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
@@ -616,6 +617,7 @@ export function useDashboardState() {
     ),
     morningWakeTimeDisplay: formatClock(latestNightLog?.woke_up_at),
     sleepBatteryPercent: chronicDrive.sleepBatteryPercent,
+    sleepRestedness: resolveSleepRestedness(chronicDrive.chronicSleepDebtMin),
     sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
     latestLastNapEndAt: circadianParams.latestLastNapEndAt || FALLBACK_LAST_NAP_CAPPING,
     sweetSpotTimeDisplay: formatClock(sweetSpotPrediction?.sweetSpotIso),

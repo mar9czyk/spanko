@@ -113,6 +113,7 @@ export default function DashboardPage() {
         reasonDescription={state.reasonDescription}
         effectiveAgeDays={state.effectiveAgeDays}
         batteryPercent={state.sleepBatteryPercent}
+        sleepRestedness={state.sleepRestedness}
         sleepNeedsProfile={state.sleepNeedsProfile}
         latestLastNapEndAt={state.latestLastNapEndAt}
       />
