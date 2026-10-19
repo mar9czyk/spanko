@@ -7,8 +7,9 @@ import {
   linkAiCallToInsight,
   runInsightEvaluation,
 } from "@/lib/openrouter";
-import { enforceDailyAiLimit } from "@/lib/server/aiLimit";
+import { enforceDailyAiLimit, isAiDisabled } from "@/lib/server/aiLimit";
 import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
+import { buildDiagnosticInput, resolveSignificantDiagnostics } from "@/lib/server/childEngine";
 import { mapRecordToSleepLog } from "@/lib/server/sleepLogMapper";
 import {
   calculateChronicDrive,
@@ -17,16 +18,9 @@ import {
   getAgeBracket,
   resolveSleepMatrix,
 } from "@/lib/sleep-engine";
-import type {
-  DailySleepSummary,
-  DiagnosticEvaluationInput,
-  DiagnosticTreeResult,
-  SleepLog,
-} from "@/lib/sleep-engine/types";
 import { aggregateDailySleepSummaries } from "@/lib/sleep-summary";
 import type { ChildInsightRecord, ChildRecord, SleepLogRecord } from "@/lib/types/database";
 
-export const DEFAULT_FALLBACK_BEDTIME_MINUTES = 1200;
 export const MINUTES_PER_HOUR = 60;
 
 interface EvaluateInsightsRequestBody {
@@ -83,40 +77,6 @@ async function loadActiveInsight(
     sort: "-created",
   });
   return result.items[0] ?? null;
-}
-
-/**
- * Formułuje wejście diagnostyczne dla deterministycznego silnika snu.
- *
- * @param {object} params - Zestaw parametrów wejściowych
- * @returns {DiagnosticEvaluationInput} Kompletne wejście silnika
- */
-function buildDiagnosticInput(params: {
-  child: ChildRecord;
-  effectiveAgeDays: number;
-  recentSleepLogs: readonly SleepLog[];
-  dailyTotals: readonly DailySleepSummary[];
-  chronicSleepDebtMin: number;
-  sleepBatteryPercent: number;
-  sleepNeedsProfile: "low_sleep_needs" | "average" | "high_sleep_needs";
-}): DiagnosticEvaluationInput {
-  return {
-    child: {
-      birthDateIso: params.child.birth_date,
-      dueDateIso: params.child.due_date,
-      activeDayMode: params.child.active_day_mode,
-    },
-    todayContext: { dayMode: params.child.active_day_mode },
-    recentSleepLogs: params.recentSleepLogs,
-    dailyTotalsLast14DaysMin: params.dailyTotals,
-    currentMetrics: {
-      effectiveAgeDays: params.effectiveAgeDays,
-      chronicSleepDebtMin: params.chronicSleepDebtMin,
-      sleepBatteryPercent: params.sleepBatteryPercent,
-      sleepNeedsProfile: params.sleepNeedsProfile,
-      biologicalBedtimeMinFromMidnight: DEFAULT_FALLBACK_BEDTIME_MINUTES,
-    },
-  };
 }
 
 /**
@@ -177,23 +137,6 @@ async function archiveSupersededInsight(
 }
 
 /**
- * Wybiera istotne diagnozy z 7 deterministycznych kategorii problemów snu.
- *
- * @param {readonly DiagnosticTreeResult[]} results - Wszystkie 7 wyników
- * @returns {DiagnosticTreeResult[]} Zdiagnozowane lub domyślne kategorie
- */
-function resolveSignificantDiagnostics(
-  results: readonly DiagnosticTreeResult[],
-): readonly DiagnosticTreeResult[] {
-  const triggered = results.filter((diag) => diag.isTriggered);
-  if (triggered.length > 0) {
-    return triggered;
-  }
-  const firstDiagnostic = results[0];
-  return firstDiagnostic ? [firstDiagnostic] : [];
-}
-
-/**
  * Route Handler POST /api/ai/evaluate-insights
  *
  * @description
@@ -217,7 +160,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (child.household_id !== user.household_id) {
       throw new ApiAuthError("Brak dostępu do tego dziecka.", 403);
     }
-    await enforceDailyAiLimit(pb, user.household_id);
+    // AI wyłączone (globalnie lub dla gospodarstwa) → sam silnik deterministyczny, bez limitu i błędu
+    const aiDisabled = await isAiDisabled(pb, user.household_id);
+    if (!aiDisabled) {
+      await enforceDailyAiLimit(pb, user.household_id);
+    }
 
     const sleepRecords = await loadSleepLogRecords(pb, childId);
     const existingActiveInsight = await loadActiveInsight(pb, childId);
@@ -265,6 +212,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     };
 
     const evaluation = await runInsightEvaluation(evaluationContext, {
+      skipAi: aiDisabled,
       audit: {
         kind: "evaluate",
         childId: child.id,
@@ -296,6 +244,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       success: true,
       insight: savedInsight,
       supersededInsightId: existingActiveInsight?.id,
+      aiSkipped: evaluation.aiSkipped,
     });
   } catch (error) {
     if (error instanceof ApiAuthError) {

@@ -55,6 +55,8 @@ export interface UserRecord {
   readonly name: string;
   readonly avatar?: string;
   readonly is_admin: boolean;
+  readonly is_blocked?: boolean;
+  readonly last_seen_at?: string;
   readonly household_id?: string;
   readonly created: string;
   readonly updated: string;
@@ -67,6 +69,8 @@ export interface HouseholdRecord {
   readonly invite_expires_at?: string;
   /** Nadpisanie dziennego limitu AI dla gospodarstwa (ustawia wyłącznie admin) */
   readonly ai_daily_limit_override?: number;
+  /** Wyłączenie AI dla gospodarstwa (ustawia wyłącznie admin) */
+  readonly ai_disabled?: boolean;
   readonly created: string;
   readonly updated: string;
 }
@@ -152,6 +156,26 @@ export interface AdminSettingsRecord {
   /** Tablica przedziałów wiekowych lub `{ brackets: [...] }`; walidowana w resolveSleepMatrix */
   readonly sleep_matrix_override_json?: unknown;
   readonly ai_daily_limit_per_household?: number;
+  /** Globalny wyłącznik AI (true = tylko silnik deterministyczny) */
+  readonly ai_disabled?: boolean;
+  readonly openrouter_fallback_model?: string;
+  /** 0 / brak = domyślna */
+  readonly ai_temperature?: number;
+  /** 0 / brak = domyślny limit modelu */
+  readonly ai_max_tokens?: number;
+  /** 0 / brak = domyślny */
+  readonly ai_timeout_ms?: number;
+  readonly created: string;
+  readonly updated: string;
+}
+
+export interface PromptVersionRecord {
+  readonly id: string;
+  readonly version: number;
+  readonly system_prompt: string;
+  readonly note?: string;
+  readonly author_id?: string;
+  readonly is_active: boolean;
   readonly created: string;
   readonly updated: string;
 }
@@ -173,6 +197,10 @@ export interface AiCallRecord {
   readonly completion_tokens?: number;
   readonly latency_ms?: number;
   readonly insight_id?: string;
+  readonly fallback_used?: boolean;
+  readonly prompt_version?: number;
+  /** Kategoria główna wniosku (np. CAT1_…) lub GOAL dla coacha */
+  readonly category?: string;
   readonly created: string;
   readonly updated: string;
 }
@@ -213,6 +241,19 @@ export interface GoalDailyTaskRecord {
   readonly night_tip_json?: DailyTask | null;
   readonly progress_json?: ProgressDecision;
   readonly coach_json?: GoalCoachMessage;
+  readonly created: string;
+  readonly updated: string;
+}
+
+export interface AdminAuditLogRecord {
+  readonly id: string;
+  readonly actor_id?: string;
+  readonly actor_email?: string;
+  readonly action: string;
+  readonly target_collection?: string;
+  readonly target_id?: string;
+  readonly before_json?: unknown;
+  readonly after_json?: unknown;
   readonly created: string;
   readonly updated: string;
 }

@@ -36,6 +36,29 @@ export function translateDynamic(locale: Locale, key: string, fallback: string):
   return DICTIONARIES[locale][key] ?? fallback;
 }
 
+/**
+ * Jak `translateDynamic`, ale z nadpisaniami treści ustawianymi przez admina (kolekcja `app_content`).
+ *
+ * @description
+ * Nadpisania są polskie (`value_pl`), więc działają tylko dla języka polskiego; pusta wartość
+ * jest ignorowana i używany jest tekst z kodu.
+ *
+ * @param {Locale} locale - Język
+ * @param {string} key - Klucz tłumaczenia (np. `tag.ząbkowanie`)
+ * @param {string} fallback - Tekst, gdy klucza brak
+ * @param {Readonly<Record<string, string>>} overrides - Nadpisania z bazy (klucz → treść)
+ * @returns {string} Tekst do wyświetlenia
+ */
+export function translateDynamicWithOverrides(
+  locale: Locale,
+  key: string,
+  fallback: string,
+  overrides: Readonly<Record<string, string>>,
+): string {
+  const override = locale === "pl" ? overrides[key] : undefined;
+  return override && override.trim() !== "" ? override : translateDynamic(locale, key, fallback);
+}
+
 function interpolate(template: string, params?: TranslateParams): string {
   if (!params) return template;
   return template.replace(/\{(\w+)\}/g, (match, name: string) =>

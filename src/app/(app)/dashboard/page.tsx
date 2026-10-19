@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { FloatingActionBar } from "@/components/dashboard/FloatingActionBar";
 import { HeroWidget } from "@/components/dashboard/HeroWidget";
@@ -55,6 +56,7 @@ export default function DashboardPage() {
 
   return (
     <main className="w-full flex flex-col gap-3 pb-8">
+      {!state.isDemoData && <AnnouncementBanner />}
       {state.isDemoData && (
         <p className="rounded-lg bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
           {t("dashboard.demo")}{" "}

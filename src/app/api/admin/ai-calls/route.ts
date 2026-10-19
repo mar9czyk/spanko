@@ -23,11 +23,20 @@ export async function GET(request: Request): Promise<NextResponse> {
       throw new ApiAuthError("Niepoprawne parametry zapytania.", 400);
     }
 
-    const { page, perPage, status } = query.data;
+    const { page, perPage, status, household_id, child_id, category, model, from, to } = query.data;
+    const clauses: string[] = [];
+    if (status) clauses.push(pb.filter("status = {:status}", { status }));
+    if (household_id) clauses.push(pb.filter("household_id = {:v}", { v: household_id }));
+    if (child_id) clauses.push(pb.filter("child_id = {:v}", { v: child_id }));
+    if (category) clauses.push(pb.filter("category ~ {:v}", { v: category }));
+    if (model) clauses.push(pb.filter("model ~ {:v}", { v: model }));
+    if (from) clauses.push(pb.filter("created >= {:v}", { v: from }));
+    if (to) clauses.push(pb.filter("created <= {:v}", { v: to }));
+
     const result = await pb.collection("ai_calls").getList<AiCallWithExpand>(page, perPage, {
       sort: "-created",
       expand: "insight_id",
-      filter: status ? pb.filter("status = {:status}", { status }) : "",
+      filter: clauses.join(" && "),
     });
 
     return NextResponse.json({

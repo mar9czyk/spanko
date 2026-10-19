@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { pb } from "@/lib/pocketbase";
 import type { MessageKey } from "./messages";
 import {
   DEFAULT_LOCALE,
@@ -19,6 +20,7 @@ import {
   type TranslateParams,
   translate,
   translateDynamic,
+  translateDynamicWithOverrides,
   type Units,
 } from "./translate";
 
@@ -68,6 +70,7 @@ function writeStorage(key: string, value: string): void {
 export function I18nProvider({ children }: { readonly children: ReactNode }): ReactNode {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [units, setUnitsState] = useState<Units>("metric");
+  const [contentOverrides, setContentOverrides] = useState<Readonly<Record<string, string>>>({});
 
   useEffect(() => {
     const storedLocale = readStorage(LOCALE_STORAGE_KEY);
@@ -87,6 +90,35 @@ export function I18nProvider({ children }: { readonly children: ReactNode }): Re
     document.documentElement.lang = locale;
   }, [locale]);
 
+  // Nadpisania tekstów z panelu admina (kolekcja app_content) — best effort, bez blokowania UI
+  useEffect(() => {
+    let cancelled = false;
+    const loadOverrides = async () => {
+      if (!pb.authStore.isValid) {
+        setContentOverrides({});
+        return;
+      }
+      try {
+        const records = await pb
+          .collection("app_content")
+          .getFullList<{ key: string; value_pl: string }>({ fields: "key,value_pl" });
+        if (!cancelled) {
+          setContentOverrides(Object.fromEntries(records.map((r) => [r.key, r.value_pl])));
+        }
+      } catch {
+        // Brak kolekcji lub sieci — używamy tekstów z kodu
+      }
+    };
+    loadOverrides();
+    const unsubscribe = pb.authStore.onChange(() => {
+      loadOverrides();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
     writeStorage(LOCALE_STORAGE_KEY, next);
@@ -104,9 +136,10 @@ export function I18nProvider({ children }: { readonly children: ReactNode }): Re
       setLocale,
       setUnits,
       t: (key, params) => translate(locale, key, params),
-      tDynamic: (key, fallback) => translateDynamic(locale, key, fallback),
+      tDynamic: (key, fallback) =>
+        translateDynamicWithOverrides(locale, key, fallback, contentOverrides),
     }),
-    [locale, units, setLocale, setUnits],
+    [locale, units, setLocale, setUnits, contentOverrides],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

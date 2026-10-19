@@ -98,7 +98,22 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `openrouter_reasoning_model` (string, np. `anthropic/claude-3.7-sonnet`)
 - `system_prompt_insights` (text, wzorzec promptu dla generatora wniosków)
 - `sleep_matrix_override_json` (json, opcjonalne nadpisanie domyślnej matrycy `DEFAULT_SLEEP_MATRIX`)
-- `ai_daily_limit_per_household` (number, domyślnie np. 10 zapytań/dobę)
+- `ai_daily_limit_per_household` (number, domyślnie 20 zapytań/dobę; `0` = nie ustawiono)
+- `ai_disabled` (bool) — **globalny wyłącznik AI** (`true` = tylko silnik deterministyczny). Pole jest odwrócone względem planu (`ai_enabled`), bo bool w PocketBase domyślnie jest `false`, więc stary rekord wyłączyłby AI.
+- `openrouter_fallback_model` (text), `ai_temperature` (0–2), `ai_max_tokens` (0–8000), `ai_timeout_ms` (0–120000) — dla liczb `0` = wartość domyślna (PocketBase zapisuje niewypełnioną liczbę jako 0).
+
+> **Uwaga o liczbach w PocketBase:** niewypełnione pole `number` ma wartość `0`, nie `null`. Dlatego `households.ai_daily_limit_override = 0` i `ai_daily_limit_per_household = 0` oznaczają "brak nadpisania" (`resolveDailyAiLimit` w `src/lib/server/aiLimit.ts`). Do blokowania AI służą przełączniki `ai_disabled`, nie limit 0.
+
+#### Rozszerzenia Panelu Admina v2 (kolekcje i pola)
+- `users`: `is_blocked` (bool, zablokowany użytkownik dostaje 403 w API i nie ma dostępu do danych — każda reguła danych zaczyna się od `@request.auth.is_blocked = false`), `last_seen_at` (date, odświeżane przez serwer najwyżej raz na 15 min). Użytkownik nie może sam zmienić `is_admin`, `is_blocked` ani `last_seen_at`.
+- `households`: `ai_disabled` (bool, tylko admin) — wyłącza AI dla gospodarstwa.
+- `ai_calls`: `fallback_used` (bool), `prompt_version` (number; 0 = prompt z nadpisania lub domyślny), `category` (np. `CAT2_…`, `GOAL` dla coacha); `request_snapshot_json.context` trzyma pełny kontekst do ponownego uruchomienia (replay).
+- `admin_audit_log` (tylko odczyt dla admina; zapis wyłącznie kontem serwisowym, brak edycji i usuwania): `actor_id`, `actor_email`, `action`, `target_collection`, `target_id`, `before_json`, `after_json`.
+- `prompt_versions`: `version` (unikalna), `system_prompt`, `note`, `author_id`, `is_active` (tylko jedna aktywna; aktywacja kopiuje treść do `admin_settings.system_prompt_insights`).
+- `sleep_matrix_versions`: `matrix_json` (null = reset do domyślnej), `note`, `source` (`save` | `restore` | `reset`), `author_id`.
+- `app_content`: `key` (unikalny), `value_pl` — nadpisania tekstów (np. `tag.ząbkowanie`); odczyt dla zalogowanych niezablokowanych, zapis tylko admin.
+- `announcements`: `message`, `level` (`info` | `warning`), `starts_at`, `ends_at`, `active`; zwykły użytkownik widzi tylko aktywne w oknie czasu (reguła w PocketBase).
+- `feature_flags`: `key` (unikalny), `enabled`, `rollout_household_ids` (json: lista id; pusta = wszyscy), `description`. Sprawdzanie: `isFeatureEnabledFor` (`src/lib/server/featureFlags.ts`).
 
 ---
 

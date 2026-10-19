@@ -24,8 +24,11 @@ import {
   AiCallsQuerySchema,
   HouseholdLimitPatchSchema,
   SandboxRequestSchema,
+  UserDeleteSchema,
+  UserPatchSchema,
 } from "../adminSchemas";
-import { ApiAuthError, authenticateRequest, requireAdmin } from "../auth";
+import { DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD, resolveDailyAiLimit } from "../aiLimit";
+import { ApiAuthError, authenticateRequest, requireAdmin, shouldTouchLastSeen } from "../auth";
 
 function requestWithToken(token?: string, body: unknown = {}): Request {
   return new Request("http://localhost/api/admin/x", {
@@ -139,5 +142,50 @@ describe("schematy wejścia admina", () => {
     expect(
       HouseholdLimitPatchSchema.safeParse({ householdId: "h1", limitOverride: -5 }).success,
     ).toBe(false);
+  });
+});
+
+describe("resolveDailyAiLimit", () => {
+  it("używa nadpisania gospodarstwa, potem limitu globalnego, potem domyślnego", () => {
+    expect(resolveDailyAiLimit(5, 30)).toBe(5);
+    expect(resolveDailyAiLimit(undefined, 30)).toBe(30);
+    expect(resolveDailyAiLimit(null, undefined)).toBe(DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD);
+  });
+
+  it("traktuje 0 z PocketBase (niewypełnione pole liczbowe) jako brak wartości", () => {
+    expect(resolveDailyAiLimit(0, 0)).toBe(DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD);
+    expect(resolveDailyAiLimit(0, 12)).toBe(12);
+  });
+});
+
+describe("blokada kont i znacznik aktywności", () => {
+  beforeEach(() => {
+    pbState.result = { record: {} };
+  });
+
+  it("zwraca 403 dla zablokowanego użytkownika (authenticateRequest i requireAdmin)", async () => {
+    mockUser({ is_admin: true, is_blocked: true, household_id: "h1" });
+    await expect(authenticateRequest(requestWithToken("t"))).rejects.toMatchObject({ status: 403 });
+    await expect(requireAdmin(requestWithToken("t"))).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("shouldTouchLastSeen odświeża brak wartości i wpisy starsze niż 15 min", () => {
+    const now = Date.now();
+    expect(shouldTouchLastSeen(undefined, now)).toBe(true);
+    expect(shouldTouchLastSeen(new Date(now - 20 * 60_000).toISOString(), now)).toBe(true);
+    expect(shouldTouchLastSeen(new Date(now - 5 * 60_000).toISOString(), now)).toBe(false);
+  });
+});
+
+describe("schematy użytkowników", () => {
+  it("UserPatchSchema wymaga co najmniej jednego pola i odrzuca nieznane", () => {
+    expect(UserPatchSchema.safeParse({}).success).toBe(false);
+    expect(UserPatchSchema.safeParse({ is_blocked: true }).success).toBe(true);
+    expect(UserPatchSchema.safeParse({ email: "x@y.z" }).success).toBe(false);
+  });
+
+  it("UserDeleteSchema wymaga confirmEmail", () => {
+    expect(UserDeleteSchema.safeParse({}).success).toBe(false);
+    expect(UserDeleteSchema.safeParse({ confirmEmail: "a@b.pl" }).success).toBe(true);
   });
 });

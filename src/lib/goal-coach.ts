@@ -6,6 +6,7 @@ import {
   fetchAdminSettings,
   logAiCall,
   type OpenRouterRawResult,
+  resolveAiRuntimeSettings,
   resolveOpenRouterApiKey,
   sendOpenRouterRequest,
 } from "@/lib/openrouter";
@@ -147,7 +148,7 @@ export async function runGoalCoach(
         householdId: audit.householdId,
         requestSnapshot: snapshot,
       },
-      { model, status, latencyMs: Date.now() - startedAt, ...extra },
+      { model, status, latencyMs: Date.now() - startedAt, category: "GOAL", ...extra },
     );
 
   const apiKey = resolveOpenRouterApiKey();
@@ -170,7 +171,12 @@ export async function runGoalCoach(
 
   let raw: OpenRouterRawResult | null = null;
   try {
-    raw = await sendOpenRouterRequest(apiKey, model, systemPrompt, formatGoalCoachPrompt(ctx));
+    const runtime = resolveAiRuntimeSettings(settings);
+    raw = await sendOpenRouterRequest(apiKey, model, systemPrompt, formatGoalCoachPrompt(ctx), {
+      temperature: runtime.temperature,
+      maxTokens: runtime.maxTokens,
+      timeoutMs: runtime.timeoutMs,
+    });
     const parsed = GoalCoachSchema.parse(JSON.parse(raw.content));
     const callId = await log(model, "ok", {
       responseJson: parsed,

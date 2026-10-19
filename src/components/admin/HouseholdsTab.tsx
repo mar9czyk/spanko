@@ -2,6 +2,7 @@
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { adminRequest, jsonBody } from "./adminApi";
+import { HouseholdDetails } from "./HouseholdDetails";
 import { inputClass, StatusMessage } from "./ui";
 
 interface HouseholdRow {
@@ -11,6 +12,7 @@ interface HouseholdRow {
   readonly aiCalls24h: number;
   readonly aiCalls7d: number;
   readonly limitOverride: number | null;
+  readonly aiDisabled: boolean;
 }
 
 /**
@@ -22,11 +24,14 @@ interface HouseholdRow {
 function HouseholdCard({
   row,
   onSave,
+  onToggleAi,
 }: {
   row: HouseholdRow;
   onSave: (id: string, limit: number | null) => Promise<void>;
+  onToggleAi: (id: string, aiDisabled: boolean) => Promise<void>;
 }): ReactNode {
   const [value, setValue] = useState(row.limitOverride === null ? "" : String(row.limitOverride));
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3 flex flex-col gap-2">
@@ -56,6 +61,28 @@ function HouseholdCard({
           Zapisz
         </button>
       </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={!row.aiDisabled}
+        className={`min-h-11 rounded-xl border px-3 text-xs font-medium ${
+          row.aiDisabled
+            ? "border-red-500/50 bg-red-500/10 text-red-300"
+            : "border-slate-700 text-slate-300"
+        }`}
+        onClick={() => onToggleAi(row.id, !row.aiDisabled)}
+      >
+        {row.aiDisabled ? "AI wyłączone — włącz" : "AI włączone — wyłącz dla tego gospodarstwa"}
+      </button>
+      <button
+        type="button"
+        aria-expanded={showDetails}
+        className="min-h-11 rounded-xl border border-slate-700 px-3 text-xs text-slate-300"
+        onClick={() => setShowDetails((value) => !value)}
+      >
+        {showDetails ? "Ukryj szczegóły" : "Szczegóły, zaproszenie, eksport"}
+      </button>
+      {showDetails && <HouseholdDetails householdId={row.id} />}
     </div>
   );
 }
@@ -97,12 +124,29 @@ export function HouseholdsTab(): ReactNode {
     }
   };
 
+  const handleToggleAi = async (householdId: string, aiDisabled: boolean) => {
+    try {
+      await adminRequest("/api/admin/households", {
+        method: "PATCH",
+        ...jsonBody({ householdId, aiDisabled }),
+      });
+      await load();
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "Nie udało się zapisać.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <StatusMessage error={error} loading={rows || error ? undefined : "Ładowanie…"} />
       {rows?.length === 0 && <p className="text-sm text-slate-400">Brak gospodarstw.</p>}
       {rows?.map((row) => (
-        <HouseholdCard key={`${row.id}:${row.limitOverride}`} row={row} onSave={handleSave} />
+        <HouseholdCard
+          key={`${row.id}:${row.limitOverride}:${row.aiDisabled}`}
+          row={row}
+          onSave={handleSave}
+          onToggleAi={handleToggleAi}
+        />
       ))}
     </div>
   );

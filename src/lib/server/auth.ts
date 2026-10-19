@@ -12,7 +12,7 @@ export interface AuthenticatedRequestContext {
 export class ApiAuthError extends Error {
   constructor(
     message: string,
-    readonly status: 400 | 401 | 403 | 404 | 429 | 503,
+    readonly status: 400 | 401 | 403 | 404 | 409 | 429 | 503,
   ) {
     super(message);
     this.name = "ApiAuthError";
@@ -64,11 +64,48 @@ async function verifyRequestToken(request: Request): Promise<{ pb: PocketBase; u
   pb.autoCancellation(false);
   pb.authStore.save(token, null);
 
+  let user: UserRecord;
   try {
     const authData = await pb.collection("users").authRefresh();
-    return { pb, user: authData.record as unknown as UserRecord };
+    user = authData.record as unknown as UserRecord;
   } catch {
     throw new ApiAuthError("Nieprawidłowy lub wygasły token.", 401);
+  }
+
+  if (user.is_blocked === true) {
+    throw new ApiAuthError("Konto zostało zablokowane.", 403);
+  }
+  void touchLastSeen(user);
+  return { pb, user };
+}
+
+export const LAST_SEEN_THROTTLE_MS = 15 * 60_000;
+
+/**
+ * Czy `last_seen_at` wymaga odświeżenia (brak wartości lub starsza niż próg).
+ *
+ * @param {string | undefined} lastSeenAt - Poprzednia wartość (ISO)
+ * @param {number} nowMs - Bieżący czas w ms
+ * @returns {boolean} True, gdy należy zapisać nową wartość
+ */
+export function shouldTouchLastSeen(lastSeenAt: string | undefined, nowMs: number): boolean {
+  if (!lastSeenAt) return true;
+  const previous = new Date(lastSeenAt).getTime();
+  return Number.isNaN(previous) || nowMs - previous >= LAST_SEEN_THROTTLE_MS;
+}
+
+/**
+ * Aktualizuje `last_seen_at` (najwyżej raz na 15 min, klient serwisowy, best effort).
+ *
+ * @param {UserRecord} user - Zalogowany użytkownik
+ */
+async function touchLastSeen(user: UserRecord): Promise<void> {
+  if (!shouldTouchLastSeen(user.last_seen_at, Date.now())) return;
+  try {
+    const service = await getServiceClient();
+    await service?.collection("users").update(user.id, { last_seen_at: new Date().toISOString() });
+  } catch {
+    // Błąd zapisu znacznika aktywności nigdy nie przerywa żądania.
   }
 }
 
@@ -145,4 +182,21 @@ export async function getServiceClient(): Promise<PocketBase | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Zwraca klienta serwisowego lub rzuca 503, gdy nie skonfigurowano konta superusera.
+ *
+ * @throws {ApiAuthError} 503 przy braku konfiguracji
+ * @returns {Promise<PocketBase>} Klient z uprawnieniami superusera
+ */
+export async function requireServiceClient(): Promise<PocketBase> {
+  const client = await getServiceClient();
+  if (!client) {
+    throw new ApiAuthError(
+      "Brak konfiguracji konta serwisowego (POCKETBASE_SUPERUSER_EMAIL / _PASSWORD).",
+      503,
+    );
+  }
+  return client;
 }

@@ -23,8 +23,13 @@ export type AdminSettingsPatch = Partial<
     | "openrouter_reasoning_model"
     | "system_prompt_insights"
     | "ai_daily_limit_per_household"
+    | "ai_disabled"
+    | "openrouter_fallback_model"
+    | "ai_temperature"
+    | "ai_max_tokens"
+    | "ai_timeout_ms"
   >
-> & { sleep_matrix_override_json?: unknown };
+> & { sleep_matrix_override_json?: unknown; sleep_matrix_note?: string };
 
 /**
  * Hook ładujący i zapisujący ustawienia admina (modele, prompt, matryca, limit).
@@ -67,5 +72,5 @@ export function useAdminSettings() {
     }
   };
 
-  return { data, error, isSaving, save };
+  return { data, error, isSaving, save, reload };
 }

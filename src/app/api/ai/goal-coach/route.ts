@@ -5,7 +5,7 @@ import { type CopyLocale, GOAL_TITLES, localize, METHOD_TITLES } from "@/lib/goa
 import { goalMetricValue } from "@/lib/goals-engine/catalog";
 import { buildDailyTasks, buildNightTip } from "@/lib/goals-engine/dailyTasks";
 import { baselineMetricValue, evaluateProgress } from "@/lib/goals-engine/progress";
-import { enforceDailyAiLimit } from "@/lib/server/aiLimit";
+import { enforceDailyAiLimit, isAiDisabled } from "@/lib/server/aiLimit";
 import { parseJsonBody, toErrorResponse } from "@/lib/server/apiResponse";
 import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
 import { loadChildGoalContext } from "@/lib/server/goals";
@@ -63,12 +63,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Limit AI nie może blokować planu dnia — przy wyczerpaniu zwracamy tekst deterministyczny
-    let aiAllowed = true;
-    try {
-      await enforceDailyAiLimit(pb, user.household_id);
-    } catch (limitError) {
-      if (limitError instanceof ApiAuthError && limitError.status === 429) aiAllowed = false;
-      else throw limitError;
+    let aiAllowed = !(await isAiDisabled(pb, user.household_id));
+    if (aiAllowed) {
+      try {
+        await enforceDailyAiLimit(pb, user.household_id);
+      } catch (limitError) {
+        if (limitError instanceof ApiAuthError && limitError.status === 429) aiAllowed = false;
+        else throw limitError;
+      }
     }
 
     const sinceStart = context.days.filter((d) => d.date >= goal.started_on);

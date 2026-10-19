@@ -7,7 +7,9 @@ import {
 } from "@/lib/openrouter";
 import { AdminSettingsUpdateSchema } from "@/lib/server/adminSchemas";
 import { parseJsonBody, toErrorResponse } from "@/lib/server/apiResponse";
+import { writeAuditLog } from "@/lib/server/audit";
 import { ApiAuthError, requireAdmin } from "@/lib/server/auth";
+import { recordMatrixVersion } from "@/lib/server/matrixVersions";
 import { DEFAULT_SLEEP_MATRIX, validateSleepMatrix } from "@/lib/sleep-engine";
 import type { AdminSettingsRecord } from "@/lib/types/database";
 
@@ -44,10 +46,11 @@ export async function GET(request: Request): Promise<NextResponse> {
  */
 export async function PUT(request: Request): Promise<NextResponse> {
   try {
-    const { pb } = await requireAdmin(request);
+    const { pb, user } = await requireAdmin(request);
     const body = await parseJsonBody(request, AdminSettingsUpdateSchema);
 
-    const update: Record<string, unknown> = { ...body };
+    const { sleep_matrix_note: matrixNote, ...settingsFields } = body;
+    const update: Record<string, unknown> = { ...settingsFields };
     if (body.sleep_matrix_override_json !== undefined && body.sleep_matrix_override_json !== null) {
       const validation = validateSleepMatrix(body.sleep_matrix_override_json);
       if (!validation.ok) {
@@ -63,6 +66,22 @@ export async function PUT(request: Request): Promise<NextResponse> {
       : await pb.collection("admin_settings").create<AdminSettingsRecord>(update);
 
     invalidateAdminSettingsCache();
+    if (body.sleep_matrix_override_json !== undefined) {
+      await recordMatrixVersion(pb, {
+        matrix: update.sleep_matrix_override_json ?? null,
+        note: matrixNote,
+        source: body.sleep_matrix_override_json === null ? "reset" : "save",
+        authorId: user.id,
+      });
+    }
+    await writeAuditLog({
+      actor: user,
+      action: "settings.update",
+      targetCollection: "admin_settings",
+      targetId: saved.id,
+      before: current ?? null,
+      after: update,
+    });
     return NextResponse.json({ success: true, settings: saved });
   } catch (error) {
     return toErrorResponse(error, "Nie udało się zapisać ustawień.");

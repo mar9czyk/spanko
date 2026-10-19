@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getServiceClient } from "@/lib/server/auth";
+import { fetchActivePromptVersion } from "@/lib/server/promptVersions";
 import type {
   AdminSettingsRecord,
   AiCallKind,
@@ -71,6 +72,8 @@ export interface OpenRouterConfig {
   readonly apiKey?: string;
   readonly modelName?: string;
   readonly systemPrompt?: string;
+  /** Pomija wywołanie modelu (AI wyłączone) — zwraca wniosek deterministyczny bez logu */
+  readonly skipAi?: boolean;
   /** Gdy podane, wywołanie jest logowane w kolekcji ai_calls */
   readonly audit?: AiCallAudit;
 }
@@ -83,7 +86,28 @@ export interface InsightEvaluationOutcome {
   readonly errorMessage?: string;
   readonly rawResponse?: string;
   readonly latencyMs: number;
+  /** Wniosek pochodzi z modelu zapasowego (główny zawiódł) */
+  readonly fallbackUsed: boolean;
+  /** AI było wyłączone — zwrócono wniosek deterministyczny */
+  readonly aiSkipped: boolean;
+  /** Numer aktywnej wersji promptu (0 = prompt domyślny/z ustawień) */
+  readonly promptVersion: number;
 }
+
+export interface OpenRouterRequestOptions {
+  readonly temperature?: number;
+  readonly maxTokens?: number;
+  readonly timeoutMs?: number;
+}
+
+export interface AiRuntimeSettings {
+  readonly temperature: number;
+  readonly maxTokens?: number;
+  readonly timeoutMs: number;
+  readonly fallbackModel?: string;
+}
+
+export const DEFAULT_AI_TIMEOUT_MS = 30_000;
 
 export interface OpenRouterRawResult {
   readonly content: string;
@@ -108,7 +132,26 @@ export interface InsightEvaluationContext {
     explanation: string;
     clinicalAction: string;
   }[];
-  readonly activeInsights: readonly ChildInsightRecord[];
+  readonly activeInsights: readonly Pick<ChildInsightRecord, "status" | "category" | "title">[];
+}
+
+/**
+ * Wylicza parametry wywołania AI z ustawień admina (0 / brak = wartość domyślna).
+ *
+ * @param {AdminSettingsRecord | null} settings - Ustawienia admina
+ * @returns {AiRuntimeSettings} Temperatura, limit tokenów, timeout i model zapasowy
+ */
+export function resolveAiRuntimeSettings(settings: AdminSettingsRecord | null): AiRuntimeSettings {
+  const temperature = settings?.ai_temperature;
+  const maxTokens = settings?.ai_max_tokens;
+  const timeoutMs = settings?.ai_timeout_ms;
+  const fallbackModel = settings?.openrouter_fallback_model?.trim();
+  return {
+    temperature: temperature && temperature > 0 ? temperature : DEFAULT_AI_TEMPERATURE,
+    maxTokens: maxTokens && maxTokens > 0 ? maxTokens : undefined,
+    timeoutMs: timeoutMs && timeoutMs > 0 ? timeoutMs : DEFAULT_AI_TIMEOUT_MS,
+    fallbackModel: fallbackModel || undefined,
+  };
 }
 
 /**
@@ -238,25 +281,42 @@ export async function sendOpenRouterRequest(
   modelName: string,
   systemPrompt: string,
   userPrompt: string,
+  options: OpenRouterRequestOptions = {},
 ): Promise<OpenRouterRawResult> {
-  const response = await fetch(OPENROUTER_COMPLETIONS_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://spanko.app",
-      "X-Title": "Spanko Baby Sleep Assistant",
-    },
-    body: JSON.stringify({
-      model: modelName,
-      temperature: DEFAULT_AI_TEMPERATURE,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
+  const timeoutMs = options.timeoutMs ?? DEFAULT_AI_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(OPENROUTER_COMPLETIONS_ENDPOINT, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://spanko.app",
+        "X-Title": "Spanko Baby Sleep Assistant",
+      },
+      body: JSON.stringify({
+        model: modelName,
+        temperature: options.temperature ?? DEFAULT_AI_TEMPERATURE,
+        ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Przekroczono limit czasu odpowiedzi OpenRouter (${timeoutMs} ms).`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -319,6 +379,15 @@ export function createDeterministicFallbackInsight(
  */
 export function buildRequestSnapshot(context: InsightEvaluationContext): Record<string, unknown> {
   return {
+    // Pełny kontekst — pozwala admin odtworzyć wywołanie z innym promptem/modelem (replay)
+    context: {
+      ...context,
+      activeInsights: context.activeInsights.map(({ status, category, title }) => ({
+        status,
+        category,
+        title,
+      })),
+    },
     diagnosticsSnapshot: context.triggeredDiagnostics.map((diag) => ({
       category: diag.category,
       diagnosisCode: diag.diagnosisCode,
@@ -351,6 +420,9 @@ export async function logAiCall(
     promptTokens?: number;
     completionTokens?: number;
     latencyMs: number;
+    fallbackUsed?: boolean;
+    promptVersion?: number;
+    category?: string;
   },
 ): Promise<string | null> {
   try {
@@ -370,6 +442,9 @@ export async function logAiCall(
       prompt_tokens: details.promptTokens,
       completion_tokens: details.completionTokens,
       latency_ms: details.latencyMs,
+      fallback_used: details.fallbackUsed ?? false,
+      prompt_version: details.promptVersion ?? 0,
+      category: details.category ?? "",
     });
     return record.id;
   } catch {
@@ -424,24 +499,53 @@ export async function runInsightEvaluation(
   const apiKey = configOverride?.apiKey ?? resolveOpenRouterApiKey();
 
   const finish = async (
-    result: Omit<InsightEvaluationOutcome, "callId" | "latencyMs">,
-    extra: { promptTokens?: number; completionTokens?: number } = {},
+    result: Omit<
+      InsightEvaluationOutcome,
+      "callId" | "latencyMs" | "fallbackUsed" | "aiSkipped" | "promptVersion"
+    >,
+    extra: {
+      promptTokens?: number;
+      completionTokens?: number;
+      fallbackUsed?: boolean;
+      promptVersion?: number;
+      aiSkipped?: boolean;
+    } = {},
   ): Promise<InsightEvaluationOutcome> => {
     const latencyMs = Date.now() - startedAt;
-    const callId = audit
-      ? await logAiCall(audit, {
-          model: result.model,
-          status: result.status,
-          responseJson: result.rawResponse
-            ? toLoggableResponse(result.rawResponse)
-            : result.insight,
-          errorMessage: result.errorMessage,
-          latencyMs,
-          ...extra,
-        })
-      : null;
-    return { ...result, callId, latencyMs };
+    const fallbackUsed = extra.fallbackUsed ?? false;
+    const promptVersion = extra.promptVersion ?? 0;
+    const aiSkipped = extra.aiSkipped ?? false;
+    const callId =
+      audit && !aiSkipped
+        ? await logAiCall(audit, {
+            model: result.model,
+            status: result.status,
+            responseJson: result.rawResponse
+              ? toLoggableResponse(result.rawResponse)
+              : result.insight,
+            errorMessage: result.errorMessage,
+            latencyMs,
+            promptTokens: extra.promptTokens,
+            completionTokens: extra.completionTokens,
+            fallbackUsed,
+            promptVersion,
+            category: result.insight.category,
+          })
+        : null;
+    return { ...result, callId, latencyMs, fallbackUsed, aiSkipped, promptVersion };
   };
+
+  if (configOverride?.skipAi) {
+    return finish(
+      {
+        insight: createDeterministicFallbackInsight(context),
+        model: "deterministic-fallback",
+        status: "ok",
+        errorMessage: "AI wyłączone — użyto wniosku deterministycznego.",
+      },
+      { aiSkipped: true },
+    );
+  }
 
   if (!apiKey) {
     return finish({
@@ -452,37 +556,80 @@ export async function runInsightEvaluation(
     });
   }
 
-  const adminSettings = await fetchAdminSettings();
-  const selectedModel =
+  const [adminSettings, activePrompt] = await Promise.all([
+    fetchAdminSettings(),
+    fetchActivePromptVersion(),
+  ]);
+  const runtime = resolveAiRuntimeSettings(adminSettings);
+  const primaryModel =
     configOverride?.modelName ||
     adminSettings?.openrouter_fast_model ||
     DEFAULT_OPENROUTER_FAST_MODEL;
+  // Prompt z nadpisania (Sandbox/replay) nie ma numeru wersji
+  const promptVersion = configOverride?.systemPrompt ? 0 : (activePrompt?.version ?? 0);
   const systemPrompt = resolveSystemPrompt(
-    configOverride?.systemPrompt || adminSettings?.system_prompt_insights,
+    configOverride?.systemPrompt ||
+      activePrompt?.systemPrompt ||
+      adminSettings?.system_prompt_insights,
   );
   const userPrompt = formatEvaluationUserPrompt(context);
 
-  let raw: OpenRouterRawResult | null = null;
-  try {
-    raw = await sendOpenRouterRequest(apiKey, selectedModel, systemPrompt, userPrompt);
-    const insight = parseAndValidateAiResponse(raw.content);
-    return await finish(
-      { insight, model: selectedModel, status: "ok", rawResponse: raw.content },
-      { promptTokens: raw.promptTokens, completionTokens: raw.completionTokens },
-    );
-  } catch (error) {
-    const reachedModel = raw !== null;
-    return await finish(
-      {
-        insight: createDeterministicFallbackInsight(context),
-        model: selectedModel,
-        status: reachedModel ? "invalid_json" : "error",
-        errorMessage: error instanceof Error ? error.message : "Nieznany błąd OpenRouter.",
-        rawResponse: raw?.content,
-      },
-      { promptTokens: raw?.promptTokens, completionTokens: raw?.completionTokens },
-    );
+  const models = [primaryModel];
+  if (runtime.fallbackModel && runtime.fallbackModel !== primaryModel) {
+    models.push(runtime.fallbackModel);
   }
+
+  let lastFailure: {
+    model: string;
+    status: AiCallStatus;
+    errorMessage: string;
+    raw: OpenRouterRawResult | null;
+  } | null = null;
+
+  for (const [index, model] of models.entries()) {
+    let raw: OpenRouterRawResult | null = null;
+    try {
+      raw = await sendOpenRouterRequest(apiKey, model, systemPrompt, userPrompt, {
+        temperature: runtime.temperature,
+        maxTokens: runtime.maxTokens,
+        timeoutMs: runtime.timeoutMs,
+      });
+      const insight = parseAndValidateAiResponse(raw.content);
+      return await finish(
+        { insight, model, status: "ok", rawResponse: raw.content },
+        {
+          promptTokens: raw.promptTokens,
+          completionTokens: raw.completionTokens,
+          fallbackUsed: index > 0,
+          promptVersion,
+        },
+      );
+    } catch (error) {
+      lastFailure = {
+        model,
+        status: raw !== null ? "invalid_json" : "error",
+        errorMessage: error instanceof Error ? error.message : "Nieznany błąd OpenRouter.",
+        raw,
+      };
+    }
+  }
+
+  const failure = lastFailure as NonNullable<typeof lastFailure>;
+  return await finish(
+    {
+      insight: createDeterministicFallbackInsight(context),
+      model: failure.model,
+      status: failure.status,
+      errorMessage: failure.errorMessage,
+      rawResponse: failure.raw?.content,
+    },
+    {
+      promptTokens: failure.raw?.promptTokens,
+      completionTokens: failure.raw?.completionTokens,
+      fallbackUsed: models.length > 1,
+      promptVersion,
+    },
+  );
 }
 
 /**

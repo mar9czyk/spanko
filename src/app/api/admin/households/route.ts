@@ -1,29 +1,12 @@
 import { NextResponse } from "next/server";
-import type PocketBase from "pocketbase";
 import { HouseholdLimitPatchSchema } from "@/lib/server/adminSchemas";
 import { parseJsonBody, toErrorResponse } from "@/lib/server/apiResponse";
-import { ApiAuthError, getServiceClient, requireAdmin } from "@/lib/server/auth";
+import { writeAuditLog } from "@/lib/server/audit";
+import { requireAdmin, requireServiceClient } from "@/lib/server/auth";
 import type { HouseholdRecord } from "@/lib/types/database";
 
 const MS_24H = 86_400_000;
 const MS_7D = 7 * MS_24H;
-
-/**
- * Zwraca klienta serwisowego lub rzuca 503, gdy nie skonfigurowano konta superusera.
- *
- * @throws {ApiAuthError} 503 przy braku konfiguracji
- * @returns {Promise<PocketBase>} Klient z uprawnieniami superusera
- */
-async function requireServiceClient(): Promise<PocketBase> {
-  const client = await getServiceClient();
-  if (!client) {
-    throw new ApiAuthError(
-      "Brak konfiguracji konta serwisowego (POCKETBASE_SUPERUSER_EMAIL / _PASSWORD).",
-      503,
-    );
-  }
-  return client;
-}
 
 /**
  * GET /api/admin/households — gospodarstwa z liczbą dzieci i zużyciem AI (24h / 7 dni).
@@ -61,7 +44,9 @@ export async function GET(request: Request): Promise<NextResponse> {
           (call) => now - new Date(call.created).getTime() <= MS_24H,
         ).length,
         aiCalls7d: householdCalls.length,
-        limitOverride: household.ai_daily_limit_override ?? null,
+        // PocketBase zwraca 0 dla niewypełnionej liczby — traktujemy to jako brak nadpisania
+        limitOverride: household.ai_daily_limit_override || null,
+        aiDisabled: household.ai_disabled === true,
       };
     });
 
@@ -79,17 +64,35 @@ export async function GET(request: Request): Promise<NextResponse> {
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   try {
-    await requireAdmin(request);
+    const { user } = await requireAdmin(request);
     const body = await parseJsonBody(request, HouseholdLimitPatchSchema);
     const service = await requireServiceClient();
 
+    const before = await service.collection("households").getOne<HouseholdRecord>(body.householdId);
+    const update: Record<string, unknown> = {};
+    if (body.limitOverride !== undefined) update.ai_daily_limit_override = body.limitOverride;
+    if (body.aiDisabled !== undefined) update.ai_disabled = body.aiDisabled;
+
     const updated = await service
       .collection("households")
-      .update<HouseholdRecord>(body.householdId, { ai_daily_limit_override: body.limitOverride });
+      .update<HouseholdRecord>(body.householdId, update);
+    await writeAuditLog({
+      actor: user,
+      action:
+        body.aiDisabled !== undefined ? "household.set_ai_disabled" : "household.set_ai_limit",
+      targetCollection: "households",
+      targetId: updated.id,
+      before: {
+        ai_daily_limit_override: before.ai_daily_limit_override ?? null,
+        ai_disabled: before.ai_disabled === true,
+      },
+      after: update,
+    });
     return NextResponse.json({
       success: true,
       id: updated.id,
-      limitOverride: updated.ai_daily_limit_override ?? null,
+      limitOverride: updated.ai_daily_limit_override || null,
+      aiDisabled: updated.ai_disabled === true,
     });
   } catch (error) {
     return toErrorResponse(error, "Nie udało się zapisać limitu.");
