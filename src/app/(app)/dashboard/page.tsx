@@ -77,6 +77,7 @@ export default function DashboardPage() {
         onSelectChild={state.handleSelectChild}
         onSelectDayMode={state.handleSelectDayMode}
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
+        onChangeChildPhoto={state.isDemoData ? undefined : state.handleChangeChildPhoto}
       />
       {goalState.goal ? (
         <GoalPathCard
