@@ -63,6 +63,10 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `bottle_ml` (number, nullable)
 - `breast_side` (select: `left` | `right` | `both` | `none`, default: `none`)
 - `tags` (json array: `['ząbkowanie', 'gorączka', 'infekcja_ucha', 'skok_rozwojowy', 'spacer', 'ekran_przed_snem', 'goście']`)
+- `event_type` (select: `feeding` | `diaper` | `tag`, opcjonalne — stare rekordy wnioskowane z `feeding_type`)
+- `bottle_content` (select: `breast_milk` | `formula`), `breast_left_min` / `breast_right_min` (number, minuty karmienia piersią)
+- `diaper_kind` (select: `wet` | `dirty` | `both`)
+- Tagi dnia pozostają kluczami PL (np. `ząbkowanie`, `szczepienie`, `podróż`, `światło_dzienne`) — silnik od nich zależy; etykiety UI tłumaczy Faza 10.
 - `notes` (string, max 500 znaków)
 
 #### 6. `child_insights` (Ewolucyjna Baza Wniosków i Reguł Dziecka)

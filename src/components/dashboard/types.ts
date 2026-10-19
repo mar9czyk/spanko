@@ -2,6 +2,7 @@ import type {
   BreastSide,
   ChildInsightRecord,
   ChildRecord,
+  DiaperKind,
   FeedingType,
   InterventionLevel,
   SleepLogRecord,
@@ -29,7 +30,15 @@ export interface TimelineFeedingEvent {
   readonly feedingType: FeedingType;
   readonly breastSide?: BreastSide;
   readonly bottleMl?: number;
+  readonly breastMinutes?: number;
   readonly notes?: string;
+}
+
+export interface TimelineDiaperEvent {
+  readonly id: string;
+  readonly kind: "diaper";
+  readonly time: string;
+  readonly diaperKind: DiaperKind;
 }
 
 export interface TimelineTagEvent {
@@ -40,7 +49,11 @@ export interface TimelineTagEvent {
   readonly notes?: string;
 }
 
-export type TimelineEvent = TimelineNapEvent | TimelineFeedingEvent | TimelineTagEvent;
+export type TimelineEvent =
+  | TimelineNapEvent
+  | TimelineFeedingEvent
+  | TimelineDiaperEvent
+  | TimelineTagEvent;
 
 export interface DashboardState {
   readonly child: ChildRecord;

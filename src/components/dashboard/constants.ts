@@ -64,5 +64,18 @@ export const DAY_TAG_PRESETS = [
   "spacer",
   "skok_rozwojowy",
   "gorączka",
+  "szczepienie",
+  "podróż",
+  "światło_dzienne",
   "goście",
+] as const;
+
+export const DEFAULT_BOTTLE_ML = 120;
+
+export const BREAST_DURATION_PRESETS_MIN = [5, 10, 15, 20] as const;
+
+export const DIAPER_OPTIONS = [
+  { value: "wet", label: "💧 Mokra" },
+  { value: "dirty", label: "💩 Brudna" },
+  { value: "both", label: "💧💩 Obie" },
 ] as const;

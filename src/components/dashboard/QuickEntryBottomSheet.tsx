@@ -1,12 +1,20 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Milk, Smile, Tag, X } from "lucide-react";
-import type { ReactNode } from "react";
-import type { BreastSide, FeedingType, InterventionLevel, SleepMood } from "@/lib/types/database";
+import { Droplets, Milk, Smile, Tag, X } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import type {
+  BreastSide,
+  DiaperKind,
+  FeedingType,
+  InterventionLevel,
+  SleepMood,
+} from "@/lib/types/database";
 import {
   BOTTLE_VOLUME_PRESETS,
+  BREAST_DURATION_PRESETS_MIN,
   DAY_TAG_PRESETS,
+  DIAPER_OPTIONS,
   INTERVENTION_OPTIONS,
   MOOD_OPTIONS,
 } from "./constants";
@@ -16,8 +24,9 @@ interface QuickEntryBottomSheetProps {
   readonly onClose: () => void;
   readonly onSaveFeeding: (
     type: FeedingType,
-    details: { side?: BreastSide; ml?: number; notes?: string },
+    details: { side?: BreastSide; ml?: number; minutes?: number; notes?: string },
   ) => void;
+  readonly onSaveDiaper: (kind: DiaperKind) => void;
   readonly onSaveMoodAndIntervention: (
     mood: SleepMood,
     interventions: readonly InterventionLevel[],
@@ -36,25 +45,38 @@ function FeedingSection({
 }: {
   onSelect: (
     type: FeedingType,
-    details: { side?: BreastSide; ml?: number; notes?: string },
+    details: { side?: BreastSide; ml?: number; minutes?: number; notes?: string },
   ) => void;
 }) {
+  const [minutes, setMinutes] = useState<number | undefined>(undefined);
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
         <Milk className="w-3.5 h-3.5 text-emerald-400" /> Karmienie
       </span>
       <div className="flex items-center gap-1.5">
+        {BREAST_DURATION_PRESETS_MIN.map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMinutes(minutes === m ? undefined : m)}
+            className={`flex-1 py-1.5 rounded-lg text-[11px] font-mono border ${minutes === m ? "bg-emerald-900/50 border-emerald-500/60 text-emerald-200" : "bg-[#151B28] border-[#263348] text-slate-400"}`}
+          >
+            {m} min
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
-          onClick={() => onSelect("breast", { side: "left" })}
+          onClick={() => onSelect("breast", { side: "left", minutes })}
           className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-medium text-slate-200 border border-[#263348] hover:border-emerald-500/40"
         >
           Pierś Lewa
         </button>
         <button
           type="button"
-          onClick={() => onSelect("breast", { side: "right" })}
+          onClick={() => onSelect("breast", { side: "right", minutes })}
           className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-medium text-slate-200 border border-[#263348] hover:border-emerald-500/40"
         >
           Pierś Prawa
@@ -69,6 +91,34 @@ function FeedingSection({
             className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-mono font-medium text-emerald-300 border border-[#263348] whitespace-nowrap"
           >
             {volume} ml
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Sekcja rejestracji zmiany pieluchy.
+ *
+ * @param {object} props - Callback zapisu pieluchy
+ * @returns {ReactNode} Kafelki pieluchy
+ */
+function DiaperSection({ onSelect }: { onSelect: (kind: DiaperKind) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+        <Droplets className="w-3.5 h-3.5 text-sky-400" /> Pielucha
+      </span>
+      <div className="flex items-center gap-1.5">
+        {DIAPER_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onSelect(option.value)}
+            className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-sky-950/40 text-xs font-medium text-slate-200 border border-[#263348]"
+          >
+            {option.label}
           </button>
         ))}
       </div>
@@ -158,6 +208,7 @@ export function QuickEntryBottomSheet({
   isOpen,
   onClose,
   onSaveFeeding,
+  onSaveDiaper,
   onSaveMoodAndIntervention,
   onSaveDayTag,
 }: QuickEntryBottomSheetProps): ReactNode {
@@ -193,6 +244,12 @@ export function QuickEntryBottomSheet({
             <FeedingSection
               onSelect={(type, details) => {
                 onSaveFeeding(type, details);
+                onClose();
+              }}
+            />
+            <DiaperSection
+              onSelect={(kind) => {
+                onSaveDiaper(kind);
                 onClose();
               }}
             />

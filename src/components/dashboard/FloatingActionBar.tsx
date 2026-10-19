@@ -1,4 +1,4 @@
-import { Play, Plus, Sparkles, Square, Zap } from "lucide-react";
+import { Droplets, Milk, Play, Plus, Sparkles, Square, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 import type { SleepLogRecord } from "@/lib/types/database";
 
@@ -7,6 +7,8 @@ interface FloatingActionBarProps {
   readonly onCycleSleepStatus: () => void;
   readonly onQuickNightWake: () => void;
   readonly onOpenQuickEntry: () => void;
+  readonly onQuickBottle: () => void;
+  readonly onQuickDiaper: () => void;
 }
 
 /**
@@ -89,6 +91,8 @@ export function FloatingActionBar({
   onCycleSleepStatus,
   onQuickNightWake,
   onOpenQuickEntry,
+  onQuickBottle,
+  onQuickDiaper,
 }: FloatingActionBarProps): ReactNode {
   const isNightSleepActive =
     currentSleepLog?.type === "night" &&
@@ -99,6 +103,22 @@ export function FloatingActionBar({
       <div className="w-full max-w-md px-3 pt-2 pb-1 bg-gradient-to-t from-[#0B0F17] via-[#0B0F17]/95 to-transparent pointer-events-auto flex flex-col gap-2">
         {isNightSleepActive && <NightQuickWakeButton onQuickWake={onQuickNightWake} />}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onQuickBottle}
+            className="w-12 h-[50px] rounded-2xl bg-[#1E2738] hover:bg-[#253248] border border-[#263348] flex items-center justify-center shadow-md active:scale-98 transition-all shrink-0"
+            title="Butelka teraz (ostatnia objętość)"
+          >
+            <Milk className="w-5 h-5 text-emerald-400" />
+          </button>
+          <button
+            type="button"
+            onClick={onQuickDiaper}
+            className="w-12 h-[50px] rounded-2xl bg-[#1E2738] hover:bg-[#253248] border border-[#263348] flex items-center justify-center shadow-md active:scale-98 transition-all shrink-0"
+            title="Mokra pielucha teraz"
+          >
+            <Droplets className="w-5 h-5 text-sky-400" />
+          </button>
           <SleepCycleButton log={currentSleepLog} onCycle={onCycleSleepStatus} />
           <button
             type="button"

@@ -10,6 +10,7 @@ import {
   DEFAULT_TIME_ZONE,
   formatDateToCalendarString,
   getAgeBracket,
+  minutesSinceLastFeeding,
   predictNextSleepSlot,
   resolvePhysiologicalDate,
 } from "@/lib/sleep-engine";
@@ -20,12 +21,13 @@ import type {
   ChildInsightRecord,
   ChildRecord,
   DayContextRecord,
+  DiaperKind,
   FeedingType,
   InterventionLevel,
   SleepLogRecord,
   SleepMood,
 } from "@/lib/types/database";
-import { FALLBACK_LAST_NAP_CAPPING } from "./constants";
+import { DEFAULT_BOTTLE_ML, FALLBACK_LAST_NAP_CAPPING } from "./constants";
 import {
   DEV_FIXTURE_CHILD,
   DEV_FIXTURE_INSIGHT,
@@ -122,6 +124,14 @@ function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
  * @returns {TimelineEvent} Zdarzenie osi czasu
  */
 function mapDayContextToTimelineEvent(record: DayContextRecord): TimelineEvent {
+  if (record.event_type === "diaper" && record.diaper_kind) {
+    return {
+      id: record.id,
+      kind: "diaper",
+      time: formatClock(record.timestamp),
+      diaperKind: record.diaper_kind,
+    };
+  }
   if (record.feeding_type === "none") {
     return {
       id: record.id,
@@ -138,6 +148,7 @@ function mapDayContextToTimelineEvent(record: DayContextRecord): TimelineEvent {
     feedingType: record.feeding_type,
     breastSide: record.breast_side,
     bottleMl: record.bottle_ml,
+    breastMinutes: (record.breast_left_min ?? 0) + (record.breast_right_min ?? 0) || undefined,
     notes: record.notes,
   };
 }
@@ -476,9 +487,13 @@ export function useDashboardState() {
   };
 
   const saveDayContext = async (draft: {
+    event_type: DayContextRecord["event_type"];
     feeding_type: FeedingType;
     bottle_ml?: number;
     breast_side?: BreastSide;
+    breast_left_min?: number;
+    breast_right_min?: number;
+    diaper_kind?: DiaperKind;
     tags?: readonly string[];
     notes?: string;
   }) => {
@@ -512,14 +527,29 @@ export function useDashboardState() {
 
   const handleSaveFeeding = (
     type: FeedingType,
-    details: { side?: BreastSide; ml?: number; notes?: string },
+    details: { side?: BreastSide; ml?: number; minutes?: number; notes?: string },
   ) =>
     saveDayContext({
+      event_type: "feeding",
       feeding_type: type,
       breast_side: details.side,
       bottle_ml: details.ml,
+      breast_left_min: details.side === "left" ? details.minutes : undefined,
+      breast_right_min: details.side === "right" ? details.minutes : undefined,
       notes: details.notes,
     });
+
+  const handleSaveDiaper = (kind: DiaperKind) =>
+    saveDayContext({ event_type: "diaper", feeding_type: "none", diaper_kind: kind });
+
+  /** 1-tap: butelka z ostatnio użytą objętością (domyślnie 120 ml). */
+  const handleQuickBottle = () => {
+    const lastBottle = dayContext.find((r) => r.feeding_type === "bottle" && r.bottle_ml);
+    return handleSaveFeeding("bottle", { ml: lastBottle?.bottle_ml ?? DEFAULT_BOTTLE_ML });
+  };
+
+  /** 1-tap: mokra pielucha. */
+  const handleQuickDiaper = () => handleSaveDiaper("wet");
 
   const handleSaveMoodAndIntervention = async (
     mood: SleepMood,
@@ -529,7 +559,18 @@ export function useDashboardState() {
     await saveSleepLog(currentSleepLog, { mood, interventions });
   };
 
-  const handleSaveDayTag = (tag: string) => saveDayContext({ feeding_type: "none", tags: [tag] });
+  const handleSaveDayTag = (tag: string) =>
+    saveDayContext({ event_type: "tag", feeding_type: "none", tags: [tag] });
+
+  const minutesSinceFeeding = minutesSinceLastFeeding(
+    dayContext
+      .filter((r) => r.feeding_type !== "none")
+      .map((r) => ({
+        timestamp: r.timestamp,
+        kind: r.feeding_type as "breast" | "bottle" | "solid",
+      })),
+    nowIso,
+  );
 
   const sweetSpotTime = sweetSpotPrediction?.sweetSpotIso;
   const secondsToSweetSpot = sweetSpotTime
@@ -571,6 +612,10 @@ export function useDashboardState() {
     handleQuickNightWake,
     handleResolveMorningWaking,
     handleSaveFeeding,
+    handleSaveDiaper,
+    handleQuickBottle,
+    handleQuickDiaper,
+    minutesSinceFeeding,
     handleSaveMoodAndIntervention,
     handleSaveDayTag,
   };

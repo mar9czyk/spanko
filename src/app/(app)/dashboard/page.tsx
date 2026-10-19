@@ -91,11 +91,14 @@ export default function DashboardPage() {
         onCycleSleepStatus={state.handleCycleSleepStatus}
         onQuickNightWake={state.handleQuickNightWake}
         onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
+        onQuickBottle={state.handleQuickBottle}
+        onQuickDiaper={state.handleQuickDiaper}
       />
       <QuickEntryBottomSheet
         isOpen={isQuickEntryOpen}
         onClose={() => setIsQuickEntryOpen(false)}
         onSaveFeeding={state.handleSaveFeeding}
+        onSaveDiaper={state.handleSaveDiaper}
         onSaveMoodAndIntervention={state.handleSaveMoodAndIntervention}
         onSaveDayTag={state.handleSaveDayTag}
       />

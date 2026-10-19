@@ -32,6 +32,12 @@ export type FeedingType = "breast" | "bottle" | "solid" | "none";
 
 export type BreastSide = "left" | "right" | "both" | "none";
 
+export type DayContextEventType = "feeding" | "diaper" | "tag";
+
+export type DiaperKind = "wet" | "dirty" | "both";
+
+export type BottleContent = "breast_milk" | "formula";
+
 export type ParentFeedback = "accepted" | "rejected" | "adjusted" | "pending";
 
 export interface UserRecord {
@@ -93,9 +99,15 @@ export interface DayContextRecord {
   readonly child_id: string;
   readonly physiological_date: string;
   readonly timestamp: string;
+  /** Brak w rekordach sprzed Fazy 7 — wtedy wnioskowane z `feeding_type`/`diaper_kind`. */
+  readonly event_type?: DayContextEventType;
   readonly feeding_type: FeedingType;
   readonly bottle_ml?: number;
+  readonly bottle_content?: BottleContent;
   readonly breast_side?: BreastSide;
+  readonly breast_left_min?: number;
+  readonly breast_right_min?: number;
+  readonly diaper_kind?: DiaperKind;
   readonly tags?: readonly string[];
   readonly notes?: string;
   readonly created: string;
