@@ -74,3 +74,16 @@ export const FeatureFlagPatchSchema = z
   .object(featureFlagFields)
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: "Brak pól do zmiany." });
+
+const MAX_CALIBRATION_DAYS = 90;
+const DEFAULT_CALIBRATION_DAYS = 30;
+
+export const CalibrationQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(MAX_CALIBRATION_DAYS).default(DEFAULT_CALIBRATION_DAYS),
+});
+
+export const CalibrationRecomputeSchema = z.object({
+  days: z.number().int().min(1).max(MAX_CALIBRATION_DAYS).default(DEFAULT_CALIBRATION_DAYS),
+  /** true = przelicz także sny, które mają już zapis (np. po zmianie silnika). */
+  overwrite: z.boolean().default(false),
+});

@@ -10,6 +10,7 @@
     "test": "vitest run",
     "dev:seed": "node --env-file=.env.development.local scripts/dev-seed.mjs",
     "dev:seed:history": "node --env-file=.env.development.local scripts/dev-seed-history.mjs",
+    "dev:seed:profiles": "node --env-file=.env.development.local scripts/dev-seed-profiles.mjs",
     "deploy": "bash ./scripts/deploy.sh"
   },
   "dependencies": {

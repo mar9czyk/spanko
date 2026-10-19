@@ -89,3 +89,29 @@ export function computeAiQuality(rows: readonly QualityInput[]): AiQualityReport
     ),
   };
 }
+
+/** Wniosek z reakcją rodzica (dowolne źródło: silnik albo AI). */
+export interface DiagnosisFeedbackInput {
+  readonly diagnosisCode: string;
+  readonly feedback?: ParentFeedback;
+  readonly insightStatus?: string;
+}
+
+/**
+ * Raport reakcji rodziców per kod diagnozy — odsetek odrzuconych to `1 − acceptanceRate`
+ * (odrzucenie, korekta i status `corrected_by_parent` liczą się jako odrzucenie wniosku).
+ *
+ * @param {readonly DiagnosisFeedbackInput[]} rows - Wnioski z reakcją
+ * @returns {QualityRow[]} Wiersze posortowane malejąco wg liczby wniosków
+ */
+export function computeFeedbackByDiagnosis(rows: readonly DiagnosisFeedbackInput[]): QualityRow[] {
+  return groupBy(
+    rows.map((row) => ({
+      category: row.diagnosisCode,
+      promptVersion: 0,
+      feedback: row.feedback,
+      insightStatus: row.insightStatus,
+    })),
+    (row) => row.category || "—",
+  );
+}
