@@ -102,6 +102,24 @@ export function formatVolume(ml: number, units: Units): string {
 }
 
 /**
+ * Formatuje czas trwania w minutach jako godziny i minuty (np. 110 → „1h 50 min”).
+ *
+ * @description
+ * Zapis „h” i „min” jest czytelny w obu językach (PL i EN), więc nie zależy od locale.
+ * Poniżej godziny zwraca same minuty, pełne godziny bez „0 min”.
+ *
+ * @param {number} minutes - Czas trwania w minutach
+ * @returns {string} Tekst, np. „45 min”, „2h”, „1h 50 min”
+ */
+export function formatDuration(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (hours === 0) return `${rest} min`;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest} min`;
+}
+
+/**
  * Presety butelki: zawsze w ml (do zapisu), z etykietą w jednostkach użytkownika.
  *
  * @param {Units} units - Jednostki wyświetlania

@@ -1,7 +1,7 @@
 import { Apple, Droplets, Milk, Moon, Sparkles, Tag } from "lucide-react";
 import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
-import { formatVolume } from "@/i18n/translate";
+import { formatDuration, formatVolume } from "@/i18n/translate";
 import type {
   TimelineDiaperEvent,
   TimelineEvent,
@@ -19,7 +19,7 @@ function NapEventCard({ event }: { event: TimelineNapEvent }) {
   const { t } = useI18n();
   const isNight = event.type === "night";
   const durationText = event.durationMinutes
-    ? `${event.durationMinutes} ${t("common.minutesShort")}`
+    ? formatDuration(event.durationMinutes)
     : t("timeline.inProgress");
 
   return (
@@ -64,9 +64,7 @@ function FeedingEventCard({ event }: { event: TimelineFeedingEvent }) {
         : event.breastSide === "right"
           ? t("side.right")
           : t("side.both");
-    const details = event.breastMinutes
-      ? `${side}, ${event.breastMinutes} ${t("common.minutesShort")}`
-      : side;
+    const details = event.breastMinutes ? `${side}, ${formatDuration(event.breastMinutes)}` : side;
     label = t("timeline.breast", { details });
   } else if (event.feedingType === "bottle") {
     label = t("timeline.bottle", { volume: formatVolume(event.bottleMl || 120, units) });
