@@ -7,7 +7,9 @@ import {
   linkAiCallToInsight,
   runInsightEvaluation,
 } from "@/lib/openrouter";
-import { ApiAuthError, authenticateRequest, getServiceClient } from "@/lib/server/auth";
+import { enforceDailyAiLimit } from "@/lib/server/aiLimit";
+import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
+import { mapRecordToSleepLog } from "@/lib/server/sleepLogMapper";
 import {
   calculateChronicDrive,
   calculateEffectiveAgeDays,
@@ -22,46 +24,13 @@ import type {
   SleepLog,
 } from "@/lib/sleep-engine/types";
 import { aggregateDailySleepSummaries } from "@/lib/sleep-summary";
-import type {
-  ChildInsightRecord,
-  ChildRecord,
-  HouseholdRecord,
-  SleepLogRecord,
-} from "@/lib/types/database";
+import type { ChildInsightRecord, ChildRecord, SleepLogRecord } from "@/lib/types/database";
 
 export const DEFAULT_FALLBACK_BEDTIME_MINUTES = 1200;
 export const MINUTES_PER_HOUR = 60;
-export const DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD = 20;
-export const AI_LIMIT_WINDOW_MS = 86_400_000;
 
 interface EvaluateInsightsRequestBody {
   readonly childId: string;
-}
-
-/**
- * Mapuje rekord bazy danych SleepLogRecord na format oczekiwany przez silnik snu.
- *
- * @param {SleepLogRecord} record - Rekord z kolekcji sleep_logs
- * @returns {SleepLog} Obiekt logu dla silnika snu
- */
-function mapRecordToSleepLog(record: SleepLogRecord): SleepLog {
-  const fallbackIso = new Date().toISOString();
-
-  return {
-    id: record.id,
-    childId: record.child_id,
-    physiologicalDate: record.physiological_date,
-    type: record.type,
-    status: record.status,
-    putDownAt: record.put_down_at || record.fell_asleep_at || fallbackIso,
-    fellAsleepAt: record.fell_asleep_at || record.put_down_at || fallbackIso,
-    wokeUpAt: record.woke_up_at,
-    interventions: record.interventions || [],
-    mood: record.mood || "easy",
-    nightWakings: record.night_wakings || [],
-    isReboundSleep: record.is_rebound_sleep,
-    ignoreInCalibration: record.ignore_in_calibration,
-  };
 }
 
 /**
@@ -113,59 +82,6 @@ async function loadActiveInsight(
     sort: "-created",
   });
   return result.items[0] ?? null;
-}
-
-/**
- * Zlicza wywołania AI gospodarstwa z ostatnich 24h: z logu ai_calls (konto serwisowe),
- * a bez niego — z liczby wniosków utworzonych przez gospodarstwo.
- *
- * @param {PocketBase} pb - Klient PocketBase użytkownika
- * @param {string} householdId - Identyfikator gospodarstwa
- * @returns {Promise<number>} Liczba wywołań w oknie limitu
- */
-async function countRecentAiCalls(pb: PocketBase, householdId: string): Promise<number> {
-  const since = new Date(Date.now() - AI_LIMIT_WINDOW_MS).toISOString();
-  const serviceClient = await getServiceClient();
-
-  if (serviceClient) {
-    const calls = await serviceClient.collection("ai_calls").getList(1, 1, {
-      filter: serviceClient.filter(
-        "household_id = {:householdId} && kind = 'evaluate' && created >= {:since}",
-        { householdId, since },
-      ),
-    });
-    return calls.totalItems;
-  }
-
-  const insights = await pb.collection("child_insights").getList(1, 1, {
-    filter: pb.filter("child_id.household_id = {:householdId} && created >= {:since}", {
-      householdId,
-      since,
-    }),
-  });
-  return insights.totalItems;
-}
-
-/**
- * Egzekwuje dzienny limit zapytań AI: nadpisanie gospodarstwa > ustawienie globalne > domyślny.
- *
- * @param {PocketBase} pb - Klient PocketBase użytkownika
- * @param {string} householdId - Identyfikator gospodarstwa
- * @throws {ApiAuthError} 429 po przekroczeniu limitu
- */
-async function enforceDailyAiLimit(pb: PocketBase, householdId: string): Promise<void> {
-  const [adminSettings, household] = await Promise.all([
-    fetchAdminSettings(),
-    pb.collection("households").getOne<HouseholdRecord>(householdId),
-  ]);
-  const limit =
-    household.ai_daily_limit_override ??
-    adminSettings?.ai_daily_limit_per_household ??
-    DEFAULT_AI_DAILY_LIMIT_PER_HOUSEHOLD;
-
-  if ((await countRecentAiCalls(pb, householdId)) >= limit) {
-    throw new ApiAuthError("Dzienny limit zapytań AI dla gospodarstwa został wyczerpany.", 429);
-  }
 }
 
 /**

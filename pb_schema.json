@@ -1197,6 +1197,21 @@
         "type": "text"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "admn_goal_prompt",
+        "max": 20000,
+        "min": 0,
+        "name": "system_prompt_goal_coach",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
         "help": "",
         "hidden": false,
         "id": "admn_matrix_ovr_",
@@ -1307,7 +1322,7 @@
         "required": true,
         "system": false,
         "type": "select",
-        "values": ["evaluate", "sandbox"]
+        "values": ["evaluate", "sandbox", "goal_coach"]
       },
       {
         "autogeneratePattern": "",
@@ -1449,6 +1464,352 @@
     ],
     "indexes": [
       "CREATE INDEX `idx_ai_calls_household_created` ON `ai_calls` (`household_id`, `created`)"
+    ],
+    "system": false
+  },
+  {
+    "id": "pbc_childgoals0",
+    "listRule": "@request.auth.household_id = child_id.household_id",
+    "viewRule": "@request.auth.household_id = child_id.household_id",
+    "createRule": "@request.auth.household_id = child_id.household_id",
+    "updateRule": "@request.auth.household_id = child_id.household_id",
+    "deleteRule": "@request.auth.household_id = child_id.household_id",
+    "name": "child_goals",
+    "type": "base",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_children000",
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_child_id_f",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "child_id",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_goal_type_",
+        "maxSelect": 1,
+        "name": "goal_type",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": ["reduce_night_wakings", "night_weaning", "independent_sleep_onset"]
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_method_fld",
+        "maxSelect": 1,
+        "name": "method",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "gentle_fading",
+          "chair_method",
+          "pick_up_put_down",
+          "check_and_console",
+          "extinction"
+        ]
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_status_fld",
+        "maxSelect": 1,
+        "name": "status",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": ["readiness_check", "active", "paused", "achieved", "abandoned"]
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_started_on_",
+        "max": 10,
+        "min": 0,
+        "name": "started_on",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_step_start_",
+        "max": 10,
+        "min": 0,
+        "name": "step_started_on",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_last_eval_",
+        "max": 10,
+        "min": 0,
+        "name": "last_evaluated_on",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_cur_step_f",
+        "max": 100,
+        "min": 0,
+        "name": "current_step",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_baseline_f",
+        "maxSize": 2000000,
+        "name": "baseline_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_plan_json_",
+        "maxSize": 2000000,
+        "name": "plan_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_red_flags_",
+        "max": "",
+        "min": "",
+        "name": "red_flags_ack_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "cgoal_achieved_a",
+        "max": "",
+        "min": "",
+        "name": "achieved_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_childgoals0",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_childgoals0",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_child_goals_child_status` ON `child_goals` (`child_id`, `status`)"
+    ],
+    "system": false
+  },
+  {
+    "id": "pbc_goaldaily00",
+    "listRule": "@request.auth.household_id = goal_id.child_id.household_id",
+    "viewRule": "@request.auth.household_id = goal_id.child_id.household_id",
+    "createRule": "@request.auth.household_id = goal_id.child_id.household_id",
+    "updateRule": "@request.auth.household_id = goal_id.child_id.household_id",
+    "deleteRule": "@request.auth.household_id = goal_id.child_id.household_id",
+    "name": "goal_daily_tasks",
+    "type": "base",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_childgoals0",
+        "help": "",
+        "hidden": false,
+        "id": "gdt_goal_id_fld_",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "goal_id",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "gdt_phys_date_fl",
+        "max": 10,
+        "min": 0,
+        "name": "physiological_date",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "gdt_tasks_json_f",
+        "maxSize": 2000000,
+        "name": "tasks_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "gdt_done_json_fl",
+        "maxSize": 2000000,
+        "name": "done_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "gdt_night_tip_fl",
+        "maxSize": 2000000,
+        "name": "night_tip_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "gdt_progress_jsn",
+        "maxSize": 2000000,
+        "name": "progress_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "gdt_coach_json_f",
+        "maxSize": 2000000,
+        "name": "coach_json",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created_pbc_goaldaily00",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated_pbc_goaldaily00",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_goal_daily_unique` ON `goal_daily_tasks` (`goal_id`, `physiological_date`)"
     ],
     "system": false
   }

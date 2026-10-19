@@ -84,7 +84,7 @@ export interface InsightEvaluationOutcome {
   readonly latencyMs: number;
 }
 
-interface OpenRouterRawResult {
+export interface OpenRouterRawResult {
   readonly content: string;
   readonly promptTokens?: number;
   readonly completionTokens?: number;
@@ -227,7 +227,7 @@ export function parseAndValidateAiResponse(rawContent: string): AiInsightItem {
  * @param {string} userPrompt - Treść zapytania użytkownika
  * @returns {Promise<OpenRouterRawResult>} Surowa odpowiedź JSON z modelu wraz z zużyciem tokenów
  */
-async function sendOpenRouterRequest(
+export async function sendOpenRouterRequest(
   apiKey: string,
   modelName: string,
   systemPrompt: string,
@@ -335,7 +335,7 @@ export function buildRequestSnapshot(context: InsightEvaluationContext): Record<
  * @param {object} details - Wynik wywołania
  * @returns {Promise<string | null>} Id rekordu logu lub null
  */
-async function logAiCall(
+export async function logAiCall(
   audit: AiCallAudit,
   details: {
     model: string;

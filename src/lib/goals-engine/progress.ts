@@ -20,7 +20,7 @@ export interface ProgressInput {
   readonly recentDays: readonly DailyGoalMetrics[];
 }
 
-function baselineValue(goal: GoalType, baseline: GoalBaseline): number | null {
+export function baselineMetricValue(goal: GoalType, baseline: GoalBaseline): number | null {
   if (goal === "reduce_night_wakings") return baseline.avgNightWakings;
   if (goal === "night_weaning") return baseline.avgNightFeedCount;
   return baseline.avgLatencyMin;
@@ -64,7 +64,7 @@ export function evaluateProgress(input: ProgressInput): ProgressDecision {
   const window = series.slice(-REGRESSION_WINDOW_DAYS);
   if (window.length === 0) return decide("hold", "INSUFFICIENT_DATA");
 
-  const base = baselineValue(goal, baseline);
+  const base = baselineMetricValue(goal, baseline);
   const avg = window.reduce((a, b) => a + b, 0) / window.length;
   if (base !== null && base > 0 && avg > base * REGRESSION_FACTOR) {
     return stepIndex > 0

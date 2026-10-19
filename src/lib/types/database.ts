@@ -1,4 +1,13 @@
 import type {
+  DailyTask,
+  GoalBaseline,
+  GoalMethod,
+  GoalPlan,
+  GoalStatus,
+  GoalType,
+  ProgressDecision,
+} from "@/lib/goals-engine/types";
+import type {
   AgeBracketConfig,
   DayMode,
   InsightStatus,
@@ -139,6 +148,7 @@ export interface AdminSettingsRecord {
   readonly openrouter_fast_model?: string;
   readonly openrouter_reasoning_model?: string;
   readonly system_prompt_insights?: string;
+  readonly system_prompt_goal_coach?: string;
   /** Tablica przedziałów wiekowych lub `{ brackets: [...] }`; walidowana w resolveSleepMatrix */
   readonly sleep_matrix_override_json?: unknown;
   readonly ai_daily_limit_per_household?: number;
@@ -146,7 +156,7 @@ export interface AdminSettingsRecord {
   readonly updated: string;
 }
 
-export type AiCallKind = "evaluate" | "sandbox";
+export type AiCallKind = "evaluate" | "sandbox" | "goal_coach";
 export type AiCallStatus = "ok" | "error" | "invalid_json";
 
 export interface AiCallRecord {
@@ -163,6 +173,46 @@ export interface AiCallRecord {
   readonly completion_tokens?: number;
   readonly latency_ms?: number;
   readonly insight_id?: string;
+  readonly created: string;
+  readonly updated: string;
+}
+
+export interface ChildGoalRecord {
+  readonly id: string;
+  readonly child_id: string;
+  readonly goal_type: GoalType;
+  readonly method: GoalMethod;
+  readonly status: GoalStatus;
+  /** Doba fizjologiczna startu celu (YYYY-MM-DD) */
+  readonly started_on: string;
+  readonly step_started_on: string;
+  readonly last_evaluated_on?: string;
+  readonly current_step: number;
+  readonly baseline_json: GoalBaseline;
+  readonly plan_json: GoalPlan;
+  readonly red_flags_ack_at?: string;
+  readonly achieved_at?: string;
+  readonly created: string;
+  readonly updated: string;
+}
+
+export interface GoalCoachMessage {
+  readonly headline: string;
+  readonly todayAdvice: readonly string[];
+  readonly nightTip: string;
+  readonly encouragement: string;
+  readonly why: string;
+}
+
+export interface GoalDailyTaskRecord {
+  readonly id: string;
+  readonly goal_id: string;
+  readonly physiological_date: string;
+  readonly tasks_json: readonly DailyTask[];
+  readonly done_json?: readonly string[];
+  readonly night_tip_json?: DailyTask | null;
+  readonly progress_json?: ProgressDecision;
+  readonly coach_json?: GoalCoachMessage;
   readonly created: string;
   readonly updated: string;
 }
