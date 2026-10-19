@@ -41,12 +41,12 @@ Każda sesja w osobnym worktree, model Sonnet (Opus tylko do planu).
 ---
 
 ## Faza C — Własne subagenty i skille (1 sesja, Opus)
-- [ ] `.claude/agents/sleep-engine-guardian.md` (`model: opus`) — pilnuje „deterministic first”, czyta `docs/agent/sleep-engine.md`, pisze testy Vitest.
-- [ ] `.claude/agents/i18n-checker.md` (`model: haiku`) — brakujące/nieużywane klucze EN/PL, jednostki ml/oz.
-- [ ] `.claude/agents/pb-schema.md` (`model: sonnet`) — migracje i reguły PocketBase wg `docs/agent/database.md`.
-- [ ] Skill `.claude/skills/nowa-faza/` — plan w `docs/` → gałąź/worktree → implementacja → check/test → review → PR.
-- [ ] Skill `.claude/skills/deploy-mikrus/` — owija `pnpm deploy` + checklistę z `deploy/mikrus/README.md`.
-- [ ] Skill `.claude/skills/seed-dev/` — uruchomienie PocketBase + `scripts/dev-seed.mjs`.
+- [x] `.claude/agents/sleep-engine-guardian.md` (`model: opus`) — pilnuje „deterministic first”, czyta `docs/agent/sleep-engine.md`, pisze testy Vitest.
+- [x] `.claude/agents/i18n-checker.md` (`model: haiku`) — brakujące/nieużywane klucze EN/PL, jednostki ml/oz.
+- [x] `.claude/agents/pb-schema.md` (`model: sonnet`) — migracje i reguły PocketBase wg `docs/agent/database.md`.
+- [x] Skill `.claude/skills/nowa-faza/` — plan w `docs/` → gałąź/worktree → implementacja → check/test → review → PR.
+- [x] Skill `.claude/skills/deploy-mikrus/` — owija `pnpm deploy` + checklistę z `deploy/mikrus/README.md`.
+- [x] Skill `.claude/skills/seed-dev/` — uruchomienie PocketBase + `scripts/dev-seed.mjs`.
 
 **Gotowe gdy:** każdy agent/skill przetestowany jednym realnym wywołaniem.
 
