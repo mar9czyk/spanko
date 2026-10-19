@@ -3,11 +3,13 @@
 import { Ear, EarOff, MicOff } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
+import { notifyWakeDetected } from "@/lib/push-client";
 import type { SleepType } from "@/lib/types/database";
 import type { WakeSensitivity } from "@/lib/wake-detector";
 import { useWakeListener } from "./useWakeListener";
 
 interface WakeListenerCardProps {
+  readonly childId: string;
   /** Nasłuch dostępny tylko, gdy dziecko śpi. */
   readonly isSleeping: boolean;
   readonly sleepType: SleepType;
@@ -25,12 +27,16 @@ const SENSITIVITIES: readonly WakeSensitivity[] = ["low", "medium", "high"];
  * @returns {ReactNode} Karta nasłuchu z nakładką
  */
 export function WakeListenerCard({
+  childId,
   isSleeping,
   sleepType,
   onConfirmWake,
 }: WakeListenerCardProps): ReactNode {
   const { t } = useI18n();
-  const listener = useWakeListener(isSleeping);
+  const listener = useWakeListener({
+    enabled: isSleeping,
+    onDetected: () => notifyWakeDetected(childId),
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   if (!isSleeping) return null;
@@ -60,6 +66,7 @@ export function WakeListenerCard({
           {listener.status === "starting" ? t("wakeListener.starting") : t("wakeListener.start")}
         </button>
         <p className="text-[11px] text-slate-500 text-center">{t("wakeListener.privacy")}</p>
+        <p className="text-[11px] text-slate-500 text-center">{t("wakeListener.otherPhone")}</p>
         {listener.error && (
           <p role="alert" className="text-xs text-red-300 flex items-center gap-1.5">
             <MicOff className="w-4 h-4 shrink-0" />
@@ -114,6 +121,16 @@ export function WakeListenerCard({
                   aria-hidden="true"
                 />
                 <p className="text-sm text-slate-400">{t("wakeListener.listening")}</p>
+                {listener.lastNotifiedAt && (
+                  <p className="text-xs text-amber-300/80" role="status">
+                    {t("wakeListener.notified", {
+                      time: listener.lastNotifiedAt.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
+                    })}
+                  </p>
+                )}
                 <p className="text-[11px] text-slate-600 text-center">
                   {t("wakeListener.keepScreenOn")}
                 </p>

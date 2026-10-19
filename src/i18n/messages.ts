@@ -118,6 +118,22 @@ export const pl = {
   "wakeListener.error.denied":
     "Brak dostępu do mikrofonu. Zezwól na niego w ustawieniach przeglądarki.",
   "wakeListener.error.failed": "Nie udało się włączyć mikrofonu.",
+  "wakeListener.otherPhone":
+    "Po wykryciu pobudki powiadomienie dostaje drugi telefon (włączasz je w Ustawieniach na tamtym telefonie). Jeśli żaden nie jest włączony, zadzwoni ten telefon.",
+  "wakeListener.notified": "Powiadomiono drugi telefon o {time}",
+
+  "wakeAlerts.title": "Powiadomienia o pobudce",
+  "wakeAlerts.hint":
+    "Włącz na telefonie, który ma dostawać powiadomienie, gdy telefon przy dziecku usłyszy pobudkę.",
+  "wakeAlerts.enable": "Włącz na tym telefonie",
+  "wakeAlerts.disable": "Wyłącz na tym telefonie",
+  "wakeAlerts.enabled": "Ten telefon dostaje powiadomienia o pobudce.",
+  "wakeAlerts.needsInstall":
+    "Na iPhonie dodaj najpierw Spanko do ekranu początkowego (Udostępnij → Do ekranu początkowego) i otwórz je z ikony.",
+  "wakeAlerts.unsupported": "Ta przeglądarka nie obsługuje powiadomień push.",
+  "wakeAlerts.denied": "Powiadomienia są zablokowane. Zezwól na nie w ustawieniach telefonu.",
+  "wakeAlerts.notConfigured": "Powiadomienia nie są jeszcze skonfigurowane na serwerze.",
+  "wakeAlerts.failed": "Nie udało się włączyć powiadomień.",
 
   "rem.start": "⏱️ Odczekaj 60s (Active Sleep REM)",
   "rem.countdown": "Faza REM: Odczekaj {seconds}s",
@@ -418,6 +434,22 @@ export const en: Record<MessageKey, string> = {
   "wakeListener.error.unsupported": "This browser can't listen with the microphone.",
   "wakeListener.error.denied": "No microphone access. Allow it in your browser settings.",
   "wakeListener.error.failed": "Couldn't turn on the microphone.",
+  "wakeListener.otherPhone":
+    "When waking is detected, the other phone gets a notification (turn it on in Settings on that phone). If none is on, this phone will ring.",
+  "wakeListener.notified": "Other phone notified at {time}",
+
+  "wakeAlerts.title": "Waking notifications",
+  "wakeAlerts.hint":
+    "Turn this on for the phone that should be notified when the phone by the baby hears waking.",
+  "wakeAlerts.enable": "Turn on for this phone",
+  "wakeAlerts.disable": "Turn off for this phone",
+  "wakeAlerts.enabled": "This phone gets waking notifications.",
+  "wakeAlerts.needsInstall":
+    "On iPhone, first add Spanko to your Home Screen (Share → Add to Home Screen) and open it from the icon.",
+  "wakeAlerts.unsupported": "This browser doesn't support push notifications.",
+  "wakeAlerts.denied": "Notifications are blocked. Allow them in your phone settings.",
+  "wakeAlerts.notConfigured": "Notifications aren't set up on the server yet.",
+  "wakeAlerts.failed": "Couldn't turn on notifications.",
 
   "rem.start": "⏱️ Wait 60s (Active Sleep REM)",
   "rem.countdown": "REM phase: wait {seconds}s",

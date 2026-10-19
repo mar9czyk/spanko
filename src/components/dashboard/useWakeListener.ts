@@ -10,6 +10,16 @@ import {
 } from "@/lib/wake-detector";
 
 export type WakeListenerStatus = "idle" | "starting" | "listening" | "detected" | "error";
+
+export interface WakeListenerOptions {
+  /** Czy nasłuch jest dozwolony (np. tylko w trakcie snu); false zatrzymuje go. */
+  readonly enabled: boolean;
+  /**
+   * Wywoływane po wykryciu pobudki. Zwraca true, gdy powiadomiono inny telefon —
+   * wtedy telefon przy dziecku nie dzwoni i nasłuchuje dalej.
+   */
+  readonly onDetected: () => Promise<boolean>;
+}
 export type WakeListenerError = "unsupported" | "denied" | "failed";
 
 const SAMPLE_INTERVAL_MS = 250;
@@ -63,13 +73,16 @@ function playWakeAlert(context: AudioContext | null) {
  * Nasłuch mikrofonu w poszukiwaniu pobudki dziecka. Dźwięk jest analizowany wyłącznie
  * lokalnie (poziom głośności), nic nie jest nagrywane ani wysyłane.
  *
- * @param enabled - Czy nasłuch jest dozwolony (np. tylko w trakcie snu); false zatrzymuje go
+ * @param options - Zgoda na nasłuch i powiadomienie innego telefonu
  */
-export function useWakeListener(enabled: boolean) {
+export function useWakeListener({ enabled, onDetected }: WakeListenerOptions) {
   const [status, setStatus] = useState<WakeListenerStatus>("idle");
   const [error, setError] = useState<WakeListenerError | null>(null);
   const [level, setLevel] = useState(0);
   const [sensitivity, setSensitivityState] = useState<WakeSensitivity>("medium");
+  const [lastNotifiedAt, setLastNotifiedAt] = useState<Date | null>(null);
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
 
   const streamRef = useRef<MediaStream | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
@@ -96,6 +109,7 @@ export function useWakeListener(enabled: boolean) {
     void wakeLockRef.current?.release().catch(() => undefined);
     wakeLockRef.current = null;
     setLevel(0);
+    setLastNotifiedAt(null);
     setStatus("idle");
   }, []);
 
@@ -141,8 +155,16 @@ export function useWakeListener(enabled: boolean) {
         detectorRef.current = step.state;
         setLevel(rms);
         if (step.triggered) {
-          playWakeAlert(contextRef.current);
-          setStatus("detected");
+          void onDetectedRef.current().then((notifiedRemotely) => {
+            if (!isActiveRef.current) return;
+            if (notifiedRemotely) {
+              setLastNotifiedAt(new Date());
+              return;
+            }
+            // Nikogo nie powiadomiono — alarmujemy na tym telefonie.
+            playWakeAlert(contextRef.current);
+            setStatus("detected");
+          });
         }
       }, SAMPLE_INTERVAL_MS);
       setStatus("listening");
@@ -190,5 +212,15 @@ export function useWakeListener(enabled: boolean) {
 
   useEffect(() => stop, [stop]);
 
-  return { status, error, level, sensitivity, setSensitivity, start, stop, resume };
+  return {
+    status,
+    error,
+    level,
+    lastNotifiedAt,
+    sensitivity,
+    setSensitivity,
+    start,
+    stop,
+    resume,
+  };
 }

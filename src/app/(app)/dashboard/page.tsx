@@ -121,6 +121,7 @@ export default function DashboardPage() {
       />
       {!state.isDemoData && state.currentSleepLog && (
         <WakeListenerCard
+          childId={child.id}
           isSleeping={state.currentSleepLog.status === "sleeping"}
           sleepType={state.currentSleepLog.type}
           onConfirmWake={
