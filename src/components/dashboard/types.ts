@@ -18,6 +18,8 @@ export interface TimelineNapEvent {
   readonly status: SleepStatus;
   readonly startTime: string;
   readonly endTime?: string;
+  readonly startIso?: string;
+  readonly endIso?: string;
   readonly durationMinutes?: number;
   readonly mood?: SleepMood;
   readonly interventions?: readonly InterventionLevel[];
@@ -27,6 +29,7 @@ export interface TimelineFeedingEvent {
   readonly id: string;
   readonly kind: "feeding";
   readonly time: string;
+  readonly timeIso?: string;
   readonly feedingType: FeedingType;
   readonly breastSide?: BreastSide;
   readonly bottleMl?: number;
@@ -38,6 +41,7 @@ export interface TimelineDiaperEvent {
   readonly id: string;
   readonly kind: "diaper";
   readonly time: string;
+  readonly timeIso?: string;
   readonly diaperKind: DiaperKind;
 }
 

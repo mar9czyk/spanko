@@ -110,6 +110,8 @@ function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
     status: log.status,
     startTime: formatClock(startIso),
     endTime: log.woke_up_at ? formatClock(log.woke_up_at) : undefined,
+    startIso: startIso || undefined,
+    endIso: log.woke_up_at || undefined,
     durationMinutes: calculateDurationInMinutes(startIso, log.woke_up_at),
     mood: log.mood,
   };
@@ -127,6 +129,7 @@ function mapDayContextToTimelineEvent(record: DayContextRecord): TimelineEvent {
       id: record.id,
       kind: "diaper",
       time: formatClock(record.timestamp),
+      timeIso: record.timestamp,
       diaperKind: record.diaper_kind,
     };
   }
@@ -143,6 +146,7 @@ function mapDayContextToTimelineEvent(record: DayContextRecord): TimelineEvent {
     id: record.id,
     kind: "feeding",
     time: formatClock(record.timestamp),
+    timeIso: record.timestamp,
     feedingType: record.feeding_type,
     breastSide: record.breast_side,
     bottleMl: record.bottle_ml,
@@ -631,6 +635,9 @@ export function useDashboardState() {
       "UTC",
     ),
     morningWakeTimeDisplay: formatClock(latestNightLog?.woke_up_at),
+    morningWakeIso: recentLogs.find(
+      (log) => log.type === "night" && log.status === "completed" && log.woke_up_at,
+    )?.woke_up_at,
     sleepBatteryPercent: chronicDrive.sleepBatteryPercent,
     sleepRestedness: resolveSleepRestedness(chronicDrive.chronicSleepDebtMin),
     sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
@@ -656,6 +663,7 @@ export function useDashboardState() {
     handleQuickDiaper,
     minutesSinceFeeding,
     physiologicalDate: nowIso === EPOCH_ISO ? null : physiologicalDate,
+    nowIso,
     handleSaveMoodAndIntervention,
     handleSaveDayTag,
   };

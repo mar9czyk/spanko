@@ -124,6 +124,9 @@ export default function DashboardPage() {
         })}
         morningWakeTimeDisplay={state.morningWakeTimeDisplay}
         events={state.timelineEvents}
+        morningWakeIso={state.morningWakeIso}
+        nowIso={state.nowIso}
+        currentSleepLog={state.currentSleepLog}
       />
       <FloatingActionBar
         currentSleepLog={state.currentSleepLog}
