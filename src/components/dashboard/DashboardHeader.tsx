@@ -4,13 +4,16 @@ import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ActiveDayMode, ChildRecord } from "@/lib/types/database";
 import { AntiOrthosomniaToggle } from "./AntiOrthosomniaToggle";
+import { ChildSwitcher } from "./ChildSwitcher";
 import { DayModeSwitcher } from "./DayModeSwitcher";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { useIsAdmin } from "./useIsAdmin";
 
 interface DashboardHeaderProps {
   readonly child: ChildRecord;
+  readonly householdChildren: readonly ChildRecord[];
   readonly ageDisplay: string;
+  readonly onSelectChild: (childId: string) => void;
   readonly onSelectDayMode: (mode: ActiveDayMode) => void;
   readonly onToggleAntiOrthosomnia: () => void;
 }
@@ -40,14 +43,16 @@ function ChildIdentityBadge({ child, ageDisplay }: { child: ChildRecord; ageDisp
 }
 
 /**
- * Górny pasek nawigacyjny z tożsamością dziecka, trybem dnia i kompasem Anti-Orthosomnia.
+ * Górny pasek nawigacyjny z tożsamością i przełącznikiem dziecka, trybem dnia i kompasem Anti-Orthosomnia.
  *
  * @param {DashboardHeaderProps} props - Parametry nagłówka
  * @returns {ReactNode} Nagłówek pulpitu
  */
 export function DashboardHeader({
   child,
+  householdChildren,
   ageDisplay,
+  onSelectChild,
   onSelectDayMode,
   onToggleAntiOrthosomnia,
 }: DashboardHeaderProps): ReactNode {
@@ -81,6 +86,11 @@ export function DashboardHeader({
           />
         </div>
       </div>
+      <ChildSwitcher
+        childrenList={householdChildren}
+        activeChildId={child.id}
+        onSelectChild={onSelectChild}
+      />
       <DayModeSwitcher currentMode={child.active_day_mode} onSelectMode={onSelectDayMode} />
       <div className="flex justify-end">
         <PreferencesMenu />
