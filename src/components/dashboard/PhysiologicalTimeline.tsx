@@ -1,4 +1,4 @@
-import { Calendar, ChevronDown, Sun } from "lucide-react";
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Sun } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatDuration } from "@/i18n/translate";
@@ -16,23 +16,81 @@ interface PhysiologicalTimelineProps {
   readonly morningWakeIso?: string;
   readonly nowIso: string;
   readonly currentSleepLog: SleepLogRecord | null;
+  /** Przewijanie dób; brak = nagłówek bez strzałek. */
+  readonly navigation?: TimelineNavigation;
+  /** Tekst pustej doby; domyślnie zachęta do dodania wpisu. */
+  readonly emptyText?: string;
 }
 
+export interface TimelineNavigation {
+  readonly onPrevious: () => void;
+  /** Brak = oglądana doba jest bieżąca, dalej nie ma czego pokazać. */
+  readonly onNext?: () => void;
+  /** Powrót do bieżącej doby; pokazywany tylko przy oglądaniu wcześniejszej. */
+  readonly onToday?: () => void;
+}
+
+const NAV_BUTTON_CLASS =
+  "flex min-h-9 min-w-9 items-center justify-center rounded-lg text-slate-400 hover:text-amber-300 disabled:opacity-30 disabled:hover:text-slate-400";
+
 /**
- * Nagłówek osi czasu doby fizjologicznej.
+ * Nagłówek osi czasu doby fizjologicznej, opcjonalnie ze strzałkami do sąsiednich dób.
  *
- * @param {object} props - Data doby i godzina porannej pobudki
+ * @param {object} props - Data doby, godzina porannej pobudki i nawigacja
  * @returns {ReactNode} Nagłówek sekcji
  */
-function TimelineHeader({ dateText, wakeTime }: { dateText: string; wakeTime: string }) {
+function TimelineHeader({
+  dateText,
+  wakeTime,
+  navigation,
+}: {
+  dateText: string;
+  wakeTime: string;
+  navigation?: TimelineNavigation;
+}) {
   const { t } = useI18n();
+  const title = (
+    <h2 className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+      <Calendar className="w-3.5 h-3.5 text-amber-400" />
+      {dateText}
+    </h2>
+  );
   return (
-    <div className="flex items-center justify-between pb-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-        <Calendar className="w-3.5 h-3.5 text-amber-400" />
-        {dateText}
-      </h2>
-      <span className="text-[11px] text-amber-400/90 font-mono flex items-center gap-1 bg-[#151B28] px-2 py-0.5 rounded-md border border-amber-500/20">
+    <div className="flex flex-wrap items-center justify-between gap-x-2 pb-1">
+      {navigation ? (
+        <div className="flex min-w-0 items-center">
+          <button
+            type="button"
+            onClick={navigation.onPrevious}
+            aria-label={t("timeline.previousDay")}
+            className={`${NAV_BUTTON_CLASS} -ml-2`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          {title}
+          <button
+            type="button"
+            onClick={navigation.onNext}
+            disabled={!navigation.onNext}
+            aria-label={t("timeline.nextDay")}
+            className={NAV_BUTTON_CLASS}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          {navigation.onToday && (
+            <button
+              type="button"
+              onClick={navigation.onToday}
+              className="min-h-9 rounded-lg px-2 text-[11px] font-semibold text-amber-300 hover:text-amber-200"
+            >
+              {t("timeline.today")}
+            </button>
+          )}
+        </div>
+      ) : (
+        title
+      )}
+      <span className="shrink-0 text-[11px] text-amber-400/90 font-mono flex items-center gap-1 bg-[#151B28] px-2 py-0.5 rounded-md border border-amber-500/20">
         <Sun className="w-3 h-3 text-amber-400" />
         {t("timeline.wake", { time: wakeTime })}
       </span>
@@ -66,6 +124,8 @@ export function PhysiologicalTimeline({
   morningWakeIso,
   nowIso,
   currentSleepLog,
+  navigation,
+  emptyText,
 }: PhysiologicalTimelineProps): ReactNode {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -74,9 +134,13 @@ export function PhysiologicalTimeline({
   if (events.length === 0 && !activeSleep) {
     return (
       <section className="w-full flex flex-col gap-2 mt-2">
-        <TimelineHeader dateText={physiologicalDateDisplay} wakeTime={morningWakeTimeDisplay} />
+        <TimelineHeader
+          dateText={physiologicalDateDisplay}
+          wakeTime={morningWakeTimeDisplay}
+          navigation={navigation}
+        />
         <div className="p-4 rounded-xl bg-[#151B28] border border-[#263348] text-center text-xs text-slate-400">
-          {t("timeline.empty")}
+          {emptyText ?? t("timeline.empty")}
         </div>
       </section>
     );
@@ -97,7 +161,11 @@ export function PhysiologicalTimeline({
 
   return (
     <section className="w-full flex flex-col gap-2 mt-2">
-      <TimelineHeader dateText={physiologicalDateDisplay} wakeTime={morningWakeTimeDisplay} />
+      <TimelineHeader
+        dateText={physiologicalDateDisplay}
+        wakeTime={morningWakeTimeDisplay}
+        navigation={navigation}
+      />
       <div className="flex flex-col gap-2 p-3 rounded-xl bg-[#151B28] border border-[#263348]">
         <button
           type="button"
