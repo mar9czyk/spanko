@@ -1,9 +1,10 @@
 import { ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ActiveDayMode, ChildRecord } from "@/lib/types/database";
 import { AntiOrthosomniaToggle } from "./AntiOrthosomniaToggle";
+import { ChildPhotoSheet } from "./ChildPhotoSheet";
 import { ChildSwitcher } from "./ChildSwitcher";
 import { DayModeSwitcher } from "./DayModeSwitcher";
 import { PreferencesMenu } from "./PreferencesMenu";
@@ -16,30 +17,8 @@ interface DashboardHeaderProps {
   readonly onSelectChild: (childId: string) => void;
   readonly onSelectDayMode: (mode: ActiveDayMode) => void;
   readonly onToggleAntiOrthosomnia: () => void;
-}
-
-/**
- * Prezentuje miniaturę awatara i dane wiekowe dziecka.
- *
- * @param {object} props - Dziecko i sformatowany wiek
- * @returns {ReactNode} Awatar i etykieta profilu
- */
-function ChildIdentityBadge({ child, ageDisplay }: { child: ChildRecord; ageDisplay: string }) {
-  const { t } = useI18n();
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500/20 to-violet-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-300 text-sm shadow-inner">
-        {child.name.charAt(0).toUpperCase()}
-      </div>
-      <div>
-        <h1 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5 leading-tight">
-          {child.name}
-          <span className="text-[11px] font-normal text-slate-400">({ageDisplay})</span>
-        </h1>
-        <p className="text-[10px] text-slate-500">{t("header.mode")}</p>
-      </div>
-    </div>
-  );
+  /** Zapis zdjęcia aktywnego dziecka; brak = zdjęć nie da się zmieniać (dane demo) */
+  readonly onChangeChildPhoto?: (file: File | null) => Promise<boolean>;
 }
 
 /**
@@ -55,14 +34,22 @@ export function DashboardHeader({
   onSelectChild,
   onSelectDayMode,
   onToggleAntiOrthosomnia,
+  onChangeChildPhoto,
 }: DashboardHeaderProps): ReactNode {
   const { t } = useI18n();
   const isAdmin = useIsAdmin();
+  const [isPhotoSheetOpen, setIsPhotoSheetOpen] = useState(false);
   return (
     <header className="flex flex-col gap-2.5 w-full pt-1 pb-2">
-      <div className="flex items-center justify-between">
-        <ChildIdentityBadge child={child} ageDisplay={ageDisplay} />
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <ChildSwitcher
+          childrenList={householdChildren}
+          activeChild={child}
+          ageDisplay={ageDisplay}
+          onSelectChild={onSelectChild}
+          onOpenPhoto={onChangeChildPhoto ? () => setIsPhotoSheetOpen(true) : undefined}
+        />
+        <div className="flex shrink-0 items-center gap-1.5">
           {isAdmin && (
             <Link
               href="/admin"
@@ -86,15 +73,18 @@ export function DashboardHeader({
           />
         </div>
       </div>
-      <ChildSwitcher
-        childrenList={householdChildren}
-        activeChildId={child.id}
-        onSelectChild={onSelectChild}
-      />
       <DayModeSwitcher currentMode={child.active_day_mode} onSelectMode={onSelectDayMode} />
       <div className="flex justify-end">
         <PreferencesMenu />
       </div>
+      {onChangeChildPhoto && (
+        <ChildPhotoSheet
+          child={child}
+          isOpen={isPhotoSheetOpen}
+          onClose={() => setIsPhotoSheetOpen(false)}
+          onChangePhoto={onChangeChildPhoto}
+        />
+      )}
     </header>
   );
 }
