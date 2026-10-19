@@ -218,7 +218,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
       fellAsleepAt: "2026-04-10T19:40:00.000Z",
       mood: "crying",
     };
-    const overtiredResult = evaluateCat2BedtimeResistance([overtiredLog], 50);
+    const overtiredResult = evaluateCat2BedtimeResistance([overtiredLog], 70);
     expect(overtiredResult.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT2_OVERTIRED);
 
     const undertiredLog: SleepLog = {

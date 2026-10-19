@@ -143,7 +143,10 @@ describe("CAT2: przemęczenie wg spec. v2.0", () => {
   }));
 
   it("latencja >20 min + płacz + dług → przemęczenie, wcześniejsze kładzenie", () => {
-    const result = evaluateCat2BedtimeResistance(crying, 60);
+    const result = evaluateCat2BedtimeResistance(crying, 75);
+    expect(evaluateCat2BedtimeResistance(crying, 60).diagnosisCode).not.toBe(
+      DIAGNOSIS_CODES.CAT2_OVERTIRED,
+    );
     expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT2_OVERTIRED);
     expect(result.algorithmOverride?.wakeWindowOffsetMinutes).toBe(-20);
   });

@@ -21,7 +21,8 @@ export const SPLIT_NIGHT_MIN_DURATION_MINUTES = 60; // heurystyka
 export const BEDTIME_LATENCY_THRESHOLD_MINUTES = 30; // heurystyka
 /** CAT2: przemęczenie wg spec. v2.0 — latencja >20 min + płacz + dług. */
 export const OVERTIRED_LATENCY_THRESHOLD_MINUTES = 20; // heurystyka (spec. v2.0)
-export const OVERTIRED_DEBT_THRESHOLD_MINUTES = 45; // heurystyka
+/** Średni dzienny niedobór snu z 3 dób (skala po etapie B, bez ×3,5); ok. 1 SD u malucha. */
+export const OVERTIRED_DEBT_THRESHOLD_MINUTES = 60; // heurystyka
 /** CAT2: wcześniejsze kładzenie przy przemęczeniu (tekst: 20–30 min). */
 export const OVERTIRED_BEDTIME_ADVANCE_MINUTES = 20; // heurystyka (spec. v2.0)
 /** Bedtime fading: +15 min co 3 dni (Piazza i Fisher 1991 — metoda; liczby ze spec. v2.0). */
@@ -58,7 +59,7 @@ export const PHASE_SHIFT_INTERVAL_DAYS = 2; // heurystyka
 /** CAT4: opór przed ostatnią drzemką. */
 export const NAP_RESISTANCE_LATENCY_MINUTES = 20; // heurystyka
 /** CAT4: przejście drzemkowe dopiero po ≥5 dniach sygnałów z rzędu. */
-export const NAP_TRANSITION_MIN_DAYS = 5; // heurystyka (spec. v2.0)
+export const NAP_READINESS_MIN_DAYS = 5; // heurystyka (spec. v2.0)
 /** CAT4: 3→2 drzemki od 4. mies. (Mindell 2016). */
 export const THREE_TO_TWO_MIN_AGE_DAYS = 120;
 export const THREE_TO_TWO_MAX_AGE_DAYS = 300; // heurystyka
@@ -636,8 +637,8 @@ function detectNapTransition(
   logs: readonly SleepLog[],
   effectiveAgeDays: number,
 ): "3to2" | "2to1" | null {
-  const days = collectNapDaySignals(logs).slice(0, NAP_TRANSITION_MIN_DAYS);
-  if (days.length < NAP_TRANSITION_MIN_DAYS) return null;
+  const days = collectNapDaySignals(logs).slice(0, NAP_READINESS_MIN_DAYS);
+  if (days.length < NAP_READINESS_MIN_DAYS) return null;
   if (!areConsecutiveDates(days.map((d) => d.date))) return null;
   if (!days.every((d) => d.hasResistance)) return null;
 
