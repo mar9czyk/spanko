@@ -1,6 +1,7 @@
 import type PocketBase from "pocketbase";
 import { mapRecordToSleepLog } from "@/lib/server/sleepLogMapper";
 import {
+  applyObservedNapsCount,
   calculateChronicDrive,
   calculateCircadianParameters,
   calculateEffectiveAgeDays,
@@ -40,25 +41,30 @@ export interface DiagnosticExtras {
 }
 
 /**
- * Wylicza biologiczną porę snu (minuty od północy w strefie dziecka) z ostatnich porannych pobudek.
+ * Wylicza przewidywaną porę snu nocnego (minuty od północy w strefie dziecka) z ostatnich
+ * porannych pobudek i faktycznych pór zaśnięcia.
  *
  * @param {readonly SleepLog[]} logs - Logi snu (dowolna kolejność)
  * @param {AgeBracketConfig} bracket - Przedział wiekowy
  * @param {string} timeZone - Strefa IANA dziecka
- * @returns {number} Biologiczna pora snu w minutach od północy
+ * @returns {number} Przewidywana pora snu w minutach od północy
  */
 export function resolveBiologicalBedtimeMin(
   logs: readonly SleepLog[],
   bracket: AgeBracketConfig,
   timeZone: string,
 ): number {
-  const wakeTimes = logs
+  const recentNights = logs
     .filter((l) => l.type === "night" && l.status === "completed" && l.wokeUpAt)
     .toSorted((a, b) => new Date(b.putDownAt).getTime() - new Date(a.putDownAt).getTime())
-    .slice(0, MORNING_WAKE_SAMPLE_SIZE)
-    .map((l) => getMinutesFromMidnightInTimeZone(l.wokeUpAt ?? l.putDownAt, timeZone));
+    .slice(0, MORNING_WAKE_SAMPLE_SIZE);
   return calculateCircadianParameters({
-    morningWakeTimesLast5DaysMinutesFromMidnight: wakeTimes,
+    morningWakeTimesLast5DaysMinutesFromMidnight: recentNights.map((l) =>
+      getMinutesFromMidnightInTimeZone(l.wokeUpAt ?? l.putDownAt, timeZone),
+    ),
+    bedtimesLast5DaysMinutesFromMidnight: recentNights.map((l) =>
+      getMinutesFromMidnightInTimeZone(l.fellAsleepAt || l.putDownAt, timeZone),
+    ),
     bracket,
   }).biologicalBedtimeMinFromMidnight;
 }
@@ -159,6 +165,33 @@ export function resolveInsightStatus(
 }
 
 /**
+ * Wyznacza bieżącą dobę fizjologiczną dziecka.
+ *
+ * @param {ChildRecord} child - Dziecko
+ * @param {readonly SleepLogRecord[]} sleepRecords - Logi snu (najnowsze pierwsze)
+ * @param {string} nowIso - Czas odniesienia
+ * @returns {string} Data doby fizjologicznej (YYYY-MM-DD)
+ */
+function resolveTodayPhysiologicalDate(
+  child: ChildRecord,
+  sleepRecords: readonly SleepLogRecord[],
+  nowIso: string,
+): string {
+  const latestNight = sleepRecords.find((l) => l.type === "night");
+  return resolvePhysiologicalDate({
+    eventTimestamp: nowIso,
+    timeZone: child.timezone || DEFAULT_TIME_ZONE,
+    activeOrRecentNightSleep: latestNight
+      ? {
+          physiologicalDate: latestNight.physiological_date,
+          fellAsleepAt: latestNight.fell_asleep_at || latestNight.put_down_at || nowIso,
+          wokeUpAt: latestNight.woke_up_at,
+        }
+      : null,
+  });
+}
+
+/**
  * Pobiera tagi bieżącej doby fizjologicznej i datę startu aktywnego planu (best effort).
  *
  * @param {PocketBase} pb - Klient PocketBase użytkownika
@@ -173,18 +206,7 @@ export async function loadDiagnosticExtras(
   sleepRecords: readonly SleepLogRecord[],
   nowIso: string,
 ): Promise<DiagnosticExtras> {
-  const latestNight = sleepRecords.find((l) => l.type === "night");
-  const todayDate = resolvePhysiologicalDate({
-    eventTimestamp: nowIso,
-    timeZone: child.timezone || DEFAULT_TIME_ZONE,
-    activeOrRecentNightSleep: latestNight
-      ? {
-          physiologicalDate: latestNight.physiological_date,
-          fellAsleepAt: latestNight.fell_asleep_at || latestNight.put_down_at || nowIso,
-          wokeUpAt: latestNight.woke_up_at,
-        }
-      : null,
-  });
+  const todayDate = resolveTodayPhysiologicalDate(child, sleepRecords, nowIso);
 
   const [context, goals] = await Promise.all([
     pb
@@ -240,9 +262,15 @@ export function runDeterministicEngine(input: {
     input.child.due_date,
     input.nowIso,
   );
-  const bracket = getAgeBracket(effectiveAgeDays, resolveSleepMatrix(input.matrixOverrideJson));
   const dailyTotals = aggregateDailySleepSummaries(input.sleepRecords);
-  const chronicDrive = calculateChronicDrive(dailyTotals, bracket);
+  // Norma, dług i liczba drzemek liczone z pełnych dób, bez bieżącej (niedokończonej)
+  const todayDate = resolveTodayPhysiologicalDate(input.child, input.sleepRecords, input.nowIso);
+  const completedDays = dailyTotals.filter((day) => day.physiologicalDate !== todayDate);
+  const bracket = applyObservedNapsCount(
+    getAgeBracket(effectiveAgeDays, resolveSleepMatrix(input.matrixOverrideJson)),
+    completedDays,
+  );
+  const chronicDrive = calculateChronicDrive(completedDays, bracket);
   const allDiagnostics = evaluateAll7DiagnosticCategories(
     buildDiagnosticInput({
       child: input.child,

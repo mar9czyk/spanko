@@ -6,6 +6,7 @@ export const MATRIX_MIN_AGE_DAYS = 0;
 export const MATRIX_MAX_AGE_DAYS = 1095;
 export const MAX_MINUTES_PER_DAY = 1440;
 export const MAX_NAPS_PER_DAY = 8;
+export const MAX_NIGHT_WAKINGS_NORM = 10;
 
 const positiveMinutes = z.number().positive().max(MAX_MINUTES_PER_DAY);
 
@@ -23,13 +24,21 @@ export const AgeBracketConfigSchema = z
     maxDaytimeSleepMin: positiveMinutes,
     medianTotalSleepMin: positiveMinutes,
     homeostaticTauRiseMin: positiveMinutes,
+    minNapsCount: z.number().int().min(0).max(MAX_NAPS_PER_DAY).optional(),
+    nightWakingsMean: z.number().min(0).max(MAX_NIGHT_WAKINGS_NORM).optional(),
+    nightWakingsUpperNorm: z.number().min(0).max(MAX_NIGHT_WAKINGS_NORM).optional(),
   })
   .refine((bracket) => bracket.minAgeDays <= bracket.maxAgeDays, {
     message: "minAgeDays musi być <= maxAgeDays",
   })
   .refine((bracket) => bracket.wwMinMorning <= bracket.wwMaxEvening, {
     message: "wwMinMorning musi być <= wwMaxEvening",
-  });
+  })
+  .refine(
+    (bracket) =>
+      bracket.minNapsCount === undefined || bracket.minNapsCount <= bracket.targetNapsCount,
+    { message: "minNapsCount musi być <= targetNapsCount" },
+  );
 
 export type SleepMatrixValidation =
   | { readonly ok: true; readonly matrix: readonly AgeBracketConfig[] }
