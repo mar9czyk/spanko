@@ -7,6 +7,7 @@ import type {
   NextSleepSlotParams,
   NextSleepSlotPrediction,
   SleepNeedsProfile,
+  SleepRestednessLevel,
 } from "./types";
 
 export const PREMATURITY_THRESHOLD_DAYS = 21;
@@ -169,6 +170,20 @@ export function calculateChronicDrive(
     sleepBatteryPercent,
     sleepNeedsProfile,
   };
+}
+
+/**
+ * Przekłada chroniczny dług senny na słowny stan wyspania dla rodzica.
+ * Progi pokrywają się z korektami silnika: powyżej CHRONIC_DEBT_THRESHOLD_MINUTES
+ * okna czuwania są skracane, od WMZ_MAX_CHRONIC_DEBT_MINUTES wyłączane jest omijanie WMZ.
+ *
+ * @param {number} chronicSleepDebtMin - Chroniczny dług senny w minutach
+ * @returns {SleepRestednessLevel} Stan wyspania dziecka
+ */
+export function resolveSleepRestedness(chronicSleepDebtMin: number): SleepRestednessLevel {
+  if (chronicSleepDebtMin >= WMZ_MAX_CHRONIC_DEBT_MINUTES) return "very_tired";
+  if (chronicSleepDebtMin > CHRONIC_DEBT_THRESHOLD_MINUTES) return "slightly_tired";
+  return "rested";
 }
 
 /**

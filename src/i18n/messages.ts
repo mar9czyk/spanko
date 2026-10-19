@@ -76,11 +76,18 @@ export const pl = {
   "insightCard.adjust": "Skoryguj",
   "insightCard.history": "Karta Rozwoju i Kalendarz Historii",
 
-  "battery.title": "Bateria Snu (7 dni)",
+  "battery.period": "ostatnie 7 dni",
+  "battery.level.rested": "Wyspane",
+  "battery.level.slightlyTired": "Lekko niewyspane",
+  "battery.level.veryTired": "Mocno niewyspane",
+  "battery.effect.rested": "Okna czuwania bez zmian.",
+  "battery.effect.slightlyTired": "Dlatego drzemki planuję ok. 15 min wcześniej.",
+  "battery.effect.veryTired":
+    "Drzemki planuję ok. 15 min wcześniej i pozwalam na wcześniejsze zaśnięcie wieczorem.",
   "battery.low": "Niskie potrzeby",
   "battery.average": "Średnie potrzeby",
   "battery.high": "Wysokie potrzeby",
-  "battery.lastNap": "Koniec ost. drzemki: max {time}",
+  "battery.lastNap": "Ostatnia drzemka do {time}",
 
   "ring.approx": "ok. {time}",
   "ring.window": "Okno gotowości do snu",
@@ -319,7 +326,14 @@ export const en: Record<MessageKey, string> = {
   "insightCard.adjust": "Adjust",
   "insightCard.history": "Sleep profile & history",
 
-  "battery.title": "Sleep Battery (7 days)",
+  "battery.period": "last 7 days",
+  "battery.level.rested": "Well rested",
+  "battery.level.slightlyTired": "A bit short on sleep",
+  "battery.level.veryTired": "Very short on sleep",
+  "battery.effect.rested": "Wake windows unchanged.",
+  "battery.effect.slightlyTired": "So naps are planned about 15 min earlier.",
+  "battery.effect.veryTired":
+    "Naps are planned about 15 min earlier and an earlier bedtime is allowed.",
   "battery.low": "Low needs",
   "battery.average": "Average needs",
   "battery.high": "High needs",

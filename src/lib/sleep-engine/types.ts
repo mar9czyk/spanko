@@ -45,6 +45,9 @@ export type InsightStatus =
 
 export type SleepNeedsProfile = "low_sleep_needs" | "average" | "high_sleep_needs";
 
+/** Słowny stan wyspania dziecka wyprowadzony z chronicznego długu sennego. */
+export type SleepRestednessLevel = "rested" | "slightly_tired" | "very_tired";
+
 export type DiagnosticSeverity = "low" | "medium" | "high" | "info";
 
 export interface NightWakingEntry {

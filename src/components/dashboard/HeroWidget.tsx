@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SleepRestednessLevel } from "@/lib/sleep-engine";
 import type { SleepLogRecord } from "@/lib/types/database";
 import { ActiveSleepRemTimer } from "./ActiveSleepRemTimer";
 import { ActiveSleepTimer } from "./ActiveSleepTimer";
@@ -15,6 +16,7 @@ interface HeroWidgetProps {
   readonly reasonDescription: string;
   readonly effectiveAgeDays: number;
   readonly batteryPercent: number;
+  readonly sleepRestedness: SleepRestednessLevel;
   readonly sleepNeedsProfile: "low_sleep_needs" | "average" | "high_sleep_needs";
   readonly latestLastNapEndAt: string;
 }
@@ -68,6 +70,7 @@ export function HeroWidget(props: HeroWidgetProps): ReactNode {
       {isNewborn && isNightSleep && <ActiveSleepRemTimer />}
       <SleepBatteryIndicator
         batteryPercent={props.batteryPercent}
+        sleepRestedness={props.sleepRestedness}
         sleepNeedsProfile={props.sleepNeedsProfile}
         latestLastNapEndAt={props.latestLastNapEndAt}
       />

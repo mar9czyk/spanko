@@ -62,7 +62,7 @@ Widok `/dashboard` składa się z 5 zintegrowanych stref:
 - **W trakcie czuwania:** Animowany pierścień odliczający czas do kolejnego SweetSpot z informacją o powodzie przesunięcia (np. "Krótka poprzednia drzemka").
 - **W trakcie snu:** Zsynchronizowany na żywo stoper trwającego snu (`pb.collection('sleep_logs').subscribe('*')`) — zmiana na telefonie jednego rodzica natychmiast aktualizuje ekran drugiego rodzica.
 - **Dla noworodków (<16 tyg.):** W nocy dostępny przycisk `[⏱️ Odczekaj 60s (Active Sleep REM)]` z zegarem odliczającym 60 sekund, przypominający rodzicowi o powstrzymaniu się przed przedwczesnym wyjęciem dziecka z łóżeczka.
-- **Wskaźnik 7-dniowej Baterii Snu:** Pasek stanu od 15% do 100% z etykietą profilu (`Low / Average / High Sleep Needs`).
+- **Stan wyspania (7 dni):** Bez nagłówka „Bateria Snu”. Słowo w kolorze stanu (`Wyspane` zielony / `Lekko niewyspane` bursztynowy / `Mocno niewyspane` różowy, z `resolveSleepRestedness`), 5 segmentów wg baterii 15–100% i jedno zdanie, co silnik z tym robi. Pod spodem etykieta profilu (`Low / Average / High Sleep Needs`) i limit ostatniej drzemki.
 - **Backwards Nap Capping:** Wyraźny wskaźnik "Koniec ostatniej drzemki maks. o HH:mm", aby nie zakłócić snu nocnego.
 
 ### 3.4. Oś Czasu Doby Fizjologicznej

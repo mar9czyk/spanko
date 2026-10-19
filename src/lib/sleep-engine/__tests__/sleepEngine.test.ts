@@ -15,6 +15,7 @@ import {
   evaluateCat7NightWeaning,
   getAgeBracket,
   predictNextSleepSlot,
+  resolveSleepRestedness,
 } from "../index";
 import type { DiagnosticEvaluationInput, SleepLog } from "../types";
 
@@ -73,6 +74,14 @@ describe("Sleep Engine: 3 Napędy Snu", () => {
     expect(result.individualSleepNeedMin).toBeLessThan(900);
     expect(result.sleepBatteryPercent).toBeGreaterThanOrEqual(80);
     expect(result.sleepNeedsProfile).toBe("average");
+  });
+
+  it("przekłada dług senny na stan wyspania zgodnie z progami korekt silnika", () => {
+    expect(resolveSleepRestedness(-30)).toBe("rested");
+    expect(resolveSleepRestedness(75)).toBe("rested");
+    expect(resolveSleepRestedness(76)).toBe("slightly_tired");
+    expect(resolveSleepRestedness(149)).toBe("slightly_tired");
+    expect(resolveSleepRestedness(150)).toBe("very_tired");
   });
 
   it("wylicza parametry okołodobowe i Strefę Zakazaną (WMZ)", () => {
