@@ -1,4 +1,4 @@
-import { ShieldCheck, Sparkles } from "lucide-react";
+import { ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -7,7 +7,6 @@ import { AntiOrthosomniaToggle } from "./AntiOrthosomniaToggle";
 import { ChildPhotoSheet } from "./ChildPhotoSheet";
 import { ChildSwitcher } from "./ChildSwitcher";
 import { DayModeSwitcher } from "./DayModeSwitcher";
-import { PreferencesMenu } from "./PreferencesMenu";
 import { useIsAdmin } from "./useIsAdmin";
 
 interface DashboardHeaderProps {
@@ -67,6 +66,14 @@ export function DashboardHeader({
           >
             <Sparkles className="w-4 h-4" />
           </Link>
+          <Link
+            href="/settings"
+            className="p-1.5 rounded-xl bg-[#1E2738] text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 border border-[#263348] transition-colors"
+            title={t("header.preferences")}
+            aria-label={t("header.preferences")}
+          >
+            <UserRound className="w-4 h-4" />
+          </Link>
           <AntiOrthosomniaToggle
             isActive={child.anti_orthosomnia_mode}
             onToggle={onToggleAntiOrthosomnia}
@@ -74,9 +81,6 @@ export function DashboardHeader({
         </div>
       </div>
       <DayModeSwitcher currentMode={child.active_day_mode} onSelectMode={onSelectDayMode} />
-      <div className="flex justify-end">
-        <PreferencesMenu />
-      </div>
       {onChangeChildPhoto && (
         <ChildPhotoSheet
           child={child}
