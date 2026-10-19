@@ -36,6 +36,7 @@ export function useGoalState({ childId, physiologicalDate, locale, enabled }: Us
     if (!enabled || !childId) return;
     let cancelled = false;
     setStatus("loading");
+    setError(null);
     pb.collection("child_goals")
       .getList<ChildGoalRecord>(1, 1, {
         filter: pb.filter("child_id = {:childId} && (status = 'active' || status = 'paused')", {
