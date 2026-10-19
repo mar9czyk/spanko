@@ -19,6 +19,7 @@ interface GoalPathCardProps {
   readonly goal: ChildGoalRecord;
   readonly daily: GoalDailyTaskRecord | null;
   readonly physiologicalDate: string | null;
+  readonly error?: string | null;
   readonly locale: CopyLocale;
   readonly onToggleTask: (taskKey: string) => void;
   readonly onChangeStatus: (status: "active" | "paused" | "abandoned") => void;
@@ -43,6 +44,7 @@ export function GoalPathCard({
   goal,
   daily,
   physiologicalDate,
+  error,
   locale,
   onToggleTask,
   onChangeStatus,
@@ -129,7 +131,9 @@ export function GoalPathCard({
           )}
           <p className="text-xs text-violet-300">
             {coach.encouragement}
-            {reasonText ? ` ${localize(reasonText, locale)}` : ""}
+            {reasonText && localize(reasonText, locale) !== coach.encouragement
+              ? ` ${localize(reasonText, locale)}`
+              : ""}
           </p>
           {coach.why && (
             <details className="text-[11px] text-slate-400">
@@ -142,7 +146,11 @@ export function GoalPathCard({
         </>
       )}
 
-      {!isPaused && !coach && <p className="text-xs text-slate-400">{t("goal.card.preparing")}</p>}
+      {!isPaused && !coach && (
+        <p className={`text-xs ${error ? "text-red-300" : "text-slate-400"}`}>
+          {error ?? t("goal.card.preparing")}
+        </p>
+      )}
 
       <button
         type="button"

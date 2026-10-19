@@ -79,6 +79,7 @@ export default function DashboardPage() {
           goal={goalState.goal}
           daily={goalState.daily}
           physiologicalDate={state.physiologicalDate}
+          error={goalState.error}
           locale={locale}
           onToggleTask={goalState.toggleTask}
           onChangeStatus={goalState.changeStatus}

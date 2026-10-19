@@ -87,15 +87,17 @@ Zwróć JSON: { "headline": string, "todayAdvice": string[1-3], "nightTip": stri
  */
 export function createFallbackCoachMessage(ctx: GoalCoachContext): GoalCoachMessage {
   const reason = REASON_TEXT[ctx.decision.reason];
-  const advice = ctx.tasks.map((t) => describeTask(t, ctx.locale)).filter(Boolean);
   const isPl = ctx.locale === "pl";
   return {
     headline: isPl
       ? `${ctx.goalTitle} — dzień ${ctx.dayNumber} z ${ctx.totalDays}`
       : `${ctx.goalTitle} — day ${ctx.dayNumber} of ${ctx.totalDays}`,
-    todayAdvice: advice.length
-      ? advice.slice(0, MAX_ADVICE_ITEMS)
-      : [isPl ? "Kontynuuj obecną rutynę." : "Keep your current routine."],
+    // Zadania dnia są pokazywane osobno — tu tylko ogólna wskazówka, bez powielania ich treści
+    todayAdvice: [
+      isPl
+        ? "Zapisuj pobudki i karmienia — na tej podstawie dopasujemy kolejne kroki."
+        : "Keep logging wakings and feeds — we'll tune the next steps from them.",
+    ],
     nightTip: ctx.nightTip ? describeTask(ctx.nightTip, ctx.locale) : "",
     encouragement: reason
       ? localize(reason, ctx.locale)
@@ -111,14 +113,25 @@ export function createFallbackCoachMessage(ctx: GoalCoachContext): GoalCoachMess
  *
  * @param {GoalCoachContext} ctx - Stan celu
  * @param {GoalCoachAudit} audit - Dane do logu ai_calls
+ * @param {object} [options] - `skipAi`: pomiń AI (np. po wyczerpaniu limitu) i zwróć tekst deterministyczny
  * @returns {Promise<GoalCoachOutcome>} Wiadomość i status wywołania
  */
 export async function runGoalCoach(
   ctx: GoalCoachContext,
   audit: GoalCoachAudit,
+  options: { readonly skipAi?: boolean } = {},
 ): Promise<GoalCoachOutcome> {
   const startedAt = Date.now();
   const fallback = createFallbackCoachMessage(ctx);
+  if (options.skipAi) {
+    return {
+      message: fallback,
+      model: "deterministic-fallback",
+      status: "error",
+      callId: null,
+      errorMessage: "AI skipped (daily limit)",
+    };
+  }
   const snapshot = {
     goal: ctx.goal,
     decision: ctx.decision,

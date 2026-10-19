@@ -62,7 +62,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ success: true, goal, daily: existing.items[0], cached: true });
     }
 
-    await enforceDailyAiLimit(pb, user.household_id);
+    // Limit AI nie może blokować planu dnia — przy wyczerpaniu zwracamy tekst deterministyczny
+    let aiAllowed = true;
+    try {
+      await enforceDailyAiLimit(pb, user.household_id);
+    } catch (limitError) {
+      if (limitError instanceof ApiAuthError && limitError.status === 429) aiAllowed = false;
+      else throw limitError;
+    }
 
     const sinceStart = context.days.filter((d) => d.date >= goal.started_on);
     const inStep = sinceStart.filter(
@@ -109,6 +116,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         goalTitle: localize(GOAL_TITLES[goal.goal_type], locale),
       },
       { childId: goal.child_id, householdId: user.household_id },
+      { skipAi: !aiAllowed },
     );
 
     const [updatedGoal, daily] = await Promise.all([

@@ -75,6 +75,7 @@ function nightLog(offset: number) {
 }
 
 interface FakeStore {
+  householdLimit?: number;
   nights: number;
   activeGoal: Record<string, unknown> | null;
   dailyTasks: Record<string, unknown>[];
@@ -88,7 +89,9 @@ function createFakePocketBase(store: FakeStore) {
     collection: (name: string) => ({
       getOne: async (id: string) => {
         if (name === "children" && id === CHILD.id) return CHILD;
-        if (name === "households") return { id, name: "Dom" };
+        if (name === "households") {
+          return { id, name: "Dom", ai_daily_limit_override: store.householdLimit };
+        }
         if (name === "child_goals" && store.activeGoal && store.activeGoal.id === id) {
           return store.activeGoal;
         }
@@ -270,6 +273,15 @@ describe("Goals Route Handlers", () => {
     const json = await second.json();
     expect(json.cached).toBe(true);
     expect(store.creates.filter((c) => c.collection === "goal_daily_tasks")).toHaveLength(1);
+  });
+
+  it("goal-coach: po wyczerpaniu limitu AI plan dnia powstaje z tekstem deterministycznym", async () => {
+    store.activeGoal = activeGoal();
+    store.householdLimit = 0;
+    const response = await goalCoachPost(postRequest("/api/ai/goal-coach", { goalId: "goal_1" }));
+    expect(response.status).toBe(200);
+    const daily = store.creates.find((c) => c.collection === "goal_daily_tasks");
+    expect(daily?.data.tasks_json).toBeInstanceOf(Array);
   });
 
   it("goal-coach: 400 dla nieaktywnego celu", async () => {
