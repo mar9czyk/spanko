@@ -49,6 +49,7 @@ export const pl = {
   "header.mode": "3 AM One-Thumb Mode",
   "header.insightsTitle": "Karta Rozwoju Snu Dziecka",
   "header.preferences": "Ustawienia",
+  "header.adminTitle": "Panel Admina",
 
   "dayMode.home.label": "W domu",
   "dayMode.home.desc": "Standardowy harmonogram domowy",
@@ -282,6 +283,7 @@ export const en: Record<MessageKey, string> = {
   "header.mode": "3 AM One-Thumb Mode",
   "header.insightsTitle": "Baby Sleep Profile",
   "header.preferences": "Settings",
+  "header.adminTitle": "Admin panel",
 
   "dayMode.home.label": "At home",
   "dayMode.home.desc": "Standard home schedule",

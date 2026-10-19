@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -6,6 +6,7 @@ import type { ActiveDayMode, ChildRecord } from "@/lib/types/database";
 import { AntiOrthosomniaToggle } from "./AntiOrthosomniaToggle";
 import { DayModeSwitcher } from "./DayModeSwitcher";
 import { PreferencesMenu } from "./PreferencesMenu";
+import { useIsAdmin } from "./useIsAdmin";
 
 interface DashboardHeaderProps {
   readonly child: ChildRecord;
@@ -51,11 +52,22 @@ export function DashboardHeader({
   onToggleAntiOrthosomnia,
 }: DashboardHeaderProps): ReactNode {
   const { t } = useI18n();
+  const isAdmin = useIsAdmin();
   return (
     <header className="flex flex-col gap-2.5 w-full pt-1 pb-2">
       <div className="flex items-center justify-between">
         <ChildIdentityBadge child={child} ageDisplay={ageDisplay} />
         <div className="flex items-center gap-1.5">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="p-1.5 rounded-xl bg-[#1E2738] text-violet-300 hover:text-violet-200 hover:bg-violet-500/10 border border-[#263348] transition-colors"
+              title={t("header.adminTitle")}
+              aria-label={t("header.adminTitle")}
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </Link>
+          )}
           <Link
             href="/insights"
             className="p-1.5 rounded-xl bg-[#1E2738] text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-[#263348] transition-colors"
