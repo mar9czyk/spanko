@@ -31,6 +31,7 @@ export const MINUTES_PER_HOUR = 60;
 
 interface EvaluateInsightsRequestBody {
   readonly childId: string;
+  readonly locale?: string;
 }
 
 /**
@@ -245,6 +246,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const significantDiagnostics = resolveSignificantDiagnostics(allDiagnostics);
 
     const evaluationContext: InsightEvaluationContext = {
+      locale: body.locale === "en" ? "en" : "pl",
       childAgeDisplay: `${Math.round(effectiveAgeDays / 30)} msc`,
       effectiveAgeDays,
       activeDayMode: child.active_day_mode,

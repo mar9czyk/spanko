@@ -1,6 +1,7 @@
 import { Check, ChevronDown, Pause, Play, Target } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   type CopyLocale,
   describeTask,
@@ -46,6 +47,7 @@ export function GoalPathCard({
   onToggleTask,
   onChangeStatus,
 }: GoalPathCardProps): ReactNode {
+  const { t } = useI18n();
   const total = goal.plan_json.totalDays;
   const day = Math.min(dayNumber(goal.started_on, physiologicalDate), total);
   const progress = Math.round((day / total) * PERCENT);
@@ -64,7 +66,11 @@ export function GoalPathCard({
               {localize(GOAL_TITLES[goal.goal_type], locale)}
             </h2>
             <p className="text-[11px] text-slate-400">
-              {localize(METHOD_TITLES[goal.method], locale)} · dzień {day}/{total}
+              {t("goal.card.day", {
+                method: localize(METHOD_TITLES[goal.method], locale),
+                day,
+                total,
+              })}
             </p>
           </div>
         </div>
@@ -72,7 +78,7 @@ export function GoalPathCard({
           type="button"
           onClick={() => onChangeStatus(isPaused ? "active" : "paused")}
           className="p-1.5 rounded-lg bg-[#1E2738] border border-[#263348] text-slate-300"
-          title={isPaused ? "Wznów cel" : "Wstrzymaj cel"}
+          title={isPaused ? t("goal.card.resume") : t("goal.card.pause")}
         >
           {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
         </button>
@@ -85,9 +91,7 @@ export function GoalPathCard({
         />
       </div>
 
-      {isPaused && (
-        <p className="text-xs text-violet-300">Cel wstrzymany — wznów, gdy będziesz gotowa/y.</p>
-      )}
+      {isPaused && <p className="text-xs text-violet-300">{t("goal.card.paused")}</p>}
 
       {!isPaused && coach && (
         <>
@@ -130,7 +134,7 @@ export function GoalPathCard({
           {coach.why && (
             <details className="text-[11px] text-slate-400">
               <summary className="cursor-pointer flex items-center gap-1 list-none">
-                <ChevronDown className="w-3 h-3" /> Dlaczego?
+                <ChevronDown className="w-3 h-3" /> {t("goal.card.why")}
               </summary>
               <p className="pt-1">{coach.why}</p>
             </details>
@@ -138,14 +142,14 @@ export function GoalPathCard({
         </>
       )}
 
-      {!isPaused && !coach && <p className="text-xs text-slate-400">Przygotowuję plan na dziś…</p>}
+      {!isPaused && !coach && <p className="text-xs text-slate-400">{t("goal.card.preparing")}</p>}
 
       <button
         type="button"
         onClick={() => onChangeStatus("abandoned")}
         className="self-end text-[11px] text-slate-500 underline"
       >
-        Zakończ cel
+        {t("goal.card.end")}
       </button>
     </section>
   );
@@ -157,6 +161,7 @@ export function GoalPathCard({
  * @returns {ReactNode} Karta z linkiem do kreatora celu
  */
 export function ChooseGoalCard(): ReactNode {
+  const { t } = useI18n();
   return (
     <Link
       href="/goals/new"
@@ -164,10 +169,8 @@ export function ChooseGoalCard(): ReactNode {
     >
       <Target className="w-5 h-5 text-amber-400 shrink-0" />
       <span className="text-sm text-slate-100">
-        <strong className="block text-amber-200">Wybierz cel snu</strong>
-        <span className="text-xs text-slate-400">
-          Mniej pobudek, noc bez mleka, samodzielne zasypianie — poprowadzimy Cię krok po kroku.
-        </span>
+        <strong className="block text-amber-200">{t("goal.choose.title")}</strong>
+        <span className="text-xs text-slate-400">{t("goal.choose.text")}</span>
       </span>
     </Link>
   );

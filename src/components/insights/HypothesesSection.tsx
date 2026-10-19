@@ -1,5 +1,6 @@
 import { Eye, HelpCircle } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ChildInsightRecord } from "@/lib/types/database";
 import { CATEGORY_PRESENTATIONS, DEFAULT_CATEGORY_PRESENTATION } from "./constants";
 
@@ -14,6 +15,7 @@ interface HypothesesSectionProps {
  * @returns {ReactNode} Karta hipotezy
  */
 function HypothesisCard({ hypothesis }: { hypothesis: ChildInsightRecord }) {
+  const { t, tDynamic } = useI18n();
   const config = CATEGORY_PRESENTATIONS[hypothesis.category] || DEFAULT_CATEGORY_PRESENTATION;
 
   return (
@@ -22,11 +24,11 @@ function HypothesisCard({ hypothesis }: { hypothesis: ChildInsightRecord }) {
         <span
           className={`text-[10px] font-semibold px-2 py-0.5 rounded border tracking-wide uppercase ${config.badgeStyle}`}
         >
-          {config.label}
+          {tDynamic(`insights.cat.${hypothesis.category}`, t("insights.default"))}
         </span>
         <span className="text-[10px] text-violet-300 bg-violet-950/60 border border-violet-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
           <Eye className="w-2.5 h-2.5" />
-          <span>Obserwacja (2/3 dni)</span>
+          <span>{t("insights.observation")}</span>
         </span>
       </div>
 
@@ -43,6 +45,7 @@ function HypothesisCard({ hypothesis }: { hypothesis: ChildInsightRecord }) {
  * @returns {ReactNode | null} Sekcja hipotez lub null
  */
 export function HypothesesSection({ hypotheses }: HypothesesSectionProps): ReactNode {
+  const { t } = useI18n();
   if (hypotheses.length === 0) return null;
 
   return (
@@ -50,7 +53,7 @@ export function HypothesesSection({ hypotheses }: HypothesesSectionProps): React
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1.5">
           <HelpCircle className="w-3.5 h-3.5" />
-          <span>Hipotezy w obserwacji</span>
+          <span>{t("insights.hypothesesTitle")}</span>
         </h2>
         <span className="text-[10px] bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 font-mono">
           {hypotheses.length}

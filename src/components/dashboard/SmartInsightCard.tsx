@@ -1,6 +1,7 @@
 import { Check, Edit3, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ChildInsightRecord } from "@/lib/types/database";
 
 interface SmartInsightCardProps {
@@ -48,6 +49,7 @@ function InsightActions({
   onAccept: (id: string) => void;
   onAdjust: (id: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2 pt-1 border-t border-[#263348]/40">
       <button
@@ -60,7 +62,7 @@ function InsightActions({
         }`}
       >
         <Check className="w-3.5 h-3.5 text-emerald-400" />
-        <span>{isAccepted ? "Działa!" : "Działa"}</span>
+        <span>{isAccepted ? t("insightCard.worksActive") : t("insightCard.works")}</span>
       </button>
       <button
         type="button"
@@ -68,7 +70,7 @@ function InsightActions({
         className="flex-1 py-1 px-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-amber-300 bg-[#1E2738] hover:bg-amber-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[32px]"
       >
         <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-        <span>Skoryguj</span>
+        <span>{t("insightCard.adjust")}</span>
       </button>
     </div>
   );
@@ -89,6 +91,7 @@ export function SmartInsightCard({
   onAccept,
   onAdjust,
 }: SmartInsightCardProps): ReactNode {
+  const { t } = useI18n();
   if (!insight) return null;
 
   const isAccepted = insight.parent_feedback === "accepted";
@@ -108,7 +111,7 @@ export function SmartInsightCard({
           href="/insights"
           className="text-[10px] text-amber-400 hover:text-amber-300 font-medium transition-colors"
         >
-          Karta Rozwoju i Kalendarz Historii &rarr;
+          {t("insightCard.history")} &rarr;
         </Link>
       </div>
     </div>

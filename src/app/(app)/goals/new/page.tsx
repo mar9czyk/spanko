@@ -4,10 +4,10 @@ import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
 import {
   BLOCKER_TEXT,
-  type CopyLocale,
   describeTask,
   GOAL_SUMMARIES,
   GOAL_TITLES,
@@ -22,7 +22,6 @@ import { buildDailyTasks } from "@/lib/goals-engine/dailyTasks";
 import type { GoalMethod, GoalPlan, GoalType, ReadinessResult } from "@/lib/goals-engine/types";
 import type { ChildRecord } from "@/lib/types/database";
 
-const LOCALE: CopyLocale = "pl";
 const GOALS: readonly GoalType[] = [
   "reduce_night_wakings",
   "night_weaning",
@@ -44,6 +43,7 @@ interface PreviewResponse {
  */
 export default function NewGoalPage() {
   const router = useRouter();
+  const { t, locale: LOCALE } = useI18n();
   const [child, setChild] = useState<ChildRecord | null>(null);
   const [step, setStep] = useState<Step>("goal");
   const [goal, setGoal] = useState<GoalType | null>(null);
@@ -56,8 +56,8 @@ export default function NewGoalPage() {
   useEffect(() => {
     loadActiveChild()
       .then(setChild)
-      .catch((e) => setError(e instanceof Error ? e.message : "Nie udało się pobrać dziecka."));
-  }, []);
+      .catch((e) => setError(e instanceof Error ? e.message : t("goal.new.errChild")));
+  }, [t]);
 
   const fetchPreview = useCallback(async () => {
     if (!child || !goal || !method) return;
@@ -78,9 +78,9 @@ export default function NewGoalPage() {
       setPreview({ readiness: json.readiness, plan: json.plan });
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Nie udało się sprawdzić gotowości.");
+      setError(e instanceof Error ? e.message : t("goal.new.errReadiness"));
     }
-  }, [child, goal, method, redFlagsAck]);
+  }, [child, goal, method, redFlagsAck, LOCALE, t]);
 
   useEffect(() => {
     if (step === "check") void fetchPreview();
@@ -105,7 +105,7 @@ export default function NewGoalPage() {
       if (!response.ok || !json.success) throw new Error(json.error ?? `HTTP ${response.status}`);
       router.push("/dashboard");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Nie udało się rozpocząć celu.");
+      setError(e instanceof Error ? e.message : t("goal.new.errStart"));
       setIsStarting(false);
     }
   };
@@ -119,15 +119,20 @@ export default function NewGoalPage() {
     <main className="w-full flex flex-col gap-4 pb-8">
       <header className="flex items-center gap-2 pt-1">
         {step === "goal" ? (
-          <Link href="/dashboard" className="p-1.5 text-slate-400" aria-label="Wróć">
+          <Link href="/dashboard" className="p-1.5 text-slate-400" aria-label={t("common.back")}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         ) : (
-          <button type="button" onClick={goBack} className="p-1.5 text-slate-400" aria-label="Wróć">
+          <button
+            type="button"
+            onClick={goBack}
+            className="p-1.5 text-slate-400"
+            aria-label={t("common.back")}
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
-        <h1 className="text-base font-semibold text-slate-100">Nowy cel snu</h1>
+        <h1 className="text-base font-semibold text-slate-100">{t("goal.new.title")}</h1>
       </header>
 
       {error && (
@@ -138,7 +143,7 @@ export default function NewGoalPage() {
 
       {step === "goal" && (
         <section className="flex flex-col gap-2.5">
-          <p className="text-sm text-slate-400">Co chcesz osiągnąć?</p>
+          <p className="text-sm text-slate-400">{t("goal.new.pickGoal")}</p>
           {GOALS.map((g) => (
             <button
               key={g}
@@ -180,7 +185,7 @@ export default function NewGoalPage() {
                 {localize(METHOD_TITLES[m], LOCALE)}
                 {METHOD_CATALOG[m].isFirm && (
                   <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-300">
-                    stanowcza · od 6 mies.
+                    {t("goal.new.firm")}
                   </span>
                 )}
               </span>
@@ -195,11 +200,8 @@ export default function NewGoalPage() {
       {step === "check" && goal && method && (
         <section className="flex flex-col gap-3">
           <div className="rounded-2xl bg-[#151B28] border border-[#263348] p-3.5 flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-slate-100">Zanim zaczniemy</h2>
-            <p className="text-xs text-slate-400">
-              Spanko nie zastępuje porady lekarskiej. Jeśli cokolwiek z poniższych Cię dotyczy,
-              porozmawiaj najpierw z pediatrą:
-            </p>
+            <h2 className="text-sm font-semibold text-slate-100">{t("goal.new.before")}</h2>
+            <p className="text-xs text-slate-400">{t("goal.new.disclaimer")}</p>
             <ul className="list-disc pl-4 text-xs text-slate-300 flex flex-col gap-1">
               {RED_FLAGS.map((flag) => (
                 <li key={flag.pl}>{localize(flag, LOCALE)}</li>
@@ -212,9 +214,7 @@ export default function NewGoalPage() {
                 onChange={(e) => setRedFlagsAck(e.target.checked)}
                 className="mt-0.5 w-5 h-5 accent-amber-500"
               />
-              <span className="text-xs text-slate-200">
-                Żaden z powyższych sygnałów mnie nie dotyczy.
-              </span>
+              <span className="text-xs text-slate-200">{t("goal.new.ack")}</span>
             </label>
           </div>
 
@@ -241,7 +241,7 @@ export default function NewGoalPage() {
 
               <div className="rounded-2xl bg-[#151B28] border border-[#263348] p-3.5 flex flex-col gap-2">
                 <h2 className="text-sm font-semibold text-slate-100">
-                  Plan: {preview.plan.totalDays} dni
+                  {t("goal.new.plan", { days: preview.plan.totalDays })}
                 </h2>
                 <ol className="flex flex-col gap-1.5">
                   {preview.plan.steps.slice(0, PLAN_PREVIEW_STEPS).map((planStep, index) => {
@@ -249,7 +249,7 @@ export default function NewGoalPage() {
                     return (
                       <li key={planStep.fromDay} className="text-xs text-slate-300">
                         <span className="font-mono text-amber-300">
-                          dni {planStep.fromDay}–{planStep.toDay}:
+                          {t("goal.new.days", { from: planStep.fromDay, to: planStep.toDay })}
                         </span>{" "}
                         {task ? describeTask(task, LOCALE) : ""}
                       </li>
@@ -264,7 +264,7 @@ export default function NewGoalPage() {
                 onClick={startGoal}
                 className="w-full py-3.5 rounded-2xl bg-amber-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 min-h-[52px]"
               >
-                <Check className="w-4 h-4" /> Zaczynamy
+                <Check className="w-4 h-4" /> {t("goal.new.start")}
               </button>
             </>
           )}

@@ -1,6 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
+import type { MessageKey } from "@/i18n/messages";
+import type { TranslateParams } from "@/i18n/translate";
 import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
 import {
@@ -46,30 +49,22 @@ const PLACEHOLDER_TIME = "—";
 const RECENT_LOGS_LIMIT = 100;
 const MORNING_WAKE_SAMPLE_SIZE = 5;
 
-const REASON_DESCRIPTIONS: Record<string, string> = {
-  BASE_AGE_INTERPOLATION: "Okno dopasowane do wieku dziecka",
-  MICRO_NAP_PENALTY_35PCT: "Bardzo krótka poprzednia drzemka (okno skrócone)",
-  SHORT_CYCLE_NAP_PENALTY_20M: "Krótka poprzednia drzemka (-20 min)",
-  RESTORATIVE_NAP_BONUS: "Długa, regenerująca drzemka (+12 min)",
-  CHRONIC_SLEEP_DEBT_COMPENSATION: "Kompensacja długu sennego",
-  ILLNESS_PROTECTIVE_MODE: "Tryb ochronny: choroba/regresja",
-  FLEXIBLE_ON_THE_GO_WINDOW: "Elastyczne okno w drodze",
-  CIRCADIAN_WMZ_AVOIDANCE_SHIFT: "Przesunięcie poza Strefę Zakazaną",
-};
-
 /**
  * Zwraca czytelny ciąg wieku dziecka w tygodniach i miesiącach.
  *
  * @param {number} days - Wiek w dniach
+ * @param {Function} t - Funkcja tłumaczeń
  * @returns {string} Sformatowany wiek
  */
-export function formatChildAge(days: number): string {
+export function formatChildAge(
+  days: number,
+  t: (key: MessageKey, params?: TranslateParams) => string,
+): string {
   const weeks = Math.floor(days / 7);
   if (weeks < 16) {
-    return `${weeks} tyg.`;
+    return t("age.weeks", { n: weeks });
   }
-  const months = Math.floor(days / 30.4);
-  return `${months} mies.`;
+  return t("age.months", { n: Math.floor(days / 30.4) });
 }
 
 /**
@@ -165,6 +160,9 @@ function mapDayContextToTimelineEvent(record: DayContextRecord): TimelineEvent {
  * @returns {object} Stan i funkcje sterujące pulpitem
  */
 export function useDashboardState() {
+  const { t, tDynamic } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [loadStatus, setLoadStatus] = useState<DashboardLoadStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDemoData, setIsDemoData] = useState(false);
@@ -221,7 +219,7 @@ export function useDashboardState() {
       setActiveInsight(insightResult.items[0] ?? null);
       setLoadStatus("ready");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nie udało się pobrać danych.");
+      setErrorMessage(error instanceof Error ? error.message : tRef.current("dashboard.noData"));
       setLoadStatus("error");
     }
   }, []);
@@ -260,7 +258,9 @@ export function useDashboardState() {
       })
       .then((result) => setDayContext(result.items))
       .catch((error) =>
-        setErrorMessage(error instanceof Error ? error.message : "Błąd pobierania kontekstu dnia."),
+        setErrorMessage(
+          error instanceof Error ? error.message : tRef.current("dashboard.contextError"),
+        ),
       );
   }, [child, isDemoData, physiologicalDate]);
 
@@ -280,7 +280,7 @@ export function useDashboardState() {
         setCurrentSleepLog(updatedLog.status !== "completed" ? updatedLog : null);
       })
       .catch((error) =>
-        setErrorMessage(error instanceof Error ? error.message : "Brak synchronizacji na żywo."),
+        setErrorMessage(error instanceof Error ? error.message : tRef.current("dashboard.noSync")),
       );
 
     return () => {
@@ -365,7 +365,7 @@ export function useDashboardState() {
       await pb.collection("children").update(child.id, patch);
     } catch (error) {
       setChild(child);
-      reportError(error, "Nie udało się zapisać ustawień dziecka.");
+      reportError(error, t("dashboard.saveChildError"));
     }
   };
 
@@ -387,7 +387,7 @@ export function useDashboardState() {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     } catch (error) {
-      reportError(error, "Nie udało się zapisać opinii o wniosku.");
+      reportError(error, t("dashboard.saveInsightError"));
       await loadDashboardData();
     }
   };
@@ -406,7 +406,7 @@ export function useDashboardState() {
       await pb.collection("sleep_logs").update(log.id, patch);
     } catch (error) {
       setCurrentSleepLog(log);
-      reportError(error, "Nie udało się zapisać snu.");
+      reportError(error, t("dashboard.saveSleepError"));
     }
   };
 
@@ -437,7 +437,7 @@ export function useDashboardState() {
     try {
       setCurrentSleepLog(await pb.collection("sleep_logs").create<SleepLogRecord>(draft));
     } catch (error) {
-      reportError(error, "Nie udało się rozpocząć snu.");
+      reportError(error, t("dashboard.startSleepError"));
     }
   };
 
@@ -521,7 +521,7 @@ export function useDashboardState() {
       });
       setDayContext((prev) => [created, ...prev]);
     } catch (error) {
-      reportError(error, "Nie udało się zapisać wpisu.");
+      reportError(error, t("dashboard.saveEntryError"));
     }
   };
 
@@ -583,7 +583,7 @@ export function useDashboardState() {
     isDemoData,
     child,
     effectiveAgeDays,
-    ageDisplay: formatChildAge(effectiveAgeDays),
+    ageDisplay: formatChildAge(effectiveAgeDays, t),
     activeInsight,
     currentSleepLog,
     timelineEvents,
@@ -602,8 +602,8 @@ export function useDashboardState() {
       : PLACEHOLDER_TIME,
     countdownDisplay: sweetSpotPrediction ? formatCountdown(secondsToSweetSpot) : PLACEHOLDER_TIME,
     reasonDescription: sweetSpotPrediction
-      ? (REASON_DESCRIPTIONS[sweetSpotPrediction.reasonCode] ?? sweetSpotPrediction.reasonCode)
-      : "Brak zakończonego snu — zapisz pierwszą pobudkę, aby zobaczyć prognozę",
+      ? tDynamic(`reason.${sweetSpotPrediction.reasonCode}`, sweetSpotPrediction.reasonCode)
+      : t("dashboard.noWakeYet"),
     handleSelectDayMode,
     handleToggleAntiOrthosomnia,
     handleAcceptInsight,

@@ -1,5 +1,6 @@
 import { Moon, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import { QUICK_WAKE_DURATION_OPTIONS } from "./constants";
 
 interface MorningNightSummaryBannerProps {
@@ -49,16 +50,17 @@ export function MorningNightSummaryBanner({
   onSelectDuration,
   onDismiss,
 }: MorningNightSummaryBannerProps): ReactNode {
+  const { t } = useI18n();
   if (wakingTimes.length === 0) return null;
 
-  const timesText = wakingTimes.join(" i ");
+  const timesText = wakingTimes.join(` ${t("morning.and")} `);
 
   return (
     <div className="w-full bg-[#151B28] border border-amber-500/40 rounded-2xl p-3 flex flex-col gap-2 shadow-xl shadow-amber-500/5 my-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
           <Moon className="w-3.5 h-3.5" />
-          Poranne podsumowanie nocy
+          {t("morning.title")}
         </span>
         <button
           type="button"
@@ -69,8 +71,8 @@ export function MorningNightSummaryBanner({
         </button>
       </div>
       <p className="text-[11px] text-slate-300 leading-snug">
-        O <strong className="text-amber-200">{timesText}</strong> odnotowano szybkie pobudki. Ile
-        mniej więcej trwały?
+        {t("morning.before")} <strong className="text-amber-200">{timesText}</strong>{" "}
+        {t("morning.after")}
       </p>
       <div className="flex items-center gap-1.5 pt-0.5">
         {QUICK_WAKE_DURATION_OPTIONS.map((item) => (

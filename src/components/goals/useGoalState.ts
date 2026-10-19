@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import { authorizedFetch } from "@/lib/client-data";
 import type { CopyLocale } from "@/lib/goal-copy";
 import { pb } from "@/lib/pocketbase";
@@ -23,6 +24,9 @@ interface UseGoalStateArgs {
  * @returns {object} Cel, zadania dnia, status ładowania i akcje
  */
 export function useGoalState({ childId, physiologicalDate, locale, enabled }: UseGoalStateArgs) {
+  const { t } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [goal, setGoal] = useState<ChildGoalRecord | null>(null);
   const [daily, setDaily] = useState<GoalDailyTaskRecord | null>(null);
   const [status, setStatus] = useState<GoalLoadStatus>("idle");
@@ -46,7 +50,7 @@ export function useGoalState({ childId, physiologicalDate, locale, enabled }: Us
       })
       .catch((e) => {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Nie udało się pobrać celu.");
+        setError(e instanceof Error ? e.message : tRef.current("goal.error.load"));
         setStatus("error");
       });
     return () => {
@@ -86,8 +90,7 @@ export function useGoalState({ childId, physiologicalDate, locale, enabled }: Us
         setDaily(json.daily as GoalDailyTaskRecord);
         setGoal(json.goal as ChildGoalRecord);
       } catch (e) {
-        if (!cancelled)
-          setError(e instanceof Error ? e.message : "Nie udało się pobrać zadań dnia.");
+        if (!cancelled) setError(e instanceof Error ? e.message : tRef.current("goal.error.daily"));
       }
     })();
     return () => {
@@ -105,7 +108,7 @@ export function useGoalState({ childId, physiologicalDate, locale, enabled }: Us
         await pb.collection("goal_daily_tasks").update(daily.id, { done_json: next });
       } catch (e) {
         setDaily(daily);
-        setError(e instanceof Error ? e.message : "Nie udało się zapisać zadania.");
+        setError(e instanceof Error ? e.message : tRef.current("goal.error.task"));
       }
     },
     [daily],
@@ -125,7 +128,7 @@ export function useGoalState({ childId, physiologicalDate, locale, enabled }: Us
         setGoal(next === "abandoned" ? null : (json.goal as ChildGoalRecord));
         if (next === "abandoned") setDaily(null);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Nie udało się zmienić statusu celu.");
+        setError(e instanceof Error ? e.message : tRef.current("goal.error.status"));
       }
     },
     [goal],

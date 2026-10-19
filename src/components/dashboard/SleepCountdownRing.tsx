@@ -1,5 +1,6 @@
 import { Compass, Moon, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface SleepCountdownRingProps {
   readonly isAntiOrthosomnia: boolean;
@@ -16,6 +17,7 @@ interface SleepCountdownRingProps {
  * @returns {ReactNode} Zawartość precyzyjnego zegara
  */
 function ExactClockContent({ countdown, targetTime }: { countdown: string; targetTime: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center">
       <span className="text-[11px] font-medium text-amber-400/80 uppercase tracking-widest flex items-center gap-1">
@@ -24,7 +26,7 @@ function ExactClockContent({ countdown, targetTime }: { countdown: string; targe
       <span className="text-3xl font-extrabold text-slate-50 tracking-tight font-mono my-0.5">
         {countdown}
       </span>
-      <span className="text-xs text-slate-400">ok. {targetTime}</span>
+      <span className="text-xs text-slate-400">{t("ring.approx", { time: targetTime })}</span>
     </div>
   );
 }
@@ -36,16 +38,15 @@ function ExactClockContent({ countdown, targetTime }: { countdown: string; targe
  * @returns {ReactNode} Zawartość miękkiego kompasu
  */
 function SoftCompassContent({ compassRange }: { compassRange: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center text-center px-4">
       <Compass className="w-6 h-6 text-violet-400 animate-spin-slow mb-1" />
       <span className="text-[10px] font-semibold text-violet-300 uppercase tracking-wider">
-        Okno gotowości do snu
+        {t("ring.window")}
       </span>
       <span className="text-sm font-bold text-slate-100 my-1">{compassRange}</span>
-      <span className="text-[10px] text-slate-400 leading-tight">
-        Wypatruj ziewania i tarcia oczu
-      </span>
+      <span className="text-[10px] text-slate-400 leading-tight">{t("ring.watch")}</span>
     </div>
   );
 }

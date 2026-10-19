@@ -1,5 +1,7 @@
 import { Apple, Droplets, Milk, Moon, Sparkles, Tag } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
+import { formatVolume } from "@/i18n/translate";
 import type {
   TimelineDiaperEvent,
   TimelineEvent,
@@ -14,8 +16,11 @@ import type {
  * @returns {ReactNode} Karta snu
  */
 function NapEventCard({ event }: { event: TimelineNapEvent }) {
+  const { t } = useI18n();
   const isNight = event.type === "night";
-  const durationText = event.durationMinutes ? `${event.durationMinutes} min` : "W toku...";
+  const durationText = event.durationMinutes
+    ? `${event.durationMinutes} ${t("common.minutesShort")}`
+    : t("timeline.inProgress");
 
   return (
     <div className="flex items-center justify-between p-3 rounded-xl bg-[#151B28] border border-[#263348] shadow-sm">
@@ -27,7 +32,7 @@ function NapEventCard({ event }: { event: TimelineNapEvent }) {
         </div>
         <div>
           <span className="text-xs font-semibold text-slate-100 block">
-            {isNight ? "Sen nocny" : "Drzemka"}
+            {isNight ? t("timeline.night") : t("timeline.nap")}
           </span>
           <span className="text-[11px] text-slate-400 font-mono">
             {event.startTime} {event.endTime ? `— ${event.endTime}` : ""}
@@ -50,15 +55,23 @@ function NapEventCard({ event }: { event: TimelineNapEvent }) {
  * @returns {ReactNode} Karta karmienia
  */
 function FeedingEventCard({ event }: { event: TimelineFeedingEvent }) {
-  let label = "Karmienie";
+  const { t, units } = useI18n();
+  let label = t("timeline.feeding");
   if (event.feedingType === "breast") {
     const side =
-      event.breastSide === "left" ? "Lewa" : event.breastSide === "right" ? "Prawa" : "L+P";
-    label = `Pierś (${side}${event.breastMinutes ? `, ${event.breastMinutes} min` : ""})`;
+      event.breastSide === "left"
+        ? t("side.left")
+        : event.breastSide === "right"
+          ? t("side.right")
+          : t("side.both");
+    const details = event.breastMinutes
+      ? `${side}, ${event.breastMinutes} ${t("common.minutesShort")}`
+      : side;
+    label = t("timeline.breast", { details });
   } else if (event.feedingType === "bottle") {
-    label = `Butelka (${event.bottleMl || 120} ml)`;
+    label = t("timeline.bottle", { volume: formatVolume(event.bottleMl || 120, units) });
   } else if (event.feedingType === "solid") {
-    label = `Stały posiłek ${event.notes ? `(${event.notes})` : ""}`;
+    label = `${t("timeline.solid")}${event.notes ? ` (${event.notes})` : ""}`;
   }
 
   return (
@@ -87,19 +100,17 @@ function FeedingEventCard({ event }: { event: TimelineFeedingEvent }) {
  * @returns {ReactNode} Karta pieluchy
  */
 function DiaperEventCard({ event }: { event: TimelineDiaperEvent }) {
-  const label =
-    event.diaperKind === "wet"
-      ? "Mokra"
-      : event.diaperKind === "dirty"
-        ? "Brudna"
-        : "Mokra + brudna";
+  const { t } = useI18n();
+  const label = t(`diaper.${event.diaperKind}` as const).replace(/^\S+\s/, "");
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-[#151B28] border border-[#263348] shadow-sm">
       <div className="p-2 rounded-lg bg-sky-950/50 text-sky-400">
         <Droplets className="w-4 h-4" />
       </div>
       <div>
-        <span className="text-xs font-semibold text-slate-100 block">Pielucha: {label}</span>
+        <span className="text-xs font-semibold text-slate-100 block">
+          {t("timeline.diaper", { kind: label })}
+        </span>
         <span className="text-[11px] text-slate-400 font-mono">{event.time}</span>
       </div>
     </div>
@@ -113,6 +124,7 @@ function DiaperEventCard({ event }: { event: TimelineDiaperEvent }) {
  * @returns {ReactNode} Wyrenderowana karta
  */
 export function TimelineEventCard({ event }: { event: TimelineEvent }): ReactNode {
+  const { t, tDynamic } = useI18n();
   if (event.kind === "nap") {
     return <NapEventCard event={event} />;
   }
@@ -129,7 +141,9 @@ export function TimelineEventCard({ event }: { event: TimelineEvent }): ReactNod
       </div>
       <div>
         <span className="text-xs font-semibold text-slate-200 block">
-          Tagi: {event.tags.join(", ")}
+          {t("timeline.tags", {
+            tags: event.tags.map((tag) => tDynamic(`tag.${tag}`, tag)).join(", "),
+          })}
         </span>
         <span className="text-[11px] text-slate-400 font-mono">{event.time}</span>
       </div>

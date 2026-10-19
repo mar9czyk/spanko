@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Spanko",
     short_name: "Spanko",
-    description: "Asystent snu i rutyny dziecka z deterministycznym silnikiem snu",
-    lang: "pl",
+    description: "Baby sleep and routine assistant with a deterministic sleep engine",
+    lang: "en",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",

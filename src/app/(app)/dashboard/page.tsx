@@ -12,10 +12,7 @@ import { useDashboardState } from "@/components/dashboard/useDashboardState";
 import { ChooseGoalCard, GoalPathCard } from "@/components/goals/GoalPathCard";
 import { NightTipCard } from "@/components/goals/NightTipCard";
 import { useGoalState } from "@/components/goals/useGoalState";
-import type { CopyLocale } from "@/lib/goal-copy";
-
-// Zastąpione wykrywaniem języka w Fazie 10 (i18n).
-const GOAL_LOCALE: CopyLocale = "pl";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /**
  * Główny widok aplikacji Spanko w stylistyce 3 AM One-Thumb Dark UX.
@@ -27,13 +24,14 @@ const GOAL_LOCALE: CopyLocale = "pl";
  * @returns {JSX.Element} Główny ekran dashboardu
  */
 export default function DashboardPage() {
+  const { t, locale } = useI18n();
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const state = useDashboardState();
   const { child } = state;
   const goalState = useGoalState({
     childId: child?.id,
     physiologicalDate: state.physiologicalDate,
-    locale: GOAL_LOCALE,
+    locale: locale,
     enabled: Boolean(child) && !state.isDemoData,
   });
   const isNightSleepActive =
@@ -42,10 +40,12 @@ export default function DashboardPage() {
   if (!child) {
     const message =
       state.loadStatus === "loading"
-        ? "Ładowanie…"
+        ? t("common.loading")
         : state.loadStatus === "error"
-          ? `Nie udało się pobrać danych: ${state.errorMessage ?? "nieznany błąd"}`
-          : "Nie dodano jeszcze dziecka do Twojego gospodarstwa domowego.";
+          ? t("dashboard.loadError", {
+              message: state.errorMessage ?? t("common.unknownError"),
+            })
+          : t("dashboard.noChild");
     return (
       <main className="w-full p-6 text-sm text-slate-400" role="status">
         {message}
@@ -57,9 +57,9 @@ export default function DashboardPage() {
     <main className="w-full flex flex-col gap-3 pb-8">
       {state.isDemoData && (
         <p className="rounded-lg bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
-          Dane demonstracyjne (tryb developerski) —{" "}
+          {t("dashboard.demo")}{" "}
           <a href="/login" className="underline">
-            zaloguj się
+            {t("dashboard.demoLogin")}
           </a>
         </p>
       )}
@@ -79,7 +79,7 @@ export default function DashboardPage() {
           goal={goalState.goal}
           daily={goalState.daily}
           physiologicalDate={state.physiologicalDate}
-          locale={GOAL_LOCALE}
+          locale={locale}
           onToggleTask={goalState.toggleTask}
           onChangeStatus={goalState.changeStatus}
         />
@@ -87,7 +87,7 @@ export default function DashboardPage() {
         goalState.status === "ready" && <ChooseGoalCard />
       )}
       {isNightSleepActive && goalState.daily?.night_tip_json && (
-        <NightTipCard tip={goalState.daily.night_tip_json} locale={GOAL_LOCALE} />
+        <NightTipCard tip={goalState.daily.night_tip_json} locale={locale} />
       )}
       <SmartInsightCard
         insight={state.activeInsight}
@@ -112,7 +112,9 @@ export default function DashboardPage() {
         latestLastNapEndAt={state.latestLastNapEndAt}
       />
       <PhysiologicalTimeline
-        physiologicalDateDisplay={`Doba: ${state.physiologicalDateDisplay}`}
+        physiologicalDateDisplay={t("dashboard.dayPrefix", {
+          date: state.physiologicalDateDisplay,
+        })}
         morningWakeTimeDisplay={state.morningWakeTimeDisplay}
         events={state.timelineEvents}
       />

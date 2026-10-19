@@ -1,6 +1,7 @@
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface InsightsHeaderProps {
   readonly isEvaluating: boolean;
@@ -17,6 +18,7 @@ export function InsightsHeader({
   isEvaluating,
   onTriggerEvaluation,
 }: InsightsHeaderProps): ReactNode {
+  const { t } = useI18n();
   return (
     <header className="flex flex-col gap-3 w-full pt-1 pb-3">
       <div className="flex items-center justify-between">
@@ -25,7 +27,7 @@ export function InsightsHeader({
           className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-amber-400 transition-colors p-1 -ml-1 rounded-lg"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Dashboard</span>
+          <span>{t("insights.dashboard")}</span>
         </Link>
         <button
           type="button"
@@ -38,17 +40,15 @@ export function InsightsHeader({
           ) : (
             <Sparkles className="w-3.5 h-3.5" />
           )}
-          <span>{isEvaluating ? "Analizuję..." : "Przeanalizuj sen z AI"}</span>
+          <span>{isEvaluating ? t("insights.analyzing") : t("insights.analyze")}</span>
         </button>
       </div>
 
       <div>
         <h1 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-          <span>Karta Rozwoju Snu Dziecka</span>
+          <span>{t("insights.title")}</span>
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Ewolucyjna baza wniosków i reguł deterministycznego silnika Spanko.
-        </p>
+        <p className="text-xs text-slate-400 mt-0.5">{t("insights.subtitle")}</p>
       </div>
     </header>
   );

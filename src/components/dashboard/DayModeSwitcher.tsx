@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ActiveDayMode } from "@/lib/types/database";
 import { DAY_MODE_OPTIONS, type DayModeConfigItem } from "./constants";
 
@@ -35,6 +36,7 @@ function ModePill({
   isActive: boolean;
   onSelect: (mode: ActiveDayMode) => void;
 }): ReactNode {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -42,10 +44,10 @@ function ModePill({
       className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-lg border transition-all flex items-center justify-center gap-1 min-h-[36px] ${resolveModeItemStyle(
         isActive,
       )}`}
-      title={item.description}
+      title={t(item.descKey)}
     >
       <span>{item.icon}</span>
-      <span className="truncate">{item.label}</span>
+      <span className="truncate">{t(item.labelKey)}</span>
     </button>
   );
 }

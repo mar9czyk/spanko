@@ -1,7 +1,6 @@
 import type { ChildInsightRecord } from "@/lib/types/database";
 
 export interface CategoryPresentationConfig {
-  readonly label: string;
   readonly badgeStyle: string;
 }
 

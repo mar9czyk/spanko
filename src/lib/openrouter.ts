@@ -92,6 +92,8 @@ export interface OpenRouterRawResult {
 }
 
 export interface InsightEvaluationContext {
+  /** Język pól tekstowych wniosku (domyślnie polski). */
+  readonly locale?: "pl" | "en";
   readonly childAgeDisplay: string;
   readonly effectiveAgeDays: number;
   readonly activeDayMode: string;
@@ -186,7 +188,10 @@ export function formatEvaluationUserPrompt(context: InsightEvaluationContext): s
     .map((item) => `- [${item.status}] ${item.category}: ${item.title}`)
     .join("\n");
 
-  return `Oto bieżący stan deterministyczny dziecka:
+  const languageName = context.locale === "en" ? "English" : "polski";
+
+  return `Język pól tekstowych odpowiedzi (title, explanation, clinical_action): ${languageName}.
+Oto bieżący stan deterministyczny dziecka:
 - Wiek: ${context.childAgeDisplay} (${context.effectiveAgeDays} dni)
 - Tryb dnia: ${context.activeDayMode}
 - Dług senny: ${context.chronicSleepDebtMin} min, Bateria snu: ${context.sleepBatteryPercent}%, Profil: ${context.sleepNeedsProfile}

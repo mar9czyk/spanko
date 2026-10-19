@@ -1,9 +1,11 @@
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ActiveDayMode, ChildRecord } from "@/lib/types/database";
 import { AntiOrthosomniaToggle } from "./AntiOrthosomniaToggle";
 import { DayModeSwitcher } from "./DayModeSwitcher";
+import { PreferencesMenu } from "./PreferencesMenu";
 
 interface DashboardHeaderProps {
   readonly child: ChildRecord;
@@ -19,6 +21,7 @@ interface DashboardHeaderProps {
  * @returns {ReactNode} Awatar i etykieta profilu
  */
 function ChildIdentityBadge({ child, ageDisplay }: { child: ChildRecord; ageDisplay: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2.5">
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500/20 to-violet-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-300 text-sm shadow-inner">
@@ -29,7 +32,7 @@ function ChildIdentityBadge({ child, ageDisplay }: { child: ChildRecord; ageDisp
           {child.name}
           <span className="text-[11px] font-normal text-slate-400">({ageDisplay})</span>
         </h1>
-        <p className="text-[10px] text-slate-500">3 AM One-Thumb Mode</p>
+        <p className="text-[10px] text-slate-500">{t("header.mode")}</p>
       </div>
     </div>
   );
@@ -47,6 +50,7 @@ export function DashboardHeader({
   onSelectDayMode,
   onToggleAntiOrthosomnia,
 }: DashboardHeaderProps): ReactNode {
+  const { t } = useI18n();
   return (
     <header className="flex flex-col gap-2.5 w-full pt-1 pb-2">
       <div className="flex items-center justify-between">
@@ -55,7 +59,7 @@ export function DashboardHeader({
           <Link
             href="/insights"
             className="p-1.5 rounded-xl bg-[#1E2738] text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-[#263348] transition-colors"
-            title="Karta Rozwoju Snu Dziecka"
+            title={t("header.insightsTitle")}
           >
             <Sparkles className="w-4 h-4" />
           </Link>
@@ -66,6 +70,9 @@ export function DashboardHeader({
         </div>
       </div>
       <DayModeSwitcher currentMode={child.active_day_mode} onSelectMode={onSelectDayMode} />
+      <div className="flex justify-end">
+        <PreferencesMenu />
+      </div>
     </header>
   );
 }

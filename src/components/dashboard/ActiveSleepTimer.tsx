@@ -2,6 +2,7 @@
 
 import { Moon, Radio, Sparkles } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { SleepStatus, SleepType } from "@/lib/types/database";
 
 interface ActiveSleepTimerProps {
@@ -26,23 +27,22 @@ function formatStopwatchTime(totalSeconds: number): string {
 }
 
 /**
- * Zwraca konfigurację stylów i etykiety dla bieżącego stanu snu.
+ * Zwraca konfigurację stylów i klucz tytułu dla bieżącego stanu snu.
  *
  * @param {SleepStatus} status - Status snu
  * @param {SleepType} sleepType - Typ snu
- * @returns {object} Kolor i etykieta
+ * @returns {object} Kolor i klucz etykiety
  */
 function resolveStatusConfig(status: SleepStatus, sleepType: SleepType) {
   if (status === "falling_asleep") {
     return {
-      title: "Usypianie w toku",
+      titleKey: "timer.fallingAsleep" as const,
       colorClass: "text-amber-400 border-amber-500/30 shadow-amber-500/10",
       accent: "text-amber-300",
     };
   }
-  const typeLabel = sleepType === "night" ? "Sen nocny" : "Drzemka";
   return {
-    title: `${typeLabel} w toku`,
+    titleKey: sleepType === "night" ? ("timer.night" as const) : ("timer.nap" as const),
     colorClass: "text-violet-400 border-violet-500/30 shadow-violet-500/10",
     accent: "text-violet-300",
   };
@@ -59,6 +59,7 @@ export function ActiveSleepTimer({
   sleepType,
   startTimeIso,
 }: ActiveSleepTimerProps): ReactNode {
+  const { t } = useI18n();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
@@ -89,14 +90,14 @@ export function ActiveSleepTimer({
           ) : (
             <Moon className="w-3.5 h-3.5" />
           )}
-          {config.title}
+          {t(config.titleKey)}
         </span>
         <span className="text-3xl font-extrabold text-slate-50 font-mono tracking-tight my-1">
           {formatStopwatchTime(elapsedSeconds)}
         </span>
         <span className="text-[10px] text-slate-400 flex items-center gap-1">
           <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-          Synchronizacja na żywo
+          {t("timer.sync")}
         </span>
       </div>
     </div>

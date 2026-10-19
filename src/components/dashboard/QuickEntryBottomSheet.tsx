@@ -3,6 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Droplets, Milk, Smile, Tag, X } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
+import { bottlePresets } from "@/i18n/translate";
 import type {
   BreastSide,
   DiaperKind,
@@ -11,7 +13,6 @@ import type {
   SleepMood,
 } from "@/lib/types/database";
 import {
-  BOTTLE_VOLUME_PRESETS,
   BREAST_DURATION_PRESETS_MIN,
   DAY_TAG_PRESETS,
   DIAPER_OPTIONS,
@@ -48,11 +49,12 @@ function FeedingSection({
     details: { side?: BreastSide; ml?: number; minutes?: number; notes?: string },
   ) => void;
 }) {
+  const { t, units } = useI18n();
   const [minutes, setMinutes] = useState<number | undefined>(undefined);
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-        <Milk className="w-3.5 h-3.5 text-emerald-400" /> Karmienie
+        <Milk className="w-3.5 h-3.5 text-emerald-400" /> {t("sheet.feeding")}
       </span>
       <div className="flex items-center gap-1.5">
         {BREAST_DURATION_PRESETS_MIN.map((m) => (
@@ -62,7 +64,7 @@ function FeedingSection({
             onClick={() => setMinutes(minutes === m ? undefined : m)}
             className={`flex-1 py-1.5 rounded-lg text-[11px] font-mono border ${minutes === m ? "bg-emerald-900/50 border-emerald-500/60 text-emerald-200" : "bg-[#151B28] border-[#263348] text-slate-400"}`}
           >
-            {m} min
+            {m} {t("common.minutesShort")}
           </button>
         ))}
       </div>
@@ -72,25 +74,25 @@ function FeedingSection({
           onClick={() => onSelect("breast", { side: "left", minutes })}
           className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-medium text-slate-200 border border-[#263348] hover:border-emerald-500/40"
         >
-          Pierś Lewa
+          {t("sheet.breastLeft")}
         </button>
         <button
           type="button"
           onClick={() => onSelect("breast", { side: "right", minutes })}
           className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-medium text-slate-200 border border-[#263348] hover:border-emerald-500/40"
         >
-          Pierś Prawa
+          {t("sheet.breastRight")}
         </button>
       </div>
       <div className="flex items-center gap-1.5 overflow-x-auto py-1">
-        {BOTTLE_VOLUME_PRESETS.map((volume) => (
+        {bottlePresets(units).map((preset) => (
           <button
-            key={volume}
+            key={preset.ml}
             type="button"
-            onClick={() => onSelect("bottle", { ml: volume })}
+            onClick={() => onSelect("bottle", { ml: preset.ml })}
             className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-mono font-medium text-emerald-300 border border-[#263348] whitespace-nowrap"
           >
-            {volume} ml
+            {preset.label}
           </button>
         ))}
       </div>
@@ -105,10 +107,11 @@ function FeedingSection({
  * @returns {ReactNode} Kafelki pieluchy
  */
 function DiaperSection({ onSelect }: { onSelect: (kind: DiaperKind) => void }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-        <Droplets className="w-3.5 h-3.5 text-sky-400" /> Pielucha
+        <Droplets className="w-3.5 h-3.5 text-sky-400" /> {t("sheet.diaper")}
       </span>
       <div className="flex items-center gap-1.5">
         {DIAPER_OPTIONS.map((option) => (
@@ -118,7 +121,7 @@ function DiaperSection({ onSelect }: { onSelect: (kind: DiaperKind) => void }) {
             onClick={() => onSelect(option.value)}
             className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-sky-950/40 text-xs font-medium text-slate-200 border border-[#263348]"
           >
-            {option.label}
+            {t(option.labelKey)}
           </button>
         ))}
       </div>
@@ -137,10 +140,11 @@ function MoodAndInterventionsSection({
 }: {
   onSave: (mood: SleepMood, interventions: readonly InterventionLevel[]) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-        <Smile className="w-3.5 h-3.5 text-amber-400" /> Nastrój i interwencja
+        <Smile className="w-3.5 h-3.5 text-amber-400" /> {t("sheet.mood")}
       </span>
       <div className="flex items-center gap-1.5">
         {MOOD_OPTIONS.map((mood) => (
@@ -150,7 +154,7 @@ function MoodAndInterventionsSection({
             onClick={() => onSave(mood.value, ["pacifier_reinsert"])}
             className={`flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-[#253248] text-xs font-medium border ${mood.colorClass}`}
           >
-            {mood.label}
+            {t(mood.labelKey)}
           </button>
         ))}
       </div>
@@ -162,7 +166,7 @@ function MoodAndInterventionsSection({
             onClick={() => onSave("easy", [intervention.value])}
             className="py-1 px-2.5 rounded-lg bg-[#151B28] hover:bg-[#1E2738] text-[11px] text-slate-300 border border-[#263348]"
           >
-            {intervention.label}
+            {t(intervention.labelKey)}
           </button>
         ))}
       </div>
@@ -177,10 +181,11 @@ function MoodAndInterventionsSection({
  * @returns {ReactNode} Kafelki tagów
  */
 function DayTagsSection({ onSelectTag }: { onSelectTag: (tag: string) => void }) {
+  const { t, tDynamic } = useI18n();
   return (
     <div className="flex flex-col gap-2">
       <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-        <Tag className="w-3.5 h-3.5 text-violet-400" /> Tagi dnia
+        <Tag className="w-3.5 h-3.5 text-violet-400" /> {t("sheet.tags")}
       </span>
       <div className="flex flex-wrap gap-1.5">
         {DAY_TAG_PRESETS.map((tag) => (
@@ -190,7 +195,7 @@ function DayTagsSection({ onSelectTag }: { onSelectTag: (tag: string) => void })
             onClick={() => onSelectTag(tag)}
             className="py-1 px-2.5 rounded-lg bg-[#1E2738] hover:bg-violet-950/40 text-xs text-violet-300 border border-[#263348]"
           >
-            #{tag}
+            #{tDynamic(`tag.${tag}`, tag)}
           </button>
         ))}
       </div>
@@ -212,6 +217,7 @@ export function QuickEntryBottomSheet({
   onSaveMoodAndIntervention,
   onSaveDayTag,
 }: QuickEntryBottomSheetProps): ReactNode {
+  const { t } = useI18n();
   return (
     <AnimatePresence>
       {isOpen && (
@@ -232,7 +238,7 @@ export function QuickEntryBottomSheet({
           >
             <div className="w-12 h-1 bg-[#263348] rounded-full mx-auto" />
             <div className="flex items-center justify-between pb-1">
-              <h2 className="text-sm font-semibold text-slate-100">Szybki wpis zdarzenia</h2>
+              <h2 className="text-sm font-semibold text-slate-100">{t("sheet.title")}</h2>
               <button
                 type="button"
                 onClick={onClose}

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
 import type { ChildInsightRecord, ChildRecord } from "@/lib/types/database";
@@ -34,6 +35,9 @@ function partitionInsights(allInsights: readonly ChildInsightRecord[]) {
  * @returns {object} Zestaw danych i operacji dla interfejsu wniosków
  */
 export function useInsightsState() {
+  const { t, locale } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [child, setChild] = useState<ChildRecord | null>(null);
   const [loadStatus, setLoadStatus] = useState<InsightsLoadStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -59,7 +63,7 @@ export function useInsightsState() {
       setAllInsights(records.items);
       setLoadStatus("ready");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nie udało się pobrać wniosków.");
+      setErrorMessage(error instanceof Error ? error.message : tRef.current("insights.errLoad"));
       setLoadStatus("error");
     }
   }, []);
@@ -82,7 +86,9 @@ export function useInsightsState() {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nie udało się zapisać korekty.");
+      setErrorMessage(
+        error instanceof Error ? error.message : tRef.current("insights.errCorrection"),
+      );
       await loadInsights();
     }
   };
@@ -145,7 +151,7 @@ export function useInsightsState() {
       const response = await authorizedFetch("/api/ai/evaluate-insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ childId: child.id }),
+        body: JSON.stringify({ childId: child.id, locale }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
@@ -153,7 +159,9 @@ export function useInsightsState() {
       }
       await loadInsights();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Ewaluacja AI nie powiodła się.");
+      setErrorMessage(
+        error instanceof Error ? error.message : tRef.current("insights.errEvaluate"),
+      );
     } finally {
       setIsEvaluating(false);
     }

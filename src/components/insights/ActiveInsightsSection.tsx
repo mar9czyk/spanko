@@ -1,5 +1,6 @@
 import { Check, CheckCircle2, Edit3, Sliders, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { ChildInsightRecord } from "@/lib/types/database";
 import { CATEGORY_PRESENTATIONS, DEFAULT_CATEGORY_PRESENTATION } from "./constants";
 
@@ -16,12 +17,13 @@ interface ActiveInsightsSectionProps {
  * @returns {ReactNode} Pigułka kategorii
  */
 function CategoryBadge({ category }: { category: string }) {
+  const { t, tDynamic } = useI18n();
   const config = CATEGORY_PRESENTATIONS[category] || DEFAULT_CATEGORY_PRESENTATION;
   return (
     <span
       className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border tracking-wide uppercase ${config.badgeStyle}`}
     >
-      {config.label}
+      {tDynamic(`insights.cat.${category}`, t("insights.default"))}
     </span>
   );
 }
@@ -68,6 +70,7 @@ function ActiveInsightCard({
   onAccept: (id: string) => void;
   onOpenCorrection: (insight: ChildInsightRecord) => void;
 }) {
+  const { t } = useI18n();
   const isValidated = insight.status === "validated" || insight.parent_feedback === "accepted";
   const confidencePercent = Math.round((insight.confidence_score || 0.85) * 100);
 
@@ -76,7 +79,7 @@ function ActiveInsightCard({
       <div className="flex items-center justify-between gap-2">
         <CategoryBadge category={insight.category} />
         <span className="text-[10px] text-slate-400 font-medium">
-          Pewność: {confidencePercent}%
+          {t("insights.confidence", { percent: confidencePercent })}
         </span>
       </div>
 
@@ -101,7 +104,7 @@ function ActiveInsightCard({
           ) : (
             <Check className="w-3.5 h-3.5 text-emerald-400" />
           )}
-          <span>{isValidated ? "Potwierdzone!" : "Działa u nas"}</span>
+          <span>{isValidated ? t("insights.confirmed") : t("insights.worksForUs")}</span>
         </button>
 
         <button
@@ -110,7 +113,7 @@ function ActiveInsightCard({
           className="flex-1 py-1.5 px-3 rounded-xl text-xs font-medium text-slate-200 hover:text-amber-300 bg-[#1E2738] hover:bg-amber-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[36px]"
         >
           <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-          <span>Skoryguj</span>
+          <span>{t("insights.adjust")}</span>
         </button>
       </div>
     </article>
@@ -128,10 +131,11 @@ export function ActiveInsightsSection({
   onAccept,
   onOpenCorrection,
 }: ActiveInsightsSectionProps): ReactNode {
+  const { t } = useI18n();
   if (insights.length === 0) {
     return (
       <div className="w-full p-4 rounded-2xl bg-[#151B28]/60 border border-dashed border-[#263348] text-center text-xs text-slate-400">
-        Brak aktywnych reguł. Kliknij &quot;Przeanalizuj sen z AI&quot;, aby uruchomić silnik.
+        {t("insights.emptyActive")}
       </div>
     );
   }
@@ -141,7 +145,7 @@ export function ActiveInsightsSection({
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Aktywne Reguły i Wnioski Dziecka</span>
+          <span>{t("insights.activeTitle")}</span>
         </h2>
         <span className="text-[10px] bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 font-mono">
           {insights.length}

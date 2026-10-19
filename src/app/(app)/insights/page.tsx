@@ -7,6 +7,7 @@ import { InsightCorrectionModal } from "@/components/insights/InsightCorrectionM
 import { InsightsHeader } from "@/components/insights/InsightsHeader";
 import { InsightsTimelineSection } from "@/components/insights/InsightsTimelineSection";
 import { useInsightsState } from "@/components/insights/useInsightsState";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /**
  * Widok Karta Rozwoju Snu Dziecka + Kalendarz Historii Ewolucji Wniosków (/insights).
@@ -18,6 +19,7 @@ import { useInsightsState } from "@/components/insights/useInsightsState";
  * @returns {ReactNode} Wyrenderowana strona wniosków
  */
 export default function InsightsPage(): ReactNode {
+  const { t } = useI18n();
   const {
     loadStatus,
     errorMessage,
@@ -46,12 +48,10 @@ export default function InsightsPage(): ReactNode {
           {errorMessage}
         </p>
       )}
-      {loadStatus === "loading" && <p className="text-sm text-slate-400">Ładowanie wniosków…</p>}
-      {loadStatus === "empty" && (
-        <p className="text-sm text-slate-400">
-          Nie dodano jeszcze dziecka do Twojego gospodarstwa domowego.
-        </p>
+      {loadStatus === "loading" && (
+        <p className="text-sm text-slate-400">{t("insights.loading")}</p>
       )}
+      {loadStatus === "empty" && <p className="text-sm text-slate-400">{t("dashboard.noChild")}</p>}
 
       <ActiveInsightsSection
         insights={activeInsights}

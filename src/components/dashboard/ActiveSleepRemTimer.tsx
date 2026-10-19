@@ -2,6 +2,7 @@
 
 import { Timer, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import { REM_COUNTDOWN_SECONDS } from "./constants";
 
 /**
@@ -14,6 +15,7 @@ import { REM_COUNTDOWN_SECONDS } from "./constants";
  * @returns {ReactNode} Komponent odliczania REM
  */
 export function ActiveSleepRemTimer(): ReactNode {
+  const { t } = useI18n();
   const [isActive, setIsActive] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(REM_COUNTDOWN_SECONDS);
 
@@ -50,7 +52,7 @@ export function ActiveSleepRemTimer(): ReactNode {
         className="w-full py-2 px-3 rounded-xl bg-violet-950/30 hover:bg-violet-900/40 border border-violet-500/30 text-violet-300 text-xs font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
       >
         <Timer className="w-4 h-4 text-violet-400" />
-        <span>⏱️ Odczekaj 60s (Active Sleep REM)</span>
+        <span>{t("rem.start")}</span>
       </button>
     );
   }
@@ -60,7 +62,7 @@ export function ActiveSleepRemTimer(): ReactNode {
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-violet-300 flex items-center gap-1.5">
           <Timer className="w-3.5 h-3.5 animate-spin" />
-          Faza REM: Odczekaj {secondsRemaining}s
+          {t("rem.countdown", { seconds: secondsRemaining })}
         </span>
         <button
           type="button"
@@ -70,9 +72,7 @@ export function ActiveSleepRemTimer(): ReactNode {
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
-      <p className="text-[10px] text-slate-300 leading-tight">
-        Noworodek może wiercić się i kwilić przez sen. Odczekaj chwilę, nim weźmiesz go na ręce.
-      </p>
+      <p className="text-[10px] text-slate-300 leading-tight">{t("rem.help")}</p>
     </div>
   );
 }

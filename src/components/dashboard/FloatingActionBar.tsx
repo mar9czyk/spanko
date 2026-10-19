@@ -1,5 +1,6 @@
 import { Droplets, Milk, Play, Plus, Sparkles, Square, Zap } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { SleepLogRecord } from "@/lib/types/database";
 
 interface FloatingActionBarProps {
@@ -18,6 +19,7 @@ interface FloatingActionBarProps {
  * @returns {ReactNode} Przycisk szybkiej pobudki
  */
 function NightQuickWakeButton({ onQuickWake }: { onQuickWake: () => void }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -25,7 +27,7 @@ function NightQuickWakeButton({ onQuickWake }: { onQuickWake: () => void }) {
       className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-98 transition-all min-h-[52px]"
     >
       <Zap className="w-5 h-5 fill-current" />
-      <span>⚡ Szybka pobudka / Mleko</span>
+      <span>{t("fab.quickWake")}</span>
     </button>
   );
 }
@@ -39,21 +41,20 @@ function NightQuickWakeButton({ onQuickWake }: { onQuickWake: () => void }) {
 function resolveCycleButtonConfig(log: SleepLogRecord | null) {
   if (!log || log.status === "completed") {
     return {
-      label: "Start usypiania",
+      labelKey: "fab.start" as const,
       icon: <Play className="w-4 h-4 fill-current" />,
       style: "bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20",
     };
   }
   if (log.status === "falling_asleep") {
     return {
-      label: "Zasnął",
+      labelKey: "fab.asleep" as const,
       icon: <Sparkles className="w-4 h-4" />,
       style: "bg-violet-600 hover:bg-violet-500 text-white shadow-violet-500/25",
     };
   }
-  const isNight = log.type === "night";
   return {
-    label: isNight ? "Obudził się na dzień" : "Obudził się",
+    labelKey: log.type === "night" ? ("fab.wakeNight" as const) : ("fab.wake" as const),
     icon: <Square className="w-4 h-4 fill-current" />,
     style: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20",
   };
@@ -66,6 +67,7 @@ function resolveCycleButtonConfig(log: SleepLogRecord | null) {
  * @returns {ReactNode} Przycisk cyklu
  */
 function SleepCycleButton({ log, onCycle }: { log: SleepLogRecord | null; onCycle: () => void }) {
+  const { t } = useI18n();
   const config = resolveCycleButtonConfig(log);
 
   return (
@@ -75,7 +77,7 @@ function SleepCycleButton({ log, onCycle }: { log: SleepLogRecord | null; onCycl
       className={`flex-1 py-3 px-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all min-h-[50px] ${config.style}`}
     >
       {config.icon}
-      <span>{config.label}</span>
+      <span>{t(config.labelKey)}</span>
     </button>
   );
 }
@@ -94,6 +96,7 @@ export function FloatingActionBar({
   onQuickBottle,
   onQuickDiaper,
 }: FloatingActionBarProps): ReactNode {
+  const { t } = useI18n();
   const isNightSleepActive =
     currentSleepLog?.type === "night" &&
     (currentSleepLog.status === "sleeping" || currentSleepLog.status === "falling_asleep");
@@ -107,7 +110,7 @@ export function FloatingActionBar({
             type="button"
             onClick={onQuickBottle}
             className="w-12 h-[50px] rounded-2xl bg-[#1E2738] hover:bg-[#253248] border border-[#263348] flex items-center justify-center shadow-md active:scale-98 transition-all shrink-0"
-            title="Butelka teraz (ostatnia objętość)"
+            title={t("fab.bottle")}
           >
             <Milk className="w-5 h-5 text-emerald-400" />
           </button>
@@ -115,7 +118,7 @@ export function FloatingActionBar({
             type="button"
             onClick={onQuickDiaper}
             className="w-12 h-[50px] rounded-2xl bg-[#1E2738] hover:bg-[#253248] border border-[#263348] flex items-center justify-center shadow-md active:scale-98 transition-all shrink-0"
-            title="Mokra pielucha teraz"
+            title={t("fab.diaper")}
           >
             <Droplets className="w-5 h-5 text-sky-400" />
           </button>
@@ -124,7 +127,7 @@ export function FloatingActionBar({
             type="button"
             onClick={onOpenQuickEntry}
             className="w-14 h-[50px] rounded-2xl bg-[#1E2738] hover:bg-[#253248] text-slate-200 border border-[#263348] flex items-center justify-center shadow-md active:scale-98 transition-all shrink-0"
-            title="Dodaj wpis karmienia, nastroju lub tagu"
+            title={t("fab.add")}
           >
             <Plus className="w-5 h-5 text-amber-400" />
           </button>

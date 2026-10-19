@@ -1,5 +1,6 @@
 import { Compass } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 interface AntiOrthosomniaToggleProps {
   readonly isActive: boolean;
@@ -20,6 +21,7 @@ export function AntiOrthosomniaToggle({
   isActive,
   onToggle,
 }: AntiOrthosomniaToggleProps): ReactNode {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -29,12 +31,12 @@ export function AntiOrthosomniaToggle({
           ? "bg-violet-950/40 text-violet-300 border-violet-500/50 shadow-sm shadow-violet-500/20"
           : "bg-[#151B28] text-slate-400 border-[#263348] hover:text-slate-200"
       }`}
-      title="Przełącz między precyzyjnym zegarem a miękkim kompasem snu (Anti-Orthosomnia)"
+      title={t("anti.title")}
     >
       <Compass
         className={`w-4 h-4 transition-transform ${isActive ? "rotate-45 text-violet-400" : ""}`}
       />
-      <span>{isActive ? "Miękki kompas" : "Zegar"}</span>
+      <span>{isActive ? t("anti.compass") : t("anti.clock")}</span>
     </button>
   );
 }

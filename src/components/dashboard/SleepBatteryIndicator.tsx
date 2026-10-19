@@ -1,24 +1,18 @@
 import { BatteryCharging, Clock, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
+import type { MessageKey } from "@/i18n/messages";
+
+const PROFILE_KEYS: Record<"low_sleep_needs" | "average" | "high_sleep_needs", MessageKey> = {
+  low_sleep_needs: "battery.low",
+  average: "battery.average",
+  high_sleep_needs: "battery.high",
+};
 
 interface SleepBatteryIndicatorProps {
   readonly batteryPercent: number;
   readonly sleepNeedsProfile: "low_sleep_needs" | "average" | "high_sleep_needs";
   readonly latestLastNapEndAt: string;
-}
-
-/**
- * Mapuje profil potrzeb snu na polską czytelną etykietę.
- *
- * @param {string} profile - Profil potrzeb snu
- * @returns {string} Etykieta tekstowa
- */
-function resolveSleepNeedsLabel(
-  profile: "low_sleep_needs" | "average" | "high_sleep_needs",
-): string {
-  if (profile === "low_sleep_needs") return "Niskie potrzeby";
-  if (profile === "high_sleep_needs") return "Wysokie potrzeby";
-  return "Średnie potrzeby";
 }
 
 /**
@@ -50,14 +44,15 @@ export function SleepBatteryIndicator({
   sleepNeedsProfile,
   latestLastNapEndAt,
 }: SleepBatteryIndicatorProps): ReactNode {
-  const profileLabel = resolveSleepNeedsLabel(sleepNeedsProfile);
+  const { t } = useI18n();
+  const profileLabel = t(PROFILE_KEYS[sleepNeedsProfile]);
 
   return (
     <div className="w-full bg-[#151B28] border border-[#263348] rounded-2xl p-3 flex flex-col gap-2 shadow-md">
       <div className="flex items-center justify-between text-xs font-semibold">
         <span className="flex items-center gap-1.5 text-slate-200">
           <BatteryCharging className="w-4 h-4 text-emerald-400" />
-          Bateria Snu (7 dni)
+          {t("battery.title")}
         </span>
         <span className="font-mono text-emerald-400">{batteryPercent}%</span>
       </div>
@@ -69,7 +64,7 @@ export function SleepBatteryIndicator({
         </span>
         <span className="px-2 py-0.5 rounded-md bg-[#1E2738] text-amber-300 border border-amber-500/20 flex items-center gap-1 font-mono">
           <Clock className="w-3 h-3 text-amber-400" />
-          Koniec ost. drzemki: max {latestLastNapEndAt}
+          {t("battery.lastNap", { time: latestLastNapEndAt })}
         </span>
       </div>
     </div>
