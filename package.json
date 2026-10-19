@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check": "biome check --write . && tsc --noEmit",
+    "check": "biome check --write . && next typegen && tsc --noEmit",
     "test": "vitest run",
     "dev:seed": "node --env-file=.env.development.local scripts/dev-seed.mjs",
     "dev:seed:history": "node --env-file=.env.development.local scripts/dev-seed-history.mjs",
