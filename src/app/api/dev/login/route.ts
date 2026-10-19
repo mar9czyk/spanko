@@ -1,4 +1,4 @@
-import PocketBase from "pocketbase";
+import PocketBase, { ClientResponseError } from "pocketbase";
 import { type DevLoginRole, isDevLoginEnabled } from "@/lib/dev-auth";
 
 const POCKETBASE_URL =
@@ -29,7 +29,17 @@ export async function POST(request: Request): Promise<Response> {
       .collection("users")
       .authWithPassword(email, password);
     return Response.json({ token: authData.token, record: authData.record });
-  } catch {
+  } catch (error) {
+    // status 0 / brak odpowiedzi HTTP = PocketBase nie działa; 400 = złe dane logowania
+    const isUnreachable = !(error instanceof ClientResponseError) || error.status === 0;
+    if (isUnreachable) {
+      return Response.json(
+        {
+          error: `PocketBase nie odpowiada pod ${POCKETBASE_URL} — uruchom go: .\\pb\\pocketbase.exe serve --http=127.0.0.1:8090`,
+        },
+        { status: 503 },
+      );
+    }
     return Response.json(
       { error: "Logowanie nie powiodło się — uruchom pnpm dev:seed" },
       { status: 401 },
