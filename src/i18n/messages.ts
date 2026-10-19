@@ -50,6 +50,7 @@ export const pl = {
   "header.insightsTitle": "Karta Rozwoju Snu Dziecka",
   "header.preferences": "Ustawienia",
   "header.adminTitle": "Panel Admina",
+  "header.childSwitcher": "Wybierz dziecko",
 
   "dayMode.home.label": "W domu",
   "dayMode.home.desc": "Standardowy harmonogram domowy",
@@ -284,6 +285,7 @@ export const en: Record<MessageKey, string> = {
   "header.insightsTitle": "Baby Sleep Profile",
   "header.preferences": "Settings",
   "header.adminTitle": "Admin panel",
+  "header.childSwitcher": "Choose child",
 
   "dayMode.home.label": "At home",
   "dayMode.home.desc": "Standard home schedule",

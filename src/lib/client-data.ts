@@ -1,3 +1,4 @@
+import { pickActiveChild, readStoredActiveChildId } from "@/lib/active-child";
 import { pb } from "@/lib/pocketbase";
 import type { ChildRecord } from "@/lib/types/database";
 
@@ -17,11 +18,19 @@ export function authorizedFetch(input: string, init: RequestInit = {}): Promise<
 }
 
 /**
- * Pobiera aktywne (pierwsze) dziecko z gospodarstwa zalogowanego użytkownika.
+ * Pobiera wszystkie dzieci z gospodarstwa zalogowanego użytkownika, od najstarszego wpisu.
+ *
+ * @returns {Promise<ChildRecord[]>} Dzieci gospodarstwa (pusta lista, gdy brak)
+ */
+export function loadChildren(): Promise<ChildRecord[]> {
+  return pb.collection("children").getFullList<ChildRecord>({ sort: "created" });
+}
+
+/**
+ * Pobiera aktywne dziecko: wybrane w przełączniku, a domyślnie najstarsze w gospodarstwie.
  *
  * @returns {Promise<ChildRecord | null>} Dziecko lub null, gdy gospodarstwo nie ma jeszcze dzieci
  */
 export async function loadActiveChild(): Promise<ChildRecord | null> {
-  const result = await pb.collection("children").getList<ChildRecord>(1, 1, { sort: "created" });
-  return result.items[0] ?? null;
+  return pickActiveChild(await loadChildren(), readStoredActiveChildId());
 }

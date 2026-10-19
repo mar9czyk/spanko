@@ -72,7 +72,9 @@ export default function DashboardPage() {
       )}
       <DashboardHeader
         child={child}
+        householdChildren={state.children}
         ageDisplay={state.ageDisplay}
+        onSelectChild={state.handleSelectChild}
         onSelectDayMode={state.handleSelectDayMode}
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
       />

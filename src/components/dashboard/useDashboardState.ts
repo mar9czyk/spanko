@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { MessageKey } from "@/i18n/messages";
 import type { TranslateParams } from "@/i18n/translate";
-import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
+import { pickActiveChild, readStoredActiveChildId, storeActiveChildId } from "@/lib/active-child";
+import { authorizedFetch, loadChildren } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
 import {
   calculateChronicDrive,
@@ -166,6 +167,7 @@ export function useDashboardState() {
   const [loadStatus, setLoadStatus] = useState<DashboardLoadStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDemoData, setIsDemoData] = useState(false);
+  const [children, setChildren] = useState<readonly ChildRecord[]>([]);
   const [child, setChild] = useState<ChildRecord | null>(null);
   const [activeInsight, setActiveInsight] = useState<ChildInsightRecord | null>(null);
   const [recentLogs, setRecentLogs] = useState<readonly SleepLogRecord[]>([]);
@@ -183,9 +185,16 @@ export function useDashboardState() {
     return () => clearInterval(timer);
   }, []);
 
+  // Szybkie przełączanie dzieci: liczy się tylko odpowiedź na ostatnie żądanie
+  const loadRequestRef = useRef(0);
+
   const loadDashboardData = useCallback(async () => {
+    const requestId = ++loadRequestRef.current;
     try {
-      const activeChild = await loadActiveChild();
+      const householdChildren = await loadChildren();
+      if (requestId !== loadRequestRef.current) return;
+      setChildren(householdChildren);
+      const activeChild = pickActiveChild(householdChildren, readStoredActiveChildId());
       if (!activeChild) {
         if (IS_DEV_FIXTURES_ENABLED && !pb.authStore.isValid) {
           setChild(DEV_FIXTURE_CHILD);
@@ -212,6 +221,7 @@ export function useDashboardState() {
           sort: "-created",
         }),
       ]);
+      if (requestId !== loadRequestRef.current) return;
 
       setChild(activeChild);
       setRecentLogs(logsResult.items);
@@ -219,6 +229,7 @@ export function useDashboardState() {
       setActiveInsight(insightResult.items[0] ?? null);
       setLoadStatus("ready");
     } catch (error) {
+      if (requestId !== loadRequestRef.current) return;
       setErrorMessage(error instanceof Error ? error.message : tRef.current("dashboard.noData"));
       setLoadStatus("error");
     }
@@ -227,6 +238,15 @@ export function useDashboardState() {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  const handleSelectChild = (childId: string) => {
+    if (childId === child?.id) return;
+    storeActiveChildId(childId);
+    setErrorMessage(null);
+    setDayContext([]);
+    setPendingMorningWakingReview([]);
+    loadDashboardData();
+  };
 
   const timeZone = child?.timezone || DEFAULT_TIME_ZONE;
   const latestNightLog = recentLogs.find((log) => log.type === "night");
@@ -582,6 +602,8 @@ export function useDashboardState() {
     errorMessage,
     isDemoData,
     child,
+    children,
+    handleSelectChild,
     effectiveAgeDays,
     ageDisplay: formatChildAge(effectiveAgeDays, t),
     activeInsight,
