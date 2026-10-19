@@ -99,3 +99,11 @@ Dostęp do panelu administratora jest rygorystycznie chroniony warunkiem:
 - `households` (GET/PATCH) – lista z zużyciem AI i nadpisaniem limitu (`ai_daily_limit_override`); wymaga konta serwisowego.
 - Matryca z `admin_settings` jest stosowana w `evaluate-insights` przez `resolveSleepMatrix` (fallback do `DEFAULT_SLEEP_MATRIX`). Dashboard po stronie klienta używa matrycy domyślnej.
 - Limit dzienny: `households.ai_daily_limit_override` > `admin_settings.ai_daily_limit_per_household` > 20; liczony z `ai_calls` (`kind=evaluate`, 24 h), a bez konta serwisowego z liczby wniosków.
+
+## 5. Coach Celów (`POST /api/ai/goal-coach`, Faza 9)
+- Idempotentny w obrębie doby fizjologicznej: zapisuje `goal_daily_tasks` (zadania, decyzja `progress_json`, `coach_json`); drugie wywołanie zwraca zapis bez kosztu AI.
+- Wejście do promptu: gotowy plan z `src/lib/goals-engine/` (zadania dnia, wskazówka nocna, decyzja). AI **nie zmienia** liczb ani kroków — tylko formułuje rady (`headline`, `todayAdvice[1-3]`, `nightTip`, `encouragement`, `why`). Walidacja Zod (`GoalCoachSchema`).
+- Bez klucza OpenRouter lub przy błędzie/niepoprawnym JSON: tekst deterministyczny z `src/lib/goal-copy.ts` (PL/EN); wywołanie logowane w `ai_calls` (`kind = goal_coach`) i wlicza się do dziennego limitu gospodarstwa (`src/lib/server/aiLimit.ts`).
+- Prompt systemowy: `admin_settings.system_prompt_goal_coach` (brak edycji w Panelu Admina — do dodania), domyślnie `DEFAULT_GOAL_COACH_PROMPT`.
+- Insighty (`evaluate-insights`) są teraz promptowane jako **praktyczna rada na dziś**, a wyjaśnienie „dlaczego” jest wtórne.
+- Endpointy celów: `POST /api/goals/preview` (gotowość + plan), `POST /api/goals` (start, walidacja po stronie serwera, jeden aktywny cel na dziecko), `POST /api/goals/status` (wstrzymaj/wznów/porzuć).

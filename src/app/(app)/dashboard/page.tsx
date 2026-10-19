@@ -9,6 +9,13 @@ import { PhysiologicalTimeline } from "@/components/dashboard/PhysiologicalTimel
 import { QuickEntryBottomSheet } from "@/components/dashboard/QuickEntryBottomSheet";
 import { SmartInsightCard } from "@/components/dashboard/SmartInsightCard";
 import { useDashboardState } from "@/components/dashboard/useDashboardState";
+import { ChooseGoalCard, GoalPathCard } from "@/components/goals/GoalPathCard";
+import { NightTipCard } from "@/components/goals/NightTipCard";
+import { useGoalState } from "@/components/goals/useGoalState";
+import type { CopyLocale } from "@/lib/goal-copy";
+
+// Zastąpione wykrywaniem języka w Fazie 10 (i18n).
+const GOAL_LOCALE: CopyLocale = "pl";
 
 /**
  * Główny widok aplikacji Spanko w stylistyce 3 AM One-Thumb Dark UX.
@@ -23,6 +30,14 @@ export default function DashboardPage() {
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
   const state = useDashboardState();
   const { child } = state;
+  const goalState = useGoalState({
+    childId: child?.id,
+    physiologicalDate: state.physiologicalDate,
+    locale: GOAL_LOCALE,
+    enabled: Boolean(child) && !state.isDemoData,
+  });
+  const isNightSleepActive =
+    state.currentSleepLog?.type === "night" && state.currentSleepLog.status !== "completed";
 
   if (!child) {
     const message =
@@ -59,6 +74,21 @@ export default function DashboardPage() {
         onSelectDayMode={state.handleSelectDayMode}
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
       />
+      {goalState.goal ? (
+        <GoalPathCard
+          goal={goalState.goal}
+          daily={goalState.daily}
+          physiologicalDate={state.physiologicalDate}
+          locale={GOAL_LOCALE}
+          onToggleTask={goalState.toggleTask}
+          onChangeStatus={goalState.changeStatus}
+        />
+      ) : (
+        goalState.status === "ready" && <ChooseGoalCard />
+      )}
+      {isNightSleepActive && goalState.daily?.night_tip_json && (
+        <NightTipCard tip={goalState.daily.night_tip_json} locale={GOAL_LOCALE} />
+      )}
       <SmartInsightCard
         insight={state.activeInsight}
         onAccept={state.handleAcceptInsight}

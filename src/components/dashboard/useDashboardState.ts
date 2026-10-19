@@ -616,6 +616,7 @@ export function useDashboardState() {
     handleQuickBottle,
     handleQuickDiaper,
     minutesSinceFeeding,
+    physiologicalDate: nowIso === EPOCH_ISO ? null : physiologicalDate,
     handleSaveMoodAndIntervention,
     handleSaveDayTag,
   };
