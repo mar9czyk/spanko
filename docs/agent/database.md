@@ -113,6 +113,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `prompt_versions`: `version` (unikalna), `system_prompt`, `note`, `author_id`, `is_active` (tylko jedna aktywna; aktywacja kopiuje treść do `admin_settings.system_prompt_insights`).
 - `sleep_matrix_versions`: `matrix_json` (null = reset do domyślnej), `note`, `source` (`save` | `restore` | `reset`), `author_id`.
 - `app_content`: `key` (unikalny), `value_pl` — nadpisania tekstów (np. `tag.ząbkowanie`); odczyt dla zalogowanych niezablokowanych, zapis tylko admin.
+- `push_subscriptions` (powiadomienia o pobudce z nasłuchu mikrofonem): `user_id`, `household_id` (relacje z kaskadowym usuwaniem), `endpoint` (unikalny), `p256dh`, `auth`, `locale` (`pl` | `en`, język powiadomienia). Wszystkie reguły puste (tylko superuser): zapis i wysyłka wyłącznie przez `/api/push` i `/api/push/wake-alert` kontem serwisowym; alert trafia do wszystkich urządzeń gospodarstwa poza telefonem, który nasłuchuje.
 - `announcements`: `message`, `level` (`info` | `warning`), `starts_at`, `ends_at`, `active`; zwykły użytkownik widzi tylko aktywne w oknie czasu (reguła w PocketBase).
 - `feature_flags`: `key` (unikalny), `enabled`, `rollout_household_ids` (json: lista id; pusta = wszyscy), `description`. Sprawdzanie: `isFeatureEnabledFor` (`src/lib/server/featureFlags.ts`).
 

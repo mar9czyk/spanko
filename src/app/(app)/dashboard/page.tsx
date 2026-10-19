@@ -13,6 +13,7 @@ import { SmartInsightCard } from "@/components/dashboard/SmartInsightCard";
 import { formatClock } from "@/components/dashboard/timelineMapping";
 import { useDashboardState } from "@/components/dashboard/useDashboardState";
 import { usePastDays } from "@/components/dashboard/usePastDays";
+import { WakeListenerCard } from "@/components/dashboard/WakeListenerCard";
 import { ChooseGoalCard, GoalPathCard } from "@/components/goals/GoalPathCard";
 import { NightTipCard } from "@/components/goals/NightTipCard";
 import { useGoalState } from "@/components/goals/useGoalState";
@@ -143,6 +144,18 @@ export default function DashboardPage() {
         sleepNeedsProfile={state.sleepNeedsProfile}
         latestLastNapEndAt={state.latestLastNapEndAt}
       />
+      {!state.isDemoData && state.currentSleepLog && (
+        <WakeListenerCard
+          childId={child.id}
+          isSleeping={state.currentSleepLog.status === "sleeping"}
+          sleepType={state.currentSleepLog.type}
+          onConfirmWake={
+            state.currentSleepLog.type === "night"
+              ? state.handleDetectedNightWake
+              : state.handleCycleSleepStatus
+          }
+        />
+      )}
       {viewedDate ? (
         <PhysiologicalTimeline
           key={viewedDate}

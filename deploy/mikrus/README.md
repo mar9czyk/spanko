@@ -88,7 +88,9 @@ Uwagi (Windows / Git Bash):
 - Git Bash nie ma `rsync` — skrypt sam przełączy się na `tar | ssh` z atomową zamianą katalogów
   (`/opt/spanko/web.old` zostaje jako kopia poprzedniej wersji). Symlinki pnpm są rozwiązywane (`tar -h` / `rsync -L`).
 - `NEXT_PUBLIC_*` są wbudowywane przy buildzie — po zmianie domeny zrób nowy deploy.
-- Sekrety (`OPENROUTER_API_KEY`, `POCKETBASE_SUPERUSER_*`) są tylko w `/opt/spanko/web/.env.production`.
+- Sekrety (`OPENROUTER_API_KEY`, `POCKETBASE_SUPERUSER_*`, `VAPID_*`) są tylko w `/opt/spanko/web/.env.production`.
+- Powiadomienia o pobudce (nasłuch mikrofonem) wymagają kluczy `VAPID_*` (`npx web-push generate-vapid-keys`),
+  kolekcji `push_subscriptions` z `pb_schema.json` oraz `microphone=(self)` w `Permissions-Policy` Caddy.
 
 Deploy kończy się healthcheckiem `APP_URL/` i `APP_URL/pb/api/health` (kod wyjścia ≠ 0 przy błędzie).
 

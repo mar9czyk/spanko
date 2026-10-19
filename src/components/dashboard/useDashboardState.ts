@@ -455,6 +455,21 @@ export function useDashboardState() {
     await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
   };
 
+  /** Pobudka nocna wykryta nasłuchem mikrofonu — bez założeń o karmieniu. */
+  const handleDetectedNightWake = async () => {
+    if (!currentSleepLog) return;
+    const updatedWakings = [
+      ...(currentSleepLog.night_wakings || []),
+      {
+        wokeAt: new Date().toISOString(),
+        estimatedDurationMin: 15,
+        fedMilk: false,
+        interventions: [],
+      },
+    ];
+    await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
+  };
+
   const handleResolveMorningWaking = (_minutes: number) => {
     setPendingMorningWakingReview([]);
   };
@@ -590,6 +605,7 @@ export function useDashboardState() {
     handleAdjustInsight,
     handleCycleSleepStatus,
     handleQuickNightWake,
+    handleDetectedNightWake,
     handleResolveMorningWaking,
     handleSaveFeeding,
     handleSaveDiaper,
