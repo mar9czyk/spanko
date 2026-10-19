@@ -1,74 +1,85 @@
 import { describe, expect, it } from "vitest";
-import { buildDayHourStrip, collectDayStripEvents, type DayStripHour } from "../dayHourStrip";
+import { buildDayStrip, collectDayStripEvents, type DayStripSlot } from "../dayHourStrip";
 
-function hourAt(strip: readonly DayStripHour[], index: number): DayStripHour {
-  const hour = strip[index];
-  if (!hour) throw new Error(`missing hour ${index}`);
-  return hour;
+function slotAt(slots: readonly DayStripSlot[], index: number): DayStripSlot {
+  const slot = slots[index];
+  if (!slot) throw new Error(`missing slot ${index}`);
+  return slot;
 }
 
-// Minuty :40 i :10 dają tę samą pełną godzinę w każdej strefie z pełnogodzinnym przesunięciem.
+// Minuty :40 dają tę samą pełną godzinę w każdej strefie z pełnogodzinnym przesunięciem.
 const DAY_START = "2026-10-19T06:40:00Z";
+const EMPTY = { sleeps: [], feedingIsos: [], diaperIsos: [] };
 
-describe("buildDayHourStrip", () => {
-  it("builds 24 hours starting at the full hour of the morning wake-up", () => {
-    const strip = buildDayHourStrip({
+describe("buildDayStrip", () => {
+  it("builds 96 quarter-hour slots from the full hour of the morning wake-up", () => {
+    const { slots, startMs, nowOffset } = buildDayStrip({
+      ...EMPTY,
       dayStartIso: DAY_START,
       nowIso: "2026-10-19T06:50:00Z",
-      sleeps: [],
-      feedingIsos: [],
-      diaperIsos: [],
     });
-    expect(strip).toHaveLength(24);
-    expect(new Date(hourAt(strip, 0).startMs).toISOString()).toBe("2026-10-19T06:00:00.000Z");
-    expect(hourAt(strip, 0).state).toBe("current");
-    expect(hourAt(strip, 1).state).toBe("future");
+    expect(slots).toHaveLength(96);
+    expect(new Date(startMs).toISOString()).toBe("2026-10-19T06:00:00.000Z");
+    expect(slotAt(slots, 2).state).toBe("past");
+    expect(slotAt(slots, 3).state).toBe("current");
+    expect(slotAt(slots, 4).state).toBe("future");
+    expect(nowOffset).toBeCloseTo(50 / (24 * 60));
   });
 
-  it("splits a nap across hours by the fraction slept", () => {
-    const strip = buildDayHourStrip({
+  it("splits a nap across slots by the fraction slept", () => {
+    const { slots } = buildDayStrip({
+      ...EMPTY,
       dayStartIso: DAY_START,
       nowIso: "2026-10-19T12:00:00Z",
-      sleeps: [{ startIso: "2026-10-19T09:15:00Z", endIso: "2026-10-19T10:30:00Z", type: "nap" }],
-      feedingIsos: [],
-      diaperIsos: [],
+      sleeps: [{ startIso: "2026-10-19T09:05:00Z", endIso: "2026-10-19T09:35:00Z", type: "nap" }],
     });
-    expect(hourAt(strip, 3).sleepFraction).toBeCloseTo(0.75);
-    expect(hourAt(strip, 4).sleepFraction).toBeCloseTo(0.5);
-    expect(hourAt(strip, 3).sleepType).toBe("nap");
-    expect(hourAt(strip, 2).sleepFraction).toBe(0);
-    expect(hourAt(strip, 2).sleepType).toBeNull();
-    expect(hourAt(strip, 3).state).toBe("past");
+    // 09:00–09:15 → 10 min, 09:15–09:30 → pełny, 09:30–09:45 → 5 min
+    expect(slotAt(slots, 12).sleepFraction).toBeCloseTo(10 / 15);
+    expect(slotAt(slots, 13).sleepFraction).toBe(1);
+    expect(slotAt(slots, 14).sleepFraction).toBeCloseTo(5 / 15);
+    expect(slotAt(slots, 13).sleepType).toBe("nap");
+    expect(slotAt(slots, 11).sleepFraction).toBe(0);
+    expect(slotAt(slots, 11).sleepType).toBeNull();
   });
 
   it("counts an ongoing sleep only up to now and picks the dominant sleep type", () => {
-    const strip = buildDayHourStrip({
+    const { slots } = buildDayStrip({
+      ...EMPTY,
       dayStartIso: DAY_START,
       nowIso: "2026-10-19T19:40:00Z",
       sleeps: [
-        { startIso: "2026-10-19T18:00:00Z", endIso: "2026-10-19T18:10:00Z", type: "nap" },
-        { startIso: "2026-10-19T18:30:00Z", type: "night" },
+        { startIso: "2026-10-19T19:00:00Z", endIso: "2026-10-19T19:05:00Z", type: "nap" },
+        { startIso: "2026-10-19T19:05:00Z", type: "night" },
       ],
-      feedingIsos: [],
-      diaperIsos: [],
     });
-    expect(hourAt(strip, 12).sleepType).toBe("night");
-    expect(hourAt(strip, 12).sleepFraction).toBeCloseTo(40 / 60);
-    expect(hourAt(strip, 13).sleepFraction).toBeCloseTo(40 / 60);
-    expect(hourAt(strip, 13).state).toBe("current");
+    expect(slotAt(slots, 52).sleepType).toBe("night");
+    expect(slotAt(slots, 52).sleepFraction).toBe(1);
+    expect(slotAt(slots, 54).sleepFraction).toBeCloseTo(10 / 15);
+    expect(slotAt(slots, 54).state).toBe("current");
+    expect(slotAt(slots, 55).sleepFraction).toBe(0);
   });
 
-  it("places feedings and diapers in their hour", () => {
-    const strip = buildDayHourStrip({
+  it("places feedings and diapers at their exact moment and drops ones outside the day", () => {
+    const { marks } = buildDayStrip({
+      ...EMPTY,
       dayStartIso: DAY_START,
       nowIso: "2026-10-19T12:00:00Z",
-      sleeps: [],
-      feedingIsos: ["2026-10-19T07:10:00Z", "2026-10-19T07:50:00Z"],
-      diaperIsos: ["2026-10-19T08:10:00Z"],
+      feedingIsos: ["2026-10-19T12:00:00Z", "2026-10-19T05:30:00Z"],
+      diaperIsos: ["2026-10-20T00:00:00Z"],
     });
-    expect(hourAt(strip, 1).feedings).toBe(2);
-    expect(hourAt(strip, 2).diapers).toBe(1);
-    expect(hourAt(strip, 0).feedings + hourAt(strip, 0).diapers).toBe(0);
+    expect(marks).toEqual([
+      { kind: "feeding", offset: 0.25 },
+      { kind: "diaper", offset: 0.75 },
+    ]);
+  });
+
+  it("has no now marker after the day has ended", () => {
+    const { nowOffset } = buildDayStrip({
+      ...EMPTY,
+      dayStartIso: DAY_START,
+      nowIso: "2026-10-20T07:00:00Z",
+    });
+    expect(nowOffset).toBeNull();
   });
 });
 
