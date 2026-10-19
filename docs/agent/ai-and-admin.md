@@ -14,6 +14,7 @@ Dokument opisuje architekturę bramki AI opartej na OpenRouter, wersjonowaną ma
    - Umożliwia to natychmiastową zmianę modelu lub promptu w Panelu Admina bez konieczności ponownego budowania i wdrażania aplikacji.
 3. **Deterministyczna Walidacja Zod:**
    - Każda odpowiedź z OpenRoutera jest formatowana w JSON i rygorystycznie sprawdzana schematem Zod przed zapisem do bazy `child_insights`.
+   - **Granica AI:** model zwraca wyłącznie `title`, `explanation`, `clinical_action` (`AiInsightTextSchema`); inne pola są odrzucane. `category`, `diagnosis_code`, `status`, `confidence_score` i `algorithm_override_json` pochodzą z diagnozy głównej silnika (`mergeAiTextIntoInsight`, `resolveSignificantDiagnostics`, `resolveInsightStatus`). Dashboard czyta przesunięcie okna przez `resolveInsightWwOffset`: `wakeWindowOffsetMinutes` z silnika albo `wwOffsetMin` rodzica (tylko status `corrected_by_parent`), zawsze w zakresie ±30 min.
    - Brak halucynacji liczb czy godzin: wartości liczbowe pochodzą z deterministycznego silnika `src/lib/sleep-engine/`.
 
 ---

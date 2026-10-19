@@ -4,6 +4,7 @@
 
 export * from "./diagnosticTrees";
 export * from "./feedingSignals";
+export * from "./insightOverride";
 export * from "./matrix";
 export * from "./matrixOverride";
 export * from "./physiologicalDay";

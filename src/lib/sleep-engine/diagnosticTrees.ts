@@ -1,3 +1,4 @@
+import { getMinutesFromMidnightInTimeZone } from "./physiologicalDay";
 import { MILLISECONDS_PER_DAY, MILLISECONDS_PER_MINUTE } from "./threeDrives";
 import type { DiagnosticEvaluationInput, DiagnosticTreeResult, SleepLog } from "./types";
 
@@ -13,6 +14,18 @@ export const BEDTIME_FADING_STEP_MINUTES = 20;
 export const HIGH_NIGHT_WAKINGS_THRESHOLD = 3;
 export const SHORT_NAP_THRESHOLD_MINUTES = 45;
 export const COMFORT_NURSING_MAX_ML = 30;
+/** Okno analizy drzew: logi z tylu ostatnich dni przed `nowIso`. */
+export const DIAGNOSTIC_WINDOW_DAYS = 14;
+/** Powtarzalność: liczba ostatnich nocy branych pod uwagę. */
+export const REPEAT_WINDOW_NIGHTS = 7;
+/** Powtarzalność: minimalna liczba nocy z danym wzorcem (CAT3, CAT7). */
+export const REPEAT_MIN_NIGHTS = 3;
+/** Spec. v2.0: ≥3 pobudki przez ≥5 nocy w tygodniu (CAT1). */
+export const ASSOCIATION_MIN_NIGHTS = 5;
+/** Karmienia mlekiem w nocy, od których noc liczy się jako nawykowa (CAT7). */
+export const HABITUAL_NIGHT_FEEDS_PER_NIGHT = 2;
+export const EARLY_WAKE_START_MINUTES = 240; // 04:00
+export const EARLY_WAKE_END_MINUTES = 330; // 05:30
 
 export const DIAGNOSIS_CODES = {
   CAT1_HIGH_INTERVENTION: "HIGH_INTERVENTION_SLEEP_ASSOCIATION",
@@ -20,6 +33,7 @@ export const DIAGNOSIS_CODES = {
   CAT2_OVERTIRED: "OVERTIRED_CORTISOL_SPIKE",
   CAT2_UNDERTIRED: "UNDERTIRED_WMZ_CONFLICT",
   CAT2_OPTIMAL: "OPTIMAL_BEDTIME_LATENCY",
+  CAT2_UNCLEAR: "LONG_LATENCY_MOOD_UNKNOWN",
   CAT3_SPLIT_NIGHT: "SPLIT_NIGHT_EXCESS_DAY_SLEEP",
   CAT3_EARLY_WAKING: "EARLY_MORNING_WAKING_PHASE_ADVANCE",
   CAT3_NORMAL: "NORMAL_CIRCADIAN_WAKE",
@@ -78,16 +92,66 @@ function hasHighInterventionPreference(logs: readonly SleepLog[]): boolean {
 }
 
 /**
- * Ocenia kategorię CAT1: Skojarzenia ze snem i pobudki nocne.
+ * Wybiera ostatnie zakończone noce (najnowsze pierwsze).
  *
  * @param {readonly SleepLog[]} logs - Dzienniki snu
+ * @param {number} [limit=REPEAT_WINDOW_NIGHTS] - Maksymalna liczba nocy
+ * @returns {readonly SleepLog[]} Ostatnie noce
+ */
+function selectRecentNights(
+  logs: readonly SleepLog[],
+  limit: number = REPEAT_WINDOW_NIGHTS,
+): readonly SleepLog[] {
+  return logs
+    .filter((l) => l.type === "night" && l.status === "completed")
+    .toSorted((a, b) => new Date(b.putDownAt).getTime() - new Date(a.putDownAt).getTime())
+    .slice(0, limit);
+}
+
+/**
+ * Zostawia logi z okna analizy (ostatnie DIAGNOSTIC_WINDOW_DAYS dni przed `nowIso`).
+ *
+ * @param {readonly SleepLog[]} logs - Dzienniki snu
+ * @param {string} nowIso - Czas odniesienia
+ * @returns {readonly SleepLog[]} Logi z okna
+ */
+export function selectLogsInDiagnosticWindow(
+  logs: readonly SleepLog[],
+  nowIso: string,
+): readonly SleepLog[] {
+  const nowMs = new Date(nowIso).getTime();
+  const fromMs = nowMs - DIAGNOSTIC_WINDOW_DAYS * MILLISECONDS_PER_DAY;
+  return logs.filter((l) => {
+    const startMs = new Date(l.putDownAt).getTime();
+    return startMs >= fromMs && startMs <= nowMs;
+  });
+}
+
+/**
+ * Ocenia kategorię CAT1: Skojarzenia ze snem i pobudki nocne.
+ *
+ * @description
+ * Spec. v2.0: od 16 tyg. wieku, ≥3 pobudki przez ≥5 z ostatnich 7 nocy
+ * oraz przewaga interwencji wysokiego poziomu.
+ *
+ * @param {readonly SleepLog[]} logs - Dzienniki snu
+ * @param {number} effectiveAgeDays - Wiek efektywny dziecka w dniach
  * @returns {DiagnosticTreeResult} Wynik diagnozy CAT1
  */
-export function evaluateCat1SleepAssociations(logs: readonly SleepLog[]): DiagnosticTreeResult {
-  const averageWakings = calculateAverageNightWakings(logs);
+export function evaluateCat1SleepAssociations(
+  logs: readonly SleepLog[],
+  effectiveAgeDays: number,
+): DiagnosticTreeResult {
+  const frequentWakingNights = selectRecentNights(logs).filter(
+    (l) => l.nightWakings.length >= HIGH_NIGHT_WAKINGS_THRESHOLD,
+  ).length;
   const isHighAssoc = hasHighInterventionPreference(logs);
 
-  if (averageWakings >= HIGH_NIGHT_WAKINGS_THRESHOLD && isHighAssoc) {
+  if (
+    effectiveAgeDays >= NEWBORN_MAX_AGE_DAYS &&
+    frequentWakingNights >= ASSOCIATION_MIN_NIGHTS &&
+    isHighAssoc
+  ) {
     return {
       category: "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
       diagnosisCode: DIAGNOSIS_CODES.CAT1_HIGH_INTERVENTION,
@@ -185,11 +249,23 @@ export function evaluateCat2BedtimeResistance(
   const averageLatency = calculateAverageBedtimeLatency(logs);
   const nightLogs = logs.filter((l) => l.type === "night");
   const isCrying = nightLogs.some((l) => l.mood === "crying");
+  const isCalm = nightLogs.some((l) => l.mood === "easy");
 
   if (averageLatency >= BEDTIME_LATENCY_THRESHOLD_MINUTES) {
-    return isCrying || chronicDebtMinutes > 45
-      ? buildOvertiredResistanceResult()
-      : buildUndertiredResistanceResult();
+    if (isCrying || chronicDebtMinutes > 45) return buildOvertiredResistanceResult();
+    // Niedomęczenie tylko przy zapisanym spokojnym nastroju — brak danych to nie „spokój”
+    if (isCalm) return buildUndertiredResistanceResult();
+    return {
+      category: "CAT2_BEDTIME_RESISTANCE_LATENCY",
+      diagnosisCode: DIAGNOSIS_CODES.CAT2_UNCLEAR,
+      severity: "info",
+      confidenceScore: 0.5,
+      isTriggered: false,
+      title: "Długie zasypianie bez informacji o nastroju",
+      explanation:
+        "Zasypianie trwa ponad 30 minut, ale bez zapisanego nastroju nie da się odróżnić przemęczenia od niedomęczenia.",
+      clinicalAction: "Zapisuj nastrój przy usypianiu przez kilka wieczorów.",
+    };
   }
 
   return {
@@ -205,31 +281,32 @@ export function evaluateCat2BedtimeResistance(
 }
 
 /**
- * Wykrywa zjawisko Split Night (wybudzenie w nocy trwające >= 60 minut).
+ * Wykrywa powtarzalne Split Nights (wybudzenie >= 60 min w ≥3 z ostatnich 7 nocy).
  *
  * @param {readonly SleepLog[]} logs - Dzienniki snu
- * @returns {boolean} True jeśli wykryto Split Night
+ * @returns {boolean} True jeśli wzorzec się powtarza
  */
 function detectSplitNight(logs: readonly SleepLog[]): boolean {
-  return logs.some((log) => {
-    if (log.type !== "night") return false;
-    return log.nightWakings.some((w) => w.estimatedDurationMin >= SPLIT_NIGHT_MIN_DURATION_MINUTES);
-  });
+  const splitNights = selectRecentNights(logs).filter((log) =>
+    log.nightWakings.some((w) => w.estimatedDurationMin >= SPLIT_NIGHT_MIN_DURATION_MINUTES),
+  );
+  return splitNights.length >= REPEAT_MIN_NIGHTS;
 }
 
 /**
- * Wyciąga godzinę i minutę w UTC z timestampu ISO.
+ * Wykrywa powtarzalne wczesne pobudki (04:00–05:30 czasu dziecka w ≥3 z ostatnich 7 nocy).
  *
- * @param {string} isoString - Data ISO
- * @returns {{ hour: number; minute: number }} Godzina i minuta w UTC
+ * @param {readonly SleepLog[]} logs - Dzienniki snu
+ * @param {string} timeZone - Strefa IANA dziecka
+ * @returns {boolean} True jeśli wzorzec się powtarza
  */
-function extractHourAndMinute(isoString: string): { hour: number; minute: number } {
-  const match = isoString.match(/T(\d{2}):(\d{2})/);
-  if (match?.[1] && match?.[2]) {
-    return { hour: Number.parseInt(match[1], 10), minute: Number.parseInt(match[2], 10) };
-  }
-  const date = new Date(isoString);
-  return { hour: date.getUTCHours(), minute: date.getUTCMinutes() };
+function detectEarlyMorningWaking(logs: readonly SleepLog[], timeZone: string): boolean {
+  const earlyNights = selectRecentNights(logs).filter((l) => {
+    if (!l.wokeUpAt) return false;
+    const wakeMin = getMinutesFromMidnightInTimeZone(l.wokeUpAt, timeZone);
+    return wakeMin >= EARLY_WAKE_START_MINUTES && wakeMin <= EARLY_WAKE_END_MINUTES;
+  });
+  return earlyNights.length >= REPEAT_MIN_NIGHTS;
 }
 
 /**
@@ -274,13 +351,8 @@ function resolveEarlyMorningWakeResult(chronicDebtMinutes: number): DiagnosticTr
  */
 function evaluateFlynnEvansTree(input: DiagnosticEvaluationInput): DiagnosticTreeResult {
   const { currentMetrics, recentSleepLogs } = input;
-  const earlyNight = recentSleepLogs.find((l) => {
-    if (l.type !== "night" || !l.wokeUpAt) return false;
-    const { hour, minute } = extractHourAndMinute(l.wokeUpAt);
-    return hour === 4 || (hour === 5 && minute <= 30);
-  });
 
-  if (earlyNight) {
+  if (detectEarlyMorningWaking(recentSleepLogs, input.timeZone)) {
     return resolveEarlyMorningWakeResult(currentMetrics.chronicSleepDebtMin);
   }
 
@@ -397,12 +469,16 @@ export function evaluateCat4ShortNapsAndTransitions(
  * Sprawdza, czy dziecko znajduje się w oknie Extinction Burst (14-28 dni od planu).
  *
  * @param {string | null | undefined} planStartIso - Data wdrożenia planu w ISO
+ * @param {string} nowIso - Czas odniesienia (funkcja czysta, bez Date.now())
  * @returns {boolean} True jeśli mieści się w oknie 14-28 dni
  */
-function isInsideExtinctionBurstWindow(planStartIso: string | null | undefined): boolean {
+function isInsideExtinctionBurstWindow(
+  planStartIso: string | null | undefined,
+  nowIso: string,
+): boolean {
   if (!planStartIso) return false;
   const startMs = new Date(planStartIso).getTime();
-  const diffDays = Math.floor((Date.now() - startMs) / MILLISECONDS_PER_DAY);
+  const diffDays = Math.floor((new Date(nowIso).getTime() - startMs) / MILLISECONDS_PER_DAY);
   return diffDays >= EXTINCTION_BURST_MIN_DAYS && diffDays <= EXTINCTION_BURST_MAX_DAYS;
 }
 
@@ -471,7 +547,7 @@ export function evaluateCat5RegressionsAndCrisis(
   const illnessResult = checkIllnessOrTeething(input);
   if (illnessResult) return illnessResult;
 
-  if (isInsideExtinctionBurstWindow(input.child.currentPlanStartDateIso)) {
+  if (isInsideExtinctionBurstWindow(input.child.currentPlanStartDateIso, input.nowIso)) {
     return {
       category: "CAT5_REGRESSION_ILLNESS_CRISIS",
       diagnosisCode: DIAGNOSIS_CODES.CAT5_EXTINCTION_BURST,
@@ -536,20 +612,17 @@ export function evaluateCat6NewbornCare(effectiveAgeDays: number): DiagnosticTre
 }
 
 /**
- * Wykrywa asocjację ssania dla uspokojenia (Comfort Nursing) u starszych niemowląt.
+ * Wykrywa wzorzec nawykowych karmień nocnych: ≥2 karmienia mlekiem w nocy
+ * przez ≥3 z ostatnich 7 nocy.
  *
  * @param {readonly SleepLog[]} logs - Dzienniki snu dziecka
- * @returns {boolean} True jeśli nocne karmienia to małe porcje
+ * @returns {boolean} True jeśli wzorzec się powtarza
  */
 function isComfortNursingPattern(logs: readonly SleepLog[]): boolean {
-  const nightLogs = logs.filter((l) => l.type === "night");
-  let fedCount = 0;
-  for (const log of nightLogs) {
-    for (const waking of log.nightWakings) {
-      if (waking.fedMilk) fedCount += 1;
-    }
-  }
-  return fedCount >= HIGH_NIGHT_WAKINGS_THRESHOLD;
+  const feedingNights = selectRecentNights(logs).filter(
+    (log) => log.nightWakings.filter((w) => w.fedMilk).length >= HABITUAL_NIGHT_FEEDS_PER_NIGHT,
+  );
+  return feedingNights.length >= REPEAT_MIN_NIGHTS;
 }
 
 /**
@@ -610,13 +683,18 @@ export function evaluateCat7NightWeaning(input: DiagnosticEvaluationInput): Diag
 export function evaluateAll7DiagnosticCategories(
   input: DiagnosticEvaluationInput,
 ): readonly DiagnosticTreeResult[] {
+  const windowed: DiagnosticEvaluationInput = {
+    ...input,
+    recentSleepLogs: selectLogsInDiagnosticWindow(input.recentSleepLogs, input.nowIso),
+  };
+  const logs = windowed.recentSleepLogs;
   return [
-    evaluateCat1SleepAssociations(input.recentSleepLogs),
-    evaluateCat2BedtimeResistance(input.recentSleepLogs, input.currentMetrics.chronicSleepDebtMin),
-    evaluateCat3EarlyWakingAndSplitNight(input),
-    evaluateCat4ShortNapsAndTransitions(input),
-    evaluateCat5RegressionsAndCrisis(input),
+    evaluateCat1SleepAssociations(logs, input.currentMetrics.effectiveAgeDays),
+    evaluateCat2BedtimeResistance(logs, input.currentMetrics.chronicSleepDebtMin),
+    evaluateCat3EarlyWakingAndSplitNight(windowed),
+    evaluateCat4ShortNapsAndTransitions(windowed),
+    evaluateCat5RegressionsAndCrisis(windowed),
     evaluateCat6NewbornCare(input.currentMetrics.effectiveAgeDays),
-    evaluateCat7NightWeaning(input),
+    evaluateCat7NightWeaning(windowed),
   ];
 }

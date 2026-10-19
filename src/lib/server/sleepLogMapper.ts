@@ -20,7 +20,7 @@ export function mapRecordToSleepLog(record: SleepLogRecord): SleepLog {
     fellAsleepAt: record.fell_asleep_at || record.put_down_at || fallbackIso,
     wokeUpAt: record.woke_up_at,
     interventions: record.interventions || [],
-    mood: record.mood || "easy",
+    mood: record.mood || undefined,
     nightWakings: record.night_wakings || [],
     isReboundSleep: record.is_rebound_sleep,
     ignoreInCalibration: record.ignore_in_calibration,

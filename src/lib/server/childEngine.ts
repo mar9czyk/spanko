@@ -1,24 +1,67 @@
+import type PocketBase from "pocketbase";
 import { mapRecordToSleepLog } from "@/lib/server/sleepLogMapper";
 import {
   calculateChronicDrive,
+  calculateCircadianParameters,
   calculateEffectiveAgeDays,
+  DEFAULT_TIME_ZONE,
   evaluateAll7DiagnosticCategories,
   getAgeBracket,
+  getMinutesFromMidnightInTimeZone,
+  resolvePhysiologicalDate,
   resolveSleepMatrix,
 } from "@/lib/sleep-engine";
 import type {
   AgeBracketConfig,
   DailySleepSummary,
   DiagnosticEvaluationInput,
+  DiagnosticSeverity,
   DiagnosticTreeResult,
   SleepLog,
 } from "@/lib/sleep-engine/types";
 import { aggregateDailySleepSummaries } from "@/lib/sleep-summary";
-import type { ChildRecord, SleepLogRecord } from "@/lib/types/database";
+import type {
+  ChildGoalRecord,
+  ChildRecord,
+  DayContextRecord,
+  SleepLogRecord,
+} from "@/lib/types/database";
 
-export const DEFAULT_FALLBACK_BEDTIME_MINUTES = 1200;
+/** Liczba ostatnich porannych pobudek dla kotwicy okołodobowej. */
+export const MORNING_WAKE_SAMPLE_SIZE = 5;
+const DAY_CONTEXT_LIMIT = 50;
 
 export type SleepNeedsProfile = "low_sleep_needs" | "average" | "high_sleep_needs";
+
+/** Dane spoza logów snu potrzebne drzewom (tagi doby, start planu). */
+export interface DiagnosticExtras {
+  readonly todayTags?: readonly string[];
+  readonly currentPlanStartDateIso?: string | null;
+}
+
+/**
+ * Wylicza biologiczną porę snu (minuty od północy w strefie dziecka) z ostatnich porannych pobudek.
+ *
+ * @param {readonly SleepLog[]} logs - Logi snu (dowolna kolejność)
+ * @param {AgeBracketConfig} bracket - Przedział wiekowy
+ * @param {string} timeZone - Strefa IANA dziecka
+ * @returns {number} Biologiczna pora snu w minutach od północy
+ */
+export function resolveBiologicalBedtimeMin(
+  logs: readonly SleepLog[],
+  bracket: AgeBracketConfig,
+  timeZone: string,
+): number {
+  const wakeTimes = logs
+    .filter((l) => l.type === "night" && l.status === "completed" && l.wokeUpAt)
+    .toSorted((a, b) => new Date(b.putDownAt).getTime() - new Date(a.putDownAt).getTime())
+    .slice(0, MORNING_WAKE_SAMPLE_SIZE)
+    .map((l) => getMinutesFromMidnightInTimeZone(l.wokeUpAt ?? l.putDownAt, timeZone));
+  return calculateCircadianParameters({
+    morningWakeTimesLast5DaysMinutesFromMidnight: wakeTimes,
+    bracket,
+  }).biologicalBedtimeMinFromMidnight;
+}
 
 /**
  * Formułuje wejście diagnostyczne dla deterministycznego silnika snu.
@@ -28,20 +71,30 @@ export type SleepNeedsProfile = "low_sleep_needs" | "average" | "high_sleep_need
  */
 export function buildDiagnosticInput(params: {
   child: ChildRecord;
+  nowIso: string;
+  bracket: AgeBracketConfig;
   effectiveAgeDays: number;
   recentSleepLogs: readonly SleepLog[];
   dailyTotals: readonly DailySleepSummary[];
   chronicSleepDebtMin: number;
   sleepBatteryPercent: number;
   sleepNeedsProfile: SleepNeedsProfile;
+  extras?: DiagnosticExtras;
 }): DiagnosticEvaluationInput {
+  const timeZone = params.child.timezone || DEFAULT_TIME_ZONE;
   return {
+    nowIso: params.nowIso,
+    timeZone,
     child: {
       birthDateIso: params.child.birth_date,
       dueDateIso: params.child.due_date,
       activeDayMode: params.child.active_day_mode,
+      currentPlanStartDateIso: params.extras?.currentPlanStartDateIso ?? null,
     },
-    todayContext: { dayMode: params.child.active_day_mode },
+    todayContext: {
+      dayMode: params.child.active_day_mode,
+      tags: params.extras?.todayTags ?? [],
+    },
     recentSleepLogs: params.recentSleepLogs,
     dailyTotalsLast14DaysMin: params.dailyTotals,
     currentMetrics: {
@@ -49,13 +102,23 @@ export function buildDiagnosticInput(params: {
       chronicSleepDebtMin: params.chronicSleepDebtMin,
       sleepBatteryPercent: params.sleepBatteryPercent,
       sleepNeedsProfile: params.sleepNeedsProfile,
-      biologicalBedtimeMinFromMidnight: DEFAULT_FALLBACK_BEDTIME_MINUTES,
+      biologicalBedtimeMinFromMidnight: resolveBiologicalBedtimeMin(
+        params.recentSleepLogs,
+        params.bracket,
+        timeZone,
+      ),
     },
   };
 }
 
+const SEVERITY_RANK: Record<DiagnosticSeverity, number> = { high: 3, medium: 2, low: 1, info: 0 };
+
 /**
  * Wybiera istotne diagnozy z 7 deterministycznych kategorii problemów snu.
+ *
+ * @description
+ * Zwraca diagnozy aktywne posortowane od najważniejszej (istotność, potem pewność,
+ * potem kolejność kategorii) — pierwsza jest diagnozą główną wniosku.
  *
  * @param {readonly DiagnosticTreeResult[]} results - Wszystkie 7 wyników
  * @returns {DiagnosticTreeResult[]} Zdiagnozowane lub domyślne kategorie
@@ -63,12 +126,91 @@ export function buildDiagnosticInput(params: {
 export function resolveSignificantDiagnostics(
   results: readonly DiagnosticTreeResult[],
 ): readonly DiagnosticTreeResult[] {
-  const triggered = results.filter((diag) => diag.isTriggered);
+  const triggered = results
+    .map((diag, index) => ({ diag, index }))
+    .filter(({ diag }) => diag.isTriggered)
+    .toSorted(
+      (a, b) =>
+        SEVERITY_RANK[b.diag.severity] - SEVERITY_RANK[a.diag.severity] ||
+        b.diag.confidenceScore - a.diag.confidenceScore ||
+        a.index - b.index,
+    )
+    .map(({ diag }) => diag);
   if (triggered.length > 0) {
     return triggered;
   }
   const firstDiagnostic = results[0];
   return firstDiagnostic ? [firstDiagnostic] : [];
+}
+
+/**
+ * Wyznacza status nowego wniosku: powtórzona diagnoza jest aktywna, nowa — hipotezą.
+ *
+ * @param {DiagnosticTreeResult | undefined} primary - Diagnoza główna
+ * @param {string | undefined} previousDiagnosisCode - Kod poprzedniego aktywnego wniosku
+ * @returns {"active" | "hypothesis"} Status wniosku
+ */
+export function resolveInsightStatus(
+  primary: DiagnosticTreeResult | undefined,
+  previousDiagnosisCode: string | undefined,
+): "active" | "hypothesis" {
+  if (!primary?.isTriggered || primary.severity === "info") return "active";
+  return primary.diagnosisCode === previousDiagnosisCode ? "active" : "hypothesis";
+}
+
+/**
+ * Pobiera tagi bieżącej doby fizjologicznej i datę startu aktywnego planu (best effort).
+ *
+ * @param {PocketBase} pb - Klient PocketBase użytkownika
+ * @param {ChildRecord} child - Dziecko
+ * @param {readonly SleepLogRecord[]} sleepRecords - Logi snu (najnowsze pierwsze)
+ * @param {string} nowIso - Czas odniesienia
+ * @returns {Promise<DiagnosticExtras>} Tagi i start planu
+ */
+export async function loadDiagnosticExtras(
+  pb: PocketBase,
+  child: ChildRecord,
+  sleepRecords: readonly SleepLogRecord[],
+  nowIso: string,
+): Promise<DiagnosticExtras> {
+  const latestNight = sleepRecords.find((l) => l.type === "night");
+  const todayDate = resolvePhysiologicalDate({
+    eventTimestamp: nowIso,
+    timeZone: child.timezone || DEFAULT_TIME_ZONE,
+    activeOrRecentNightSleep: latestNight
+      ? {
+          physiologicalDate: latestNight.physiological_date,
+          fellAsleepAt: latestNight.fell_asleep_at || latestNight.put_down_at || nowIso,
+          wokeUpAt: latestNight.woke_up_at,
+        }
+      : null,
+  });
+
+  const [context, goals] = await Promise.all([
+    pb
+      .collection("day_context")
+      .getList<DayContextRecord>(1, DAY_CONTEXT_LIMIT, {
+        filter: pb.filter("child_id = {:childId} && physiological_date = {:date}", {
+          childId: child.id,
+          date: todayDate,
+        }),
+      })
+      .then((r) => r.items)
+      .catch(() => [] as DayContextRecord[]),
+    pb
+      .collection("child_goals")
+      .getList<ChildGoalRecord>(1, 1, {
+        filter: pb.filter("child_id = {:childId} && status = 'active'", { childId: child.id }),
+        sort: "-created",
+      })
+      .then((r) => r.items)
+      .catch(() => [] as ChildGoalRecord[]),
+  ]);
+
+  return {
+    todayTags: context.flatMap((c) => c.tags ?? []),
+    currentPlanStartDateIso: goals[0]?.started_on ?? null,
+  };
 }
 
 export interface DeterministicEngineResult {
@@ -83,7 +225,7 @@ export interface DeterministicEngineResult {
 /**
  * Uruchamia wyłącznie silnik deterministyczny (wiek efektywny, 3 napędy, 7 drzew) — bez AI.
  *
- * @param {object} input - Dziecko, logi snu, nadpisanie matrycy i czas odniesienia
+ * @param {object} input - Dziecko, logi snu, nadpisanie matrycy, czas odniesienia i dane dodatkowe
  * @returns {DeterministicEngineResult} Wynik silnika
  */
 export function runDeterministicEngine(input: {
@@ -91,6 +233,7 @@ export function runDeterministicEngine(input: {
   readonly sleepRecords: readonly SleepLogRecord[];
   readonly matrixOverrideJson: unknown;
   readonly nowIso: string;
+  readonly extras?: DiagnosticExtras;
 }): DeterministicEngineResult {
   const effectiveAgeDays = calculateEffectiveAgeDays(
     input.child.birth_date,
@@ -103,12 +246,15 @@ export function runDeterministicEngine(input: {
   const allDiagnostics = evaluateAll7DiagnosticCategories(
     buildDiagnosticInput({
       child: input.child,
+      nowIso: input.nowIso,
+      bracket,
       effectiveAgeDays,
       recentSleepLogs: input.sleepRecords.map(mapRecordToSleepLog),
       dailyTotals,
       chronicSleepDebtMin: chronicDrive.chronicSleepDebtMin,
       sleepBatteryPercent: chronicDrive.sleepBatteryPercent,
       sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
+      extras: input.extras,
     }),
   );
   return {

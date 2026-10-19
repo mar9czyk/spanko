@@ -68,7 +68,8 @@ export interface SleepLog {
   readonly fellAsleepAt: string;
   readonly wokeUpAt?: string;
   readonly interventions: readonly InterventionType[];
-  readonly mood: SleepMood;
+  /** Nastrój przy usypianiu; brak = nie zapisano (to nie to samo co „spokojnie”). */
+  readonly mood?: SleepMood;
   readonly nightWakings: readonly NightWakingEntry[];
   readonly isReboundSleep?: boolean;
   readonly ignoreInCalibration?: boolean;
@@ -125,6 +126,8 @@ export interface NextSleepSlotParams {
   readonly dayMode: DayMode;
   readonly insightWwOffsetMin: number;
   readonly biologicalBedtimeMinFromMidnight: number;
+  /** Strefa IANA dziecka, w której liczone są godziny (WMZ, kotwica poranna). */
+  readonly timeZone: string;
 }
 
 export interface NextSleepSlotPrediction {
@@ -189,6 +192,10 @@ export interface CurrentMetricsContext {
 }
 
 export interface DiagnosticEvaluationInput {
+  /** Czas odniesienia — drzewa nie czytają zegara systemowego. */
+  readonly nowIso: string;
+  /** Strefa IANA dziecka, w której liczone są godziny pobudek. */
+  readonly timeZone: string;
   readonly child: ChildEvaluationContext;
   readonly todayContext?: DayEvaluationContext;
   readonly recentSleepLogs: readonly SleepLog[];

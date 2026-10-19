@@ -86,6 +86,32 @@ function getCalendarParts(date: Date, timeZone: string): CalendarParts {
 }
 
 /**
+ * Liczy minuty od północy dla danego momentu w podanej strefie czasowej.
+ *
+ * @param {Date | string | number} timestamp - Moment w czasie
+ * @param {string} [timeZone=DEFAULT_TIME_ZONE] - Strefa IANA dziecka
+ * @returns {number} Minuty od północy (0-1439) w czasie lokalnym strefy
+ */
+export function getMinutesFromMidnightInTimeZone(
+  timestamp: Date | string | number,
+  timeZone: string = DEFAULT_TIME_ZONE,
+): number {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  let hour = 0;
+  let minute = 0;
+  for (const part of formatter.formatToParts(new Date(parseTimestampToMilliseconds(timestamp)))) {
+    if (part.type === "hour") hour = Number(part.value);
+    if (part.type === "minute") minute = Number(part.value);
+  }
+  return hour * 60 + minute;
+}
+
+/**
  * Formatuje składowe kalendarzowe do YYYY-MM-DD.
  *
  * @param {number} year - Rok

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type PocketBase from "pocketbase";
 import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
+import { sanitizeParentOverride } from "@/lib/sleep-engine";
 import type { ChildInsightRecord, ParentFeedback, SleepLogRecord } from "@/lib/types/database";
 
 export interface CorrectInsightRequestBody {
@@ -57,8 +58,10 @@ function buildInsightUpdatePayload(payload: CorrectInsightRequestBody): Record<s
   if (payload.parentCorrectionNote) {
     updateData.parent_correction_note = payload.parentCorrectionNote.trim();
   }
-  if (payload.algorithmOverrideJson) {
-    updateData.algorithm_override_json = payload.algorithmOverrideJson;
+  // Rodzic może zmienić tylko przesunięcie okna, w bezpiecznym zakresie
+  const parentOverride = sanitizeParentOverride(payload.algorithmOverrideJson);
+  if (parentOverride) {
+    updateData.algorithm_override_json = parentOverride;
   }
 
   return updateData;

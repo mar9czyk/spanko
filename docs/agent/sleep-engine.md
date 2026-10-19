@@ -83,6 +83,13 @@ Silnik łączy trzy fizjologiczne wektory decydujące o gotowości dziecka do sn
 
 Wszystkie wpisy snu i parametry dobowe podlegają analizie przez 7 równoległych, w 100% deterministycznych drzew diagnostycznych. Moduł nie korzysta z LLM — generuje ustandaryzowane kody diagnoz (`diagnosisCode`), stopnie istotności (`severity`), wskaźniki pewności (`confidenceScore`) oraz nadpisania algorytmiczne (`algorithmOverride`), które OpenRouter ubiera w empatyczny język w bazie `child_insights`.
 
+### 5.0. Powtarzalność, okno i strefa czasowa (od poprawek z raportu `badania/reports/Ocena silnika snu Spanko.md`)
+- Drzewa analizują tylko logi z ostatnich 14 dni przed `nowIso` (`selectLogsInDiagnosticWindow`); nie czytają `Date.now()`.
+- Godziny (wczesne pobudki, WMZ, kotwica poranna) liczone w strefie dziecka (`child.timezone`, domyślnie `Europe/Warsaw`) przez `getMinutesFromMidnightInTimeZone`.
+- Wzorce wymagają powtórzeń z ostatnich 7 nocy: CAT1 ≥3 pobudki przez ≥5 nocy i wiek ≥112 dni; CAT3 Split Night i wczesna pobudka w ≥3 nocach; CAT7 ≥2 karmienia mlekiem w ≥3 nocach.
+- CAT2: brak zapisanego nastroju to brak danych (`LONG_LATENCY_MOOD_UNKNOWN`, nieaktywna), a nie „spokojnie”.
+- Kolejność diagnoz: istotność, pewność, kolejność kategorii; pierwsza jest główną. Nowa diagnoza problemu to `hypothesis`, powtórzona — `active`.
+
 ### 5.1. Sygnatura Wejścia i Wyjścia Orkiestratora
 
 Ewaluacja wszystkich 7 kategorii odbywa się za pomocą czystej funkcji:

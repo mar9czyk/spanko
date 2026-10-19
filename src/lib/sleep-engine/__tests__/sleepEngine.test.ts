@@ -111,6 +111,7 @@ describe("Sleep Engine: 3 Napędy Snu", () => {
       dayMode: "home",
       insightWwOffsetMin: 0,
       biologicalBedtimeMinFromMidnight: 1200,
+      timeZone: "UTC",
     });
     expect(microNapSlot.reasonCode).toBe("MICRO_NAP_PENALTY_35PCT");
 
@@ -124,6 +125,7 @@ describe("Sleep Engine: 3 Napędy Snu", () => {
       dayMode: "home",
       insightWwOffsetMin: 0,
       biologicalBedtimeMinFromMidnight: 1200,
+      timeZone: "UTC",
     });
     expect(restorativeNapSlot.reasonCode).toBe("RESTORATIVE_NAP_BONUS");
   });
@@ -142,6 +144,7 @@ describe("Sleep Engine: 3 Napędy Snu", () => {
       dayMode: "home",
       insightWwOffsetMin: 0,
       biologicalBedtimeMinFromMidnight: 1200,
+      timeZone: "UTC",
     });
 
     const sweetSpotTime = new Date(slot.sweetSpotIso).getTime();
@@ -152,6 +155,30 @@ describe("Sleep Engine: 3 Napędy Snu", () => {
     expect(endTime - sweetSpotTime).toBe(15 * 60 * 1000);
   });
 });
+
+/** Wspólny czas odniesienia i strefa dla testów drzew (logi testowe są w UTC). */
+const BASE_EVAL = { nowIso: "2026-04-15T12:00:00.000Z", timeZone: "UTC" } as const;
+
+/**
+ * Powiela noc na kolejne doby wstecz (różne putDownAt), by testować powtarzalność.
+ *
+ * @param {SleepLog} log - Wzorcowa noc
+ * @param {number} count - Liczba nocy
+ * @returns {SleepLog[]} Noce z kolejnych dób
+ */
+function repeatNights(log: SleepLog, count: number): SleepLog[] {
+  return Array.from({ length: count }, (_, index) => {
+    const shift = (iso: string | undefined) =>
+      iso ? new Date(new Date(iso).getTime() - index * 86_400_000).toISOString() : iso;
+    return {
+      ...log,
+      id: `${log.id}-${index}`,
+      putDownAt: shift(log.putDownAt) as string,
+      fellAsleepAt: shift(log.fellAsleepAt) as string,
+      wokeUpAt: shift(log.wokeUpAt),
+    };
+  });
+}
 
 describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
   const dummyNightLog: SleepLog = {
@@ -178,7 +205,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
       ],
     };
 
-    const result = evaluateCat1SleepAssociations([logWithHighAssoc]);
+    const result = evaluateCat1SleepAssociations(repeatNights(logWithHighAssoc, 5), 200);
     expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT1_HIGH_INTERVENTION);
     expect(result.isTriggered).toBe(true);
     expect(result.severity).toBe("high");
@@ -219,8 +246,9 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const mockInput: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       child: { birthDateIso: "2025-06-01", activeDayMode: "home" },
-      recentSleepLogs: [splitNightLog],
+      recentSleepLogs: repeatNights(splitNightLog, 3),
       dailyTotalsLast14DaysMin: [],
       currentMetrics: {
         effectiveAgeDays: 300,
@@ -243,8 +271,9 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const mockInput: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       child: { birthDateIso: "2025-06-01", activeDayMode: "home" },
-      recentSleepLogs: [earlyWakeLog],
+      recentSleepLogs: repeatNights(earlyWakeLog, 3),
       dailyTotalsLast14DaysMin: [],
       currentMetrics: {
         effectiveAgeDays: 200,
@@ -275,6 +304,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const mockInput: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       child: { birthDateIso: "2026-01-01", activeDayMode: "home" },
       recentSleepLogs: [shortNap, shortNap, shortNap],
       dailyTotalsLast14DaysMin: [],
@@ -293,8 +323,11 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
   });
 
   it("CAT5: aktywuje detektor Extinction Burst w oknie 14-28 dni po wdrożeniu planu", () => {
-    const twentyDaysAgo = new Date(Date.now() - 20 * 86_400_000).toISOString();
+    const twentyDaysAgo = new Date(
+      new Date(BASE_EVAL.nowIso).getTime() - 20 * 86_400_000,
+    ).toISOString();
     const mockInput: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       child: {
         birthDateIso: "2025-06-01",
         activeDayMode: "home",
@@ -318,6 +351,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
 
   it("CAT5: wykrywa ząbkowanie lub chorobę i sugeruje tryb ochronny", () => {
     const mockInput: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       child: { birthDateIso: "2025-06-01", activeDayMode: "home" },
       todayContext: { tags: ["ząbkowanie", "gorączka"] },
       recentSleepLogs: [dummyNightLog],
@@ -347,6 +381,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
 
   it("CAT7: różnicuje fizjologiczny głód u maluchów <6 msc od asocjacji Comfort Nursing", () => {
     const mockInputYoung: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       child: { birthDateIso: "2026-02-01", activeDayMode: "home" },
       recentSleepLogs: [dummyNightLog],
       dailyTotalsLast14DaysMin: [],
@@ -370,8 +405,9 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
       ],
     };
     const mockInputOlder: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       ...mockInputYoung,
-      recentSleepLogs: [nursingNightLog],
+      recentSleepLogs: repeatNights(nursingNightLog, 3),
       currentMetrics: {
         ...mockInputYoung.currentMetrics,
         effectiveAgeDays: 240,
@@ -383,6 +419,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
 
   it("evaluateAll7DiagnosticCategories: zwraca kompletny zestaw 7 kategorii diagnostycznych", () => {
     const mockInput: DiagnosticEvaluationInput = {
+      ...BASE_EVAL,
       child: { birthDateIso: "2025-06-01", activeDayMode: "home" },
       recentSleepLogs: [dummyNightLog],
       dailyTotalsLast14DaysMin: [],
