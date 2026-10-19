@@ -51,7 +51,7 @@ describe("checkStuckSleepFix", () => {
 describe("compareMatrices", () => {
   it("dla identycznych matryc zwraca zerowe różnice", () => {
     const rows = compareMatrices(DEFAULT_SLEEP_MATRIX, DEFAULT_SLEEP_MATRIX);
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(4);
     for (const row of rows) {
       expect(row.firstWindowDeltaMin).toBe(0);
       expect(row.bedtimeDeltaMin).toBe(0);
