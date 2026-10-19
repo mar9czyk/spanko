@@ -1,3 +1,4 @@
+import { getMinutesFromMidnightInTimeZone } from "./physiologicalDay";
 import type {
   AgeBracketConfig,
   ChronicDriveResult,
@@ -378,8 +379,8 @@ function applyWmzAdjustment(
     return { adjustedMs: initialMs, finalMinutes: targetMinutes };
   }
 
-  const candidateDate = new Date(initialMs);
-  const candidateMin = candidateDate.getUTCHours() * 60 + candidateDate.getUTCMinutes();
+  // Kotwica poranna i biologiczna pora snu są w czasie lokalnym dziecka, więc kandydat też
+  const candidateMin = getMinutesFromMidnightInTimeZone(initialMs, params.timeZone);
   const shift = resolveWmzShiftMinutes(
     candidateMin,
     params.biologicalBedtimeMinFromMidnight,

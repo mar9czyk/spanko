@@ -1,8 +1,10 @@
 import type { InsightEvaluationContext } from "@/lib/openrouter";
 import type { SandboxSample } from "@/lib/sandboxSamples";
+import { resolveSignificantDiagnostics } from "@/lib/server/childEngine";
 import {
   calculateChronicDrive,
   type DailySleepSummary,
+  DEFAULT_TIME_ZONE,
   type DiagnosticEvaluationInput,
   evaluateAll7DiagnosticCategories,
   getAgeBracket,
@@ -44,6 +46,8 @@ export function buildSandboxContext(sample: SandboxSample): InsightEvaluationCon
   const chronicDrive = calculateChronicDrive(dailyTotals, bracket);
 
   const input: DiagnosticEvaluationInput = {
+    nowIso: new Date(nowMs).toISOString(),
+    timeZone: DEFAULT_TIME_ZONE,
     child: { birthDateIso, dueDateIso: null, activeDayMode: "home" },
     todayContext: { dayMode: "home" },
     recentSleepLogs: [],
@@ -57,7 +61,9 @@ export function buildSandboxContext(sample: SandboxSample): InsightEvaluationCon
     },
   };
 
-  const triggered = evaluateAll7DiagnosticCategories(input).filter((diag) => diag.isTriggered);
+  const triggered = resolveSignificantDiagnostics(evaluateAll7DiagnosticCategories(input)).filter(
+    (diag) => diag.isTriggered,
+  );
   return {
     childAgeDisplay: spec.label,
     effectiveAgeDays: spec.ageDays,
@@ -72,6 +78,8 @@ export function buildSandboxContext(sample: SandboxSample): InsightEvaluationCon
       title: diag.title,
       explanation: diag.explanation,
       clinicalAction: diag.clinicalAction,
+      confidenceScore: diag.confidenceScore,
+      algorithmOverride: diag.algorithmOverride ? { ...diag.algorithmOverride } : undefined,
     })),
     activeInsights: [],
   };

@@ -5,6 +5,7 @@ import {
   DEFAULT_SYSTEM_PROMPT,
   evaluateSleepInsightsWithOpenRouter,
   formatEvaluationUserPrompt,
+  mergeAiTextIntoInsight,
   parseAndValidateAiResponse,
   resolveSystemPrompt,
 } from "../openrouter";
@@ -24,6 +25,8 @@ const mockContext: InsightEvaluationContext = {
       title: "Przemęczenie wieczorne",
       explanation: "Wieczorny opór przed snem wynika z długu sennego.",
       clinicalAction: "Skróć ostatnie okno czuwania o 15 minut.",
+      confidenceScore: 0.8,
+      algorithmOverride: { wakeWindowOffsetMinutes: -20 },
     },
   ],
   activeInsights: [],
@@ -55,9 +58,11 @@ describe("openrouter service", () => {
     });
 
     const result = parseAndValidateAiResponse(validJson);
-    expect(result.category).toBe("CAT2_BEDTIME_RESISTANCE_LATENCY");
     expect(result.title).toBe("Skracamy wieczorne okno o 15 min");
-    expect(result.confidence_score).toBe(0.9);
+    // Pola liczbowe i kody od modelu są odrzucane — AI odpowiada tylko za tekst
+    expect(result).not.toHaveProperty("category");
+    expect(result).not.toHaveProperty("confidence_score");
+    expect(result).not.toHaveProperty("algorithm_override_json");
   });
 
   it("parseAndValidateAiResponse: obsługuje odpowiedź opakowaną w obiekt insights", () => {
@@ -76,8 +81,8 @@ describe("openrouter service", () => {
     });
 
     const result = parseAndValidateAiResponse(wrappedJson);
-    expect(result.category).toBe("CAT4_SHORT_NAPS_TRANSITIONS");
-    expect(result.diagnosis_code).toBe("MICRO_NAP_CRISIS");
+    expect(result.title).toBe("Łączenie cykli drzemek");
+    expect(result).not.toHaveProperty("diagnosis_code");
   });
 
   it("parseAndValidateAiResponse: rzuca błąd przy niepoprawnym schemacie", () => {
@@ -93,6 +98,20 @@ describe("openrouter service", () => {
     expect(fallback.category).toBe("CAT2_BEDTIME_RESISTANCE_LATENCY");
     expect(fallback.diagnosis_code).toBe("OVERTIRED_FUSS");
     expect(fallback.status).toBe("active");
+  });
+
+  it("mergeAiTextIntoInsight: model nie zmienia diagnozy, statusu ani parametrów", () => {
+    const merged = mergeAiTextIntoInsight(
+      { ...mockContext, insightStatus: "hypothesis" },
+      { title: "Tekst modelu", explanation: "Wyjaśnienie napisane przez model." },
+    );
+    expect(merged.title).toBe("Tekst modelu");
+    expect(merged.category).toBe("CAT2_BEDTIME_RESISTANCE_LATENCY");
+    expect(merged.diagnosis_code).toBe("OVERTIRED_FUSS");
+    expect(merged.status).toBe("hypothesis");
+    expect(merged.confidence_score).toBe(0.8);
+    expect(merged.algorithm_override_json).toEqual({ wakeWindowOffsetMinutes: -20 });
+    expect(merged.clinical_action).toBe("Skróć ostatnie okno czuwania o 15 minut.");
   });
 
   it("createDeterministicFallbackInsight: zwraca bezpieczny domyślny wniosek przy pustej liście diagnoz", () => {
@@ -152,7 +171,10 @@ describe("openrouter service", () => {
     });
 
     expect(result.title).toBe("Wcześniejsza pora snu");
-    expect(result.confidence_score).toBe(0.95);
+    // Diagnoza, pewność i nadpisania pochodzą z silnika, nie z odpowiedzi modelu
+    expect(result.diagnosis_code).toBe("OVERTIRED_FUSS");
+    expect(result.confidence_score).toBe(0.8);
+    expect(result.algorithm_override_json).toEqual({ wakeWindowOffsetMinutes: -20 });
 
     fetchSpy.mockRestore();
   });

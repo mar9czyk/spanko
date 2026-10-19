@@ -15,8 +15,10 @@ import {
   DEFAULT_TIME_ZONE,
   formatDateToCalendarString,
   getAgeBracket,
+  getMinutesFromMidnightInTimeZone,
   minutesSinceLastFeeding,
   predictNextSleepSlot,
+  resolveInsightWwOffset,
   resolvePhysiologicalDate,
   resolveSleepRestedness,
 } from "@/lib/sleep-engine";
@@ -46,7 +48,6 @@ export type DashboardLoadStatus = "loading" | "ready" | "empty" | "error";
 
 // Czas bieżący ustawiany po zamontowaniu (new Date() w stanie początkowym blokuje prerender)
 const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
-const MIN_PER_HOUR = 60;
 const MS_PER_SECOND = 1000;
 const PLACEHOLDER_TIME = "—";
 const RECENT_LOGS_LIMIT = 100;
@@ -221,9 +222,11 @@ export function useDashboardState() {
           sort: "-created",
         }),
         pb.collection("child_insights").getList<ChildInsightRecord>(1, 1, {
-          filter: pb.filter("child_id = {:childId} && status = 'active'", {
-            childId: activeChild.id,
-          }),
+          // Wniosek obowiązujący: aktywny, potwierdzony albo skorygowany przez rodzica (hipoteza nie zmienia prognoz)
+          filter: pb.filter(
+            "child_id = {:childId} && (status = 'active' || status = 'validated' || status = 'corrected_by_parent')",
+            { childId: activeChild.id },
+          ),
           sort: "-created",
         }),
       ]);
@@ -333,10 +336,7 @@ export function useDashboardState() {
   const morningWakeTimes = recentLogs
     .filter((log) => log.type === "night" && log.status === "completed" && log.woke_up_at)
     .slice(0, MORNING_WAKE_SAMPLE_SIZE)
-    .map((log) => {
-      const wake = new Date(log.woke_up_at ?? nowIso);
-      return wake.getHours() * MIN_PER_HOUR + wake.getMinutes();
-    });
+    .map((log) => getMinutesFromMidnightInTimeZone(log.woke_up_at ?? nowIso, timeZone));
 
   const circadianParams = calculateCircadianParameters({
     morningWakeTimesLast5DaysMinutesFromMidnight: morningWakeTimes,
@@ -350,7 +350,6 @@ export function useDashboardState() {
       log.status === "completed" &&
       log.physiological_date === physiologicalDate,
   ).length;
-  const insightWwOffset = activeInsight?.algorithm_override_json?.wwOffsetMin;
 
   const sweetSpotPrediction =
     child && lastCompletedLog?.woke_up_at
@@ -369,7 +368,8 @@ export function useDashboardState() {
           chronicSleepDebtMin: chronicDrive.chronicSleepDebtMin,
           dayMode: child.active_day_mode,
           biologicalBedtimeMinFromMidnight: circadianParams.biologicalBedtimeMinFromMidnight,
-          insightWwOffsetMin: typeof insightWwOffset === "number" ? insightWwOffset : 0,
+          insightWwOffsetMin: resolveInsightWwOffset(activeInsight),
+          timeZone,
         })
       : null;
 

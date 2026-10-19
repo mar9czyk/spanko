@@ -66,6 +66,8 @@ function previewWindow(
     dayMode: "home",
     insightWwOffsetMin: 0,
     biologicalBedtimeMinFromMidnight: circadian.biologicalBedtimeMinFromMidnight,
+    // Podgląd liczy na syntetycznej pobudce 07:00 UTC, więc godziny też w UTC
+    timeZone: "UTC",
   });
   return {
     wakeWindowMin: prediction.targetWakeWindowMin,

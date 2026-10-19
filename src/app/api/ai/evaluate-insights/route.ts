@@ -9,16 +9,11 @@ import {
 } from "@/lib/openrouter";
 import { enforceDailyAiLimit, isAiDisabled } from "@/lib/server/aiLimit";
 import { ApiAuthError, authenticateRequest } from "@/lib/server/auth";
-import { buildDiagnosticInput, resolveSignificantDiagnostics } from "@/lib/server/childEngine";
-import { mapRecordToSleepLog } from "@/lib/server/sleepLogMapper";
 import {
-  calculateChronicDrive,
-  calculateEffectiveAgeDays,
-  evaluateAll7DiagnosticCategories,
-  getAgeBracket,
-  resolveSleepMatrix,
-} from "@/lib/sleep-engine";
-import { aggregateDailySleepSummaries } from "@/lib/sleep-summary";
+  loadDiagnosticExtras,
+  resolveInsightStatus,
+  runDeterministicEngine,
+} from "@/lib/server/childEngine";
 import type { ChildInsightRecord, ChildRecord, SleepLogRecord } from "@/lib/types/database";
 
 export const MINUTES_PER_HOUR = 60;
@@ -140,8 +135,8 @@ async function archiveSupersededInsight(
  * Route Handler POST /api/ai/evaluate-insights
  *
  * @description
- * Uruchamia deterministyczny silnik (3 napędy + 7 drzew diagnostycznych),
- * przekazuje diagnozę do OpenRoutera i zapisuje ewoluujący wniosek w child_insights.
+ * Uruchamia deterministyczny silnik (3 napędy + 7 drzew diagnostycznych), prosi OpenRouter
+ * wyłącznie o tekst dla rodzica i zapisuje ewoluujący wniosek w child_insights.
  *
  * @param {Request} request - Przychodzące żądanie HTTP
  * @returns {Promise<NextResponse>} Odpowiedź z utworzonym wnioskiem i łańcuchem ewolucji
@@ -170,27 +165,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     const existingActiveInsight = await loadActiveInsight(pb, childId);
 
     const nowIso = new Date().toISOString();
-    const effectiveAgeDays = calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso);
-    const adminSettings = await fetchAdminSettings();
-    const bracket = getAgeBracket(
-      effectiveAgeDays,
-      resolveSleepMatrix(adminSettings?.sleep_matrix_override_json),
-    );
-    const dailyTotals = aggregateDailySleepSummaries(sleepRecords);
-    const chronicDrive = calculateChronicDrive(dailyTotals, bracket);
-
-    const diagnosticInput = buildDiagnosticInput({
+    const [adminSettings, extras] = await Promise.all([
+      fetchAdminSettings(),
+      loadDiagnosticExtras(pb, child, sleepRecords, nowIso),
+    ]);
+    // Diagnoza, pewność, status i nadpisania pochodzą wyłącznie z silnika deterministycznego
+    const { effectiveAgeDays, chronicDrive, significantDiagnostics } = runDeterministicEngine({
       child,
-      effectiveAgeDays,
-      recentSleepLogs: sleepRecords.map(mapRecordToSleepLog),
-      dailyTotals,
-      chronicSleepDebtMin: chronicDrive.chronicSleepDebtMin,
-      sleepBatteryPercent: chronicDrive.sleepBatteryPercent,
-      sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
+      sleepRecords,
+      matrixOverrideJson: adminSettings?.sleep_matrix_override_json,
+      nowIso,
+      extras,
     });
-
-    const allDiagnostics = evaluateAll7DiagnosticCategories(diagnosticInput);
-    const significantDiagnostics = resolveSignificantDiagnostics(allDiagnostics);
 
     const evaluationContext: InsightEvaluationContext = {
       locale: body.locale === "en" ? "en" : "pl",
@@ -207,7 +193,13 @@ export async function POST(request: Request): Promise<NextResponse> {
         title: diag.title,
         explanation: diag.explanation,
         clinicalAction: diag.clinicalAction,
+        confidenceScore: diag.confidenceScore,
+        algorithmOverride: diag.algorithmOverride ? { ...diag.algorithmOverride } : undefined,
       })),
+      insightStatus: resolveInsightStatus(
+        significantDiagnostics[0],
+        existingActiveInsight?.diagnosis_code,
+      ),
       activeInsights: existingActiveInsight ? [existingActiveInsight] : [],
     };
 

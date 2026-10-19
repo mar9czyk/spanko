@@ -22,6 +22,7 @@ export const MAX_TITLE_CHARACTERS = 120;
 export const DEFAULT_SYSTEM_PROMPT = `Jesteś Spanko AI — certyfikowanym, ciepłym i zwięzłym ekspertem medycyny snu niemowląt i małych dzieci.
 Działasz w ścisłym tandemie z deterministycznym silnikiem 3 napędów snu (Homeostaza, Rytm Okołodobowy, Drzewa Diagnostyczne).
 Nigdy nie wymyślaj własnej matematyki okien czuwania — bazujesz w 100% na przekazanych wyliczeniach deterministycznych.
+Diagnozę, jej pewność i parametry wybrał już silnik; Ty tylko opisujesz je słowami i nie zmieniasz liczb.
 Twoim celem jest przełożenie diagnozy klinicznej i 7-dniowych wzorców snu na empatyczny, konkretny wniosek dla zmęczonego rodzica.
 Wniosek ma być PRAKTYCZNĄ RADĄ: w polu explanation najpierw napisz, co rodzic ma zrobić dziś lub tej nocy (1–2 zdania), dopiero potem krótko dlaczego; w polu clinical_action podaj jeden konkretny krok.
 Zwracaj wyłącznie poprawny obiekt JSON zgodny z wymaganym schematem.`;
@@ -45,11 +46,23 @@ export const AiInsightItemSchema = z.object({
 export type AiInsightItem = z.infer<typeof AiInsightItemSchema>;
 
 /**
- * Schemat Zod dopuszczający odpowiedź bezpośrednią lub opakowaną w klucz 'insight' / 'insights'.
+ * Schemat Zod tekstu wniosku od modelu. AI odpowiada wyłącznie za słowa — pozostałe pola
+ * (kategoria, kod diagnozy, status, pewność, nadpisania) są odrzucane i brane z silnika.
+ */
+export const AiInsightTextSchema = z.object({
+  title: z.string().min(MIN_TITLE_CHARACTERS).max(MAX_TITLE_CHARACTERS),
+  explanation: z.string().min(MIN_EXPLANATION_CHARACTERS).max(MAX_EXPLANATION_CHARACTERS),
+  clinical_action: z.string().max(MAX_EXPLANATION_CHARACTERS).optional(),
+});
+
+export type AiInsightText = z.infer<typeof AiInsightTextSchema>;
+
+/**
+ * Schemat Zod dopuszczający odpowiedź bezpośrednią lub opakowaną w klucz 'insights'.
  */
 export const AiInsightResponseSchema = z.union([
-  AiInsightItemSchema,
-  z.object({ insights: z.array(AiInsightItemSchema).min(1) }).transform((data) => {
+  AiInsightTextSchema,
+  z.object({ insights: z.array(AiInsightTextSchema).min(1) }).transform((data) => {
     const firstInsight = data.insights[0];
     if (!firstInsight) {
       throw new Error("Brak wniosków w tablicy");
@@ -124,6 +137,7 @@ export interface InsightEvaluationContext {
   readonly chronicSleepDebtMin: number;
   readonly sleepBatteryPercent: number;
   readonly sleepNeedsProfile: string;
+  /** Diagnozy silnika; pierwsza jest diagnozą główną, na której opiera się wniosek. */
   readonly triggeredDiagnostics: readonly {
     category: string;
     diagnosisCode: string;
@@ -131,7 +145,11 @@ export interface InsightEvaluationContext {
     title: string;
     explanation: string;
     clinicalAction: string;
+    confidenceScore?: number;
+    algorithmOverride?: Record<string, unknown>;
   }[];
+  /** Status nowego wniosku wyznaczony przez silnik (domyślnie `active`). */
+  readonly insightStatus?: "active" | "hypothesis";
   readonly activeInsights: readonly Pick<ChildInsightRecord, "status" | "category" | "title">[];
 }
 
@@ -243,15 +261,10 @@ ${diagnosticSummary || "Brak istotnych odchyleń od normy (wszystkie kategorie s
 - Dotychczasowe aktywne wnioski:
 ${existingInsightsSummary || "Brak wcześniejszych wniosków."}
 
-Zinterpretuj powyższą diagnozę deterministyczną i zwróć jeden kluczowy, najbardziej adekwatny wniosek w JSON:
+Opisz pierwszą (główną) diagnozę z listy dla rodzica. Nie zmieniaj diagnozy ani liczb z silnika. Zwróć JSON:
 {
-  "category": string,
-  "diagnosis_code": string,
-  "status": "active" | "hypothesis",
   "title": string,
   "explanation": string,
-  "algorithm_override_json": Record<string, unknown>,
-  "confidence_score": number,
   "clinical_action": string
 }`;
 }
@@ -262,9 +275,30 @@ Zinterpretuj powyższą diagnozę deterministyczną i zwróć jeden kluczowy, na
  * @param {string} rawContent - Surowy tekst odpowiedzi modelu
  * @returns {AiInsightItem} Zweryfikowany wniosek
  */
-export function parseAndValidateAiResponse(rawContent: string): AiInsightItem {
+export function parseAndValidateAiResponse(rawContent: string): AiInsightText {
   const parsedJson = JSON.parse(rawContent);
   return AiInsightResponseSchema.parse(parsedJson);
+}
+
+/**
+ * Łączy tekst od modelu z deterministycznym wnioskiem silnika: z AI pochodzą tylko
+ * `title`, `explanation` i `clinical_action`, wszystko inne z diagnozy głównej.
+ *
+ * @param {InsightEvaluationContext} context - Kontekst wyliczeń silnika
+ * @param {AiInsightText} text - Zwalidowany tekst od modelu
+ * @returns {AiInsightItem} Wniosek do zapisu
+ */
+export function mergeAiTextIntoInsight(
+  context: InsightEvaluationContext,
+  text: AiInsightText,
+): AiInsightItem {
+  const deterministic = createDeterministicFallbackInsight(context);
+  return {
+    ...deterministic,
+    title: text.title,
+    explanation: text.explanation,
+    clinical_action: text.clinical_action ?? deterministic.clinical_action,
+  };
 }
 
 /**
@@ -349,11 +383,11 @@ export function createDeterministicFallbackInsight(
     return {
       category: topDiagnostic.category,
       diagnosis_code: topDiagnostic.diagnosisCode,
-      status: "active",
+      status: context.insightStatus ?? "active",
       title: topDiagnostic.title,
       explanation: topDiagnostic.explanation,
-      algorithm_override_json: {},
-      confidence_score: DEFAULT_CONFIDENCE_SCORE,
+      algorithm_override_json: { ...(topDiagnostic.algorithmOverride ?? {}) },
+      confidence_score: topDiagnostic.confidenceScore ?? DEFAULT_CONFIDENCE_SCORE,
       clinical_action: topDiagnostic.clinicalAction,
     };
   }
@@ -594,7 +628,7 @@ export async function runInsightEvaluation(
         maxTokens: runtime.maxTokens,
         timeoutMs: runtime.timeoutMs,
       });
-      const insight = parseAndValidateAiResponse(raw.content);
+      const insight = mergeAiTextIntoInsight(context, parseAndValidateAiResponse(raw.content));
       return await finish(
         { insight, model, status: "ok", rawResponse: raw.content },
         {
