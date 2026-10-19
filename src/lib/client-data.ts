@@ -1,6 +1,6 @@
 import { pickActiveChild, readStoredActiveChildId } from "@/lib/active-child";
 import { pb } from "@/lib/pocketbase";
-import type { ChildRecord } from "@/lib/types/database";
+import type { ChildRecord, DayContextRecord, SleepLogRecord } from "@/lib/types/database";
 
 /**
  * Wykonuje żądanie do własnego API z tokenem zalogowanego użytkownika PocketBase.
@@ -33,4 +33,28 @@ export function loadChildren(): Promise<ChildRecord[]> {
  */
 export async function loadActiveChild(): Promise<ChildRecord | null> {
   return pickActiveChild(await loadChildren(), readStoredActiveChildId());
+}
+
+/**
+ * Pobiera logi snu i wpisy day_context dziecka z zakresu dób fizjologicznych (włącznie).
+ *
+ * @param {string} childId - Id dziecka
+ * @param {string} fromDate - Pierwsza doba YYYY-MM-DD
+ * @param {string} toDate - Ostatnia doba YYYY-MM-DD
+ * @returns {Promise<object>} Logi snu i wpisy kontekstu dnia
+ */
+export async function loadDaysRange(
+  childId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<{ logs: SleepLogRecord[]; contexts: DayContextRecord[] }> {
+  const filter = pb.filter(
+    "child_id = {:childId} && physiological_date >= {:fromDate} && physiological_date <= {:toDate}",
+    { childId, fromDate, toDate },
+  );
+  const [logs, contexts] = await Promise.all([
+    pb.collection("sleep_logs").getFullList<SleepLogRecord>({ filter, sort: "-created" }),
+    pb.collection("day_context").getFullList<DayContextRecord>({ filter, sort: "-timestamp" }),
+  ]);
+  return { logs, contexts };
 }

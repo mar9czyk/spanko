@@ -1,4 +1,4 @@
-import { ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { History, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -59,6 +59,14 @@ export function DashboardHeader({
               <ShieldCheck className="w-4 h-4" />
             </Link>
           )}
+          <Link
+            href="/history"
+            className="p-1.5 rounded-xl bg-[#1E2738] text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 border border-[#263348] transition-colors"
+            title={t("header.historyTitle")}
+            aria-label={t("header.historyTitle")}
+          >
+            <History className="w-4 h-4" />
+          </Link>
           <Link
             href="/insights"
             className="p-1.5 rounded-xl bg-[#1E2738] text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-[#263348] transition-colors"
