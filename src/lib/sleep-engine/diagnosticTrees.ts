@@ -1,19 +1,35 @@
 import { getMinutesFromMidnightInTimeZone } from "./physiologicalDay";
 import { MILLISECONDS_PER_DAY, MILLISECONDS_PER_MINUTE } from "./threeDrives";
-import type { DiagnosticEvaluationInput, DiagnosticTreeResult, SleepLog } from "./types";
+import type { DiagnosticEvaluationInput, DiagnosticTreeResult, SleepLog, SleepMood } from "./types";
+
+/*
+ * Progi drzew. Liczby bez źródła w badaniach są oznaczone `// heurystyka`
+ * (praktyka konsultantów snu lub spec. Spanko v2.0), nie jako fakty fizjologiczne.
+ * Źródła: raport „Ocena silnika snu Spanko” (badania/reports), plan etapu C.
+ */
 
 export const NEWBORN_MAX_AGE_DAYS = 112;
 export const WEANING_MIN_AGE_DAYS = 180;
-export const FOUR_MONTH_MIN_DAYS = 105;
-export const FOUR_MONTH_MAX_DAYS = 135;
-export const EXTINCTION_BURST_MIN_DAYS = 14;
-export const EXTINCTION_BURST_MAX_DAYS = 28;
-export const SPLIT_NIGHT_MIN_DURATION_MINUTES = 60;
-export const BEDTIME_LATENCY_THRESHOLD_MINUTES = 30;
-export const BEDTIME_FADING_STEP_MINUTES = 20;
+/** CAT7: do 9. mies. odstawianie nocnych karmień to wybór rodziny, nie problem. */ // heurystyka (spec. v2.0: 6–9 mies.)
+export const WEANING_FULL_AGE_DAYS = 270;
+/** CAT1: diagnoza od 6 mies. (próg konsultacji ≥3 pobudek; spec. v2.0 podaje 16 tyg.). */
+export const CAT1_MIN_AGE_DAYS = 180;
+/** CAT1: 4–6 mies. — częste pobudki opisujemy tylko jako normę wieku. */
+export const CAT1_INFO_MIN_AGE_DAYS = 120;
+export const SPLIT_NIGHT_MIN_DURATION_MINUTES = 60; // heurystyka
+/** CAT2: długie zasypianie (niedomęczenie). */
+export const BEDTIME_LATENCY_THRESHOLD_MINUTES = 30; // heurystyka
+/** CAT2: przemęczenie wg spec. v2.0 — latencja >20 min + płacz + dług. */
+export const OVERTIRED_LATENCY_THRESHOLD_MINUTES = 20; // heurystyka (spec. v2.0)
+export const OVERTIRED_DEBT_THRESHOLD_MINUTES = 45; // heurystyka
+/** CAT2: wcześniejsze kładzenie przy przemęczeniu (tekst: 20–30 min). */
+export const OVERTIRED_BEDTIME_ADVANCE_MINUTES = 20; // heurystyka (spec. v2.0)
+/** Bedtime fading: +15 min co 3 dni (Piazza i Fisher 1991 — metoda; liczby ze spec. v2.0). */
+export const BEDTIME_FADING_STEP_MINUTES = 15; // heurystyka
+export const BEDTIME_FADING_INTERVAL_DAYS = 3; // heurystyka
 export const HIGH_NIGHT_WAKINGS_THRESHOLD = 3;
-export const SHORT_NAP_THRESHOLD_MINUTES = 45;
-export const COMFORT_NURSING_MAX_ML = 30;
+export const SHORT_NAP_THRESHOLD_MINUTES = 45; // heurystyka
+export const COMFORT_NURSING_MAX_ML = 30; // heurystyka
 /** Okno analizy drzew: logi z tylu ostatnich dni przed `nowIso`. */
 export const DIAGNOSTIC_WINDOW_DAYS = 14;
 /** Powtarzalność: liczba ostatnich nocy branych pod uwagę. */
@@ -24,26 +40,81 @@ export const REPEAT_MIN_NIGHTS = 3;
 export const ASSOCIATION_MIN_NIGHTS = 5;
 /** Karmienia mlekiem w nocy, od których noc liczy się jako nawykowa (CAT7). */
 export const HABITUAL_NIGHT_FEEDS_PER_NIGHT = 2;
+/**
+ * CAT7: krótkie karmienie. Spec. v2.0 mówi o ssaniu <3 min, ale dziennik zapisuje czas
+ * całej pobudki (najkrótsza opcja to 5 min), więc próg to ≤5 min.
+ */
+export const COMFORT_FEED_MAX_MINUTES = 5; // heurystyka (spec. v2.0)
+/** CAT7: karmienia co ≤60 min (spec. v2.0). */
+export const COMFORT_FEED_MAX_INTERVAL_MINUTES = 60; // heurystyka (spec. v2.0)
 export const EARLY_WAKE_START_MINUTES = 240; // 04:00
 export const EARLY_WAKE_END_MINUTES = 330; // 05:30
+/** CAT3: długa noc → przesunięcie rytmu (spec. v2.0, protokół Flynn-Evans — opinia ekspercka). */
+export const EARLY_WAKE_LONG_NIGHT_MINUTES = 630; // heurystyka (10,5 h)
+/** CAT3: krótka noc → „lock-in” (spec. v2.0, protokół Flynn-Evans — opinia ekspercka). */
+export const EARLY_WAKE_SHORT_NIGHT_MINUTES = 570; // heurystyka (9,5 h)
+export const PHASE_SHIFT_STEP_MINUTES = 15; // heurystyka
+export const PHASE_SHIFT_INTERVAL_DAYS = 2; // heurystyka
+/** CAT4: opór przed ostatnią drzemką. */
+export const NAP_RESISTANCE_LATENCY_MINUTES = 20; // heurystyka
+/** CAT4: przejście drzemkowe dopiero po ≥5 dniach sygnałów z rzędu. */
+export const NAP_TRANSITION_MIN_DAYS = 5; // heurystyka (spec. v2.0)
+/** CAT4: 3→2 drzemki od 4. mies. (Mindell 2016). */
+export const THREE_TO_TWO_MIN_AGE_DAYS = 120;
+export const THREE_TO_TWO_MAX_AGE_DAYS = 300; // heurystyka
+/** CAT4: 2→1 drzemka w 12–18 mies. */
+export const TWO_TO_ONE_MIN_AGE_DAYS = 365;
+export const TWO_TO_ONE_MAX_AGE_DAYS = 548;
+export const NAP_SHIFT_STEP_MINUTES = 15; // heurystyka (spec. v2.0)
+export const NAP_SHIFT_INTERVAL_DAYS = 3; // heurystyka (spec. v2.0)
+/** CAT5: wybuch wygaszania w nocach 2–5 od startu planu (France i in., PMC4934563). */
+export const EXTINCTION_BURST_FIRST_NIGHT = 2;
+export const EXTINCTION_BURST_LAST_NIGHT = 5;
+/** CAT5: spontaniczny nawrót oceniamy dopiero po tylu nocach planu. */
+export const SPONTANEOUS_RELAPSE_MIN_NIGHTS = 7; // heurystyka
+/** CAT5: wzrost pobudek — ostatnie noce vs wcześniejsze noce z okna. */
+export const WAKING_INCREASE_RECENT_NIGHTS = 5;
+export const WAKING_INCREASE_MIN_EARLIER_NIGHTS = 3;
+export const WAKING_INCREASE_MIN_DELTA = 1; // heurystyka
+export const WAKING_INCREASE_MIN_AVERAGE = 2; // heurystyka
+/** CAT5: zmiana architektury snu ok. 3–7 mies. (bez okna 105–135 dni; PubMed 36586054). */
+export const FOUR_MONTH_CHANGE_MIN_DAYS = 84; // heurystyka
+export const FOUR_MONTH_CHANGE_MAX_DAYS = 210; // heurystyka
+/** CAT5: przejściowe regresje 8–10 i 18–24 mies. (opinia kliniczna, Phoenix Children's). */
+export const REGRESSION_8_10_MIN_DAYS = 240;
+export const REGRESSION_8_10_MAX_DAYS = 330;
+export const REGRESSION_18_24_MIN_DAYS = 540;
+export const REGRESSION_18_24_MAX_DAYS = 730;
+/** CAT5: tagi doby włączające tryb choroby. Ząbkowanie ≠ choroba (Azevedo 2015). */
+export const ILLNESS_DAY_TAGS: readonly string[] = ["gorączka", "infekcja_ucha", "szczepienie"];
+export const TEETHING_DAY_TAG = "ząbkowanie";
+/** CAT6: budzenie z drzemki dziennej noworodka po 2 h. */
+export const NEWBORN_MAX_NAP_MINUTES = 120; // heurystyka
+export const NEWBORN_LONG_NAP_MIN_COUNT = 2;
 
 export const DIAGNOSIS_CODES = {
   CAT1_HIGH_INTERVENTION: "HIGH_INTERVENTION_SLEEP_ASSOCIATION",
+  CAT1_AGE_NORMAL: "NIGHT_WAKINGS_NORMAL_FOR_AGE",
   CAT1_HEALTHY: "HEALTHY_SLEEP_CONSOLIDATION",
-  CAT2_OVERTIRED: "OVERTIRED_CORTISOL_SPIKE",
-  CAT2_UNDERTIRED: "UNDERTIRED_WMZ_CONFLICT",
+  CAT2_OVERTIRED: "OVERTIRED_BEDTIME_RESISTANCE",
+  CAT2_UNDERTIRED: "UNDERTIRED_BEDTIME_FADING",
   CAT2_OPTIMAL: "OPTIMAL_BEDTIME_LATENCY",
   CAT2_UNCLEAR: "LONG_LATENCY_MOOD_UNKNOWN",
   CAT3_SPLIT_NIGHT: "SPLIT_NIGHT_EXCESS_DAY_SLEEP",
   CAT3_EARLY_WAKING: "EARLY_MORNING_WAKING_PHASE_ADVANCE",
+  CAT3_EARLY_WAKING_SHORT_NIGHT: "EARLY_MORNING_WAKING_SHORT_NIGHT",
+  CAT3_EARLY_WAKING_UNCLEAR: "EARLY_MORNING_WAKING",
   CAT3_NORMAL: "NORMAL_CIRCADIAN_WAKE",
   CAT4_SINGLE_CYCLE: "SINGLE_CYCLE_SHORT_NAPS",
   CAT4_TRANSITION_READY: "NAP_TRANSITION_READY",
   CAT4_DEVELOPMENTAL: "DEVELOPMENTAL_SHORT_NAPS",
   CAT4_STABLE: "NAP_STRUCTURE_STABLE",
   CAT5_FOUR_MONTH: "FOUR_MONTH_SLEEP_REGRESSION",
+  CAT5_TRANSIENT_REGRESSION: "TRANSIENT_DEVELOPMENTAL_REGRESSION",
   CAT5_EXTINCTION_BURST: "EXTINCTION_BURST",
-  CAT5_ILLNESS_OR_TEETHING: "ACUTE_ILLNESS_OR_TEETHING_DISRUPTION",
+  CAT5_SPONTANEOUS_RELAPSE: "SPONTANEOUS_RELAPSE",
+  CAT5_ILLNESS: "ACUTE_ILLNESS_DISRUPTION",
+  CAT5_TEETHING: "TEETHING_DISCOMFORT",
   CAT5_STABLE: "STABLE_DEVELOPMENT",
   CAT6_NEWBORN_GUARDRAIL: "NEWBORN_ACTIVE_SLEEP_GUARDRAIL",
   CAT6_DAY_NIGHT_CONFUSION: "DAY_NIGHT_CONFUSION",
@@ -54,16 +125,35 @@ export const DIAGNOSIS_CODES = {
 } as const;
 
 /**
- * Oblicza średnią liczbę nocnych wybudzeń z ostatnich zarejestrowanych nocy.
+ * Zamienia ISO na milisekundy.
  *
- * @param {readonly SleepLog[]} logs - Dzienniki snu dziecka
- * @returns {number} Średnia liczba pobudek na noc
+ * @param {string} iso - Znacznik czasu
+ * @returns {number} Milisekundy od epoki
  */
-function calculateAverageNightWakings(logs: readonly SleepLog[]): number {
-  const nightLogs = logs.filter((l) => l.type === "night" && l.status === "completed");
-  if (nightLogs.length === 0) return 0;
-  const totalWakings = nightLogs.reduce((sum, item) => sum + item.nightWakings.length, 0);
-  return totalWakings / nightLogs.length;
+function toMs(iso: string): number {
+  return new Date(iso).getTime();
+}
+
+/**
+ * Latencja zasypiania (odłożenie → zaśnięcie) w minutach, nie mniej niż 0.
+ *
+ * @param {SleepLog} log - Log snu
+ * @returns {number} Latencja w minutach
+ */
+function latencyMinutes(log: SleepLog): number {
+  if (!log.fellAsleepAt || !log.putDownAt) return 0;
+  return Math.max(0, (toMs(log.fellAsleepAt) - toMs(log.putDownAt)) / MILLISECONDS_PER_MINUTE);
+}
+
+/**
+ * Średnia z liczb (0 dla pustej listy).
+ *
+ * @param {readonly number[]} values - Wartości
+ * @returns {number} Średnia
+ */
+function average(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
 }
 
 /**
@@ -104,7 +194,7 @@ function selectRecentNights(
 ): readonly SleepLog[] {
   return logs
     .filter((l) => l.type === "night" && l.status === "completed")
-    .toSorted((a, b) => new Date(b.putDownAt).getTime() - new Date(a.putDownAt).getTime())
+    .toSorted((a, b) => toMs(b.putDownAt) - toMs(a.putDownAt))
     .slice(0, limit);
 }
 
@@ -119,10 +209,10 @@ export function selectLogsInDiagnosticWindow(
   logs: readonly SleepLog[],
   nowIso: string,
 ): readonly SleepLog[] {
-  const nowMs = new Date(nowIso).getTime();
+  const nowMs = toMs(nowIso);
   const fromMs = nowMs - DIAGNOSTIC_WINDOW_DAYS * MILLISECONDS_PER_DAY;
   return logs.filter((l) => {
-    const startMs = new Date(l.putDownAt).getTime();
+    const startMs = toMs(l.putDownAt);
     return startMs >= fromMs && startMs <= nowMs;
   });
 }
@@ -131,8 +221,8 @@ export function selectLogsInDiagnosticWindow(
  * Ocenia kategorię CAT1: Skojarzenia ze snem i pobudki nocne.
  *
  * @description
- * Spec. v2.0: od 16 tyg. wieku, ≥3 pobudki przez ≥5 z ostatnich 7 nocy
- * oraz przewaga interwencji wysokiego poziomu.
+ * ≥3 pobudki przez ≥5 z ostatnich 7 nocy. Od 6 mies. z przewagą interwencji wysokiego
+ * poziomu to wzorzec skojarzeń; w 4.–6. mies. tylko informacja, że to jeszcze norma.
  *
  * @param {readonly SleepLog[]} logs - Dzienniki snu
  * @param {number} effectiveAgeDays - Wiek efektywny dziecka w dniach
@@ -145,12 +235,12 @@ export function evaluateCat1SleepAssociations(
   const frequentWakingNights = selectRecentNights(logs).filter(
     (l) => l.nightWakings.length >= HIGH_NIGHT_WAKINGS_THRESHOLD,
   ).length;
-  const isHighAssoc = hasHighInterventionPreference(logs);
+  const isFrequentWaking = frequentWakingNights >= ASSOCIATION_MIN_NIGHTS;
 
   if (
-    effectiveAgeDays >= NEWBORN_MAX_AGE_DAYS &&
-    frequentWakingNights >= ASSOCIATION_MIN_NIGHTS &&
-    isHighAssoc
+    effectiveAgeDays >= CAT1_MIN_AGE_DAYS &&
+    isFrequentWaking &&
+    hasHighInterventionPreference(logs)
   ) {
     return {
       category: "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
@@ -158,11 +248,30 @@ export function evaluateCat1SleepAssociations(
       severity: "high",
       confidenceScore: 0.85,
       isTriggered: true,
-      title: "Silne asocjacje zasypiania i częste wybudzenia nocne",
+      title: "Częste pobudki i usypianie z dużą pomocą",
       explanation:
-        "Dziecko budzi się wielokrotnie w nocy i potrzebuje intensywnej pomocy, aby przejść między cyklami snu.",
+        "Dziecko budzi się kilka razy w nocy i za każdym razem potrzebuje dużej pomocy, żeby znów zasnąć. Taki wzorzec często oznacza, że zasypia przy karmieniu lub bujaniu i szuka go przy każdym wybudzeniu.",
       clinicalAction:
-        "Stopniowe obniżanie drabiny interwencji: odkładanie sennego, ale jeszcze czuwającego malucha.",
+        "Stopniowo zmniejszaj pomoc przy zasypianiu: odkładaj dziecko senne, ale jeszcze nieśpiące.",
+    };
+  }
+
+  if (
+    effectiveAgeDays >= CAT1_INFO_MIN_AGE_DAYS &&
+    effectiveAgeDays < CAT1_MIN_AGE_DAYS &&
+    isFrequentWaking
+  ) {
+    return {
+      category: "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
+      diagnosisCode: DIAGNOSIS_CODES.CAT1_AGE_NORMAL,
+      severity: "info",
+      confidenceScore: 0.8,
+      isTriggered: true,
+      title: "Częste pobudki w tym wieku to jeszcze norma",
+      explanation:
+        "Między 4. a 6. miesiącem wiele dzieci budzi się kilka razy w nocy. To jeszcze nie jest wzorzec do zmiany.",
+      clinicalAction:
+        "Odpowiadaj na potrzeby dziecka. Jeśli pobudek wciąż będzie dużo po 6. miesiącu, warto przyjrzeć się sposobom usypiania.",
     };
   }
 
@@ -172,30 +281,28 @@ export function evaluateCat1SleepAssociations(
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
-    title: "Prawidłowa konsolidacja snu nocnego",
-    explanation: "Liczba nocnych wybudzeń mieści się w fizjologicznej normie dla wieku.",
+    title: "Noce bez wyraźnego problemu z pobudkami",
+    explanation: "Liczba nocnych pobudek mieści się w zwykłym zakresie dla wieku.",
     clinicalAction: "Utrzymuj dotychczasową rutynę wyciszającą przed snem.",
   };
 }
 
 /**
- * Oblicza średni czas latencji zasypiania wieczornego w minutach.
+ * Dominujący zapisany nastrój przy usypianiu na noc (płacz vs spokój); brak = brak danych.
  *
- * @param {readonly SleepLog[]} logs - Dzienniki snu
- * @returns {number} Średnia latencja zasypiania
+ * @param {readonly SleepLog[]} nightLogs - Noce
+ * @returns {SleepMood | undefined} „crying”, „easy” albo undefined przy remisie lub braku danych
  */
-function calculateAverageBedtimeLatency(logs: readonly SleepLog[]): number {
-  const nightLogs = logs.filter((l) => l.type === "night" && l.fellAsleepAt && l.putDownAt);
-  if (nightLogs.length === 0) return 0;
-  const totalMinutes = nightLogs.reduce((sum, item) => {
-    const latencyMs = new Date(item.fellAsleepAt).getTime() - new Date(item.putDownAt).getTime();
-    return sum + Math.max(0, latencyMs / MILLISECONDS_PER_MINUTE);
-  }, 0);
-  return Math.round(totalMinutes / nightLogs.length);
+function resolveDominantBedtimeMood(nightLogs: readonly SleepLog[]): SleepMood | undefined {
+  const crying = nightLogs.filter((l) => l.mood === "crying").length;
+  const easy = nightLogs.filter((l) => l.mood === "easy").length;
+  if (crying > easy) return "crying";
+  if (easy > crying) return "easy";
+  return undefined;
 }
 
 /**
- * Tworzy wynik diagnozy dla oporu przed snem z przemęczenia (kortyzol).
+ * Tworzy wynik dla przemęczenia wieczornego.
  *
  * @returns {DiagnosticTreeResult} Wynik diagnozy overtired
  */
@@ -206,16 +313,17 @@ function buildOvertiredResistanceResult(): DiagnosticTreeResult {
     severity: "medium",
     confidenceScore: 0.8,
     isTriggered: true,
-    title: "Przemęczenie wieczorne (Wyrzut kortyzolu)",
+    title: "Wieczorne zasypianie z płaczem przy zmęczeniu",
     explanation:
-      "Dziecko zasypia w płaczu z powodu przekroczenia okna czuwania i podwyższonego poziomu kortyzolu.",
-    clinicalAction: "Skróć ostatnie okno czuwania o 15-20 minut przed snem nocnym.",
-    algorithmOverride: { wakeWindowOffsetMinutes: -20 },
+      "Dziecko długo zasypia i płacze, a ostatnie dni były krótsze w sen. Przemęczone dziecko często trudniej zasypia.",
+    clinicalAction:
+      "Połóż dziecko na noc 20–30 minut wcześniej przez kilka najbliższych wieczorów.",
+    algorithmOverride: { wakeWindowOffsetMinutes: -OVERTIRED_BEDTIME_ADVANCE_MINUTES },
   };
 }
 
 /**
- * Tworzy wynik diagnozy dla oporu przed snem z niedomęczenia (Bedtime Fading).
+ * Tworzy wynik dla niedomęczenia wieczornego (bedtime fading).
  *
  * @returns {DiagnosticTreeResult} Wynik diagnozy undertired
  */
@@ -224,19 +332,26 @@ function buildUndertiredResistanceResult(): DiagnosticTreeResult {
     category: "CAT2_BEDTIME_RESISTANCE_LATENCY",
     diagnosisCode: DIAGNOSIS_CODES.CAT2_UNDERTIRED,
     severity: "medium",
-    confidenceScore: 0.85,
+    confidenceScore: 0.8,
     isTriggered: true,
-    title: "Niedomęczenie wieczorne (Technika Bedtime Fading)",
+    title: "Długie, spokojne zasypianie wieczorem",
     explanation:
-      "Dziecko spędza ponad 30 minut na próbach uśpienia bez silnego płaczu, kładzione w Strefie Zakazanej (WMZ).",
+      "Dziecko zasypia ponad 30 minut, ale bez płaczu. Taki wzorzec często oznacza, że o tej porze nie jest jeszcze wystarczająco zmęczone.",
     clinicalAction:
-      "Przesuń tymczasowo porę snu o 20 minut później, aż dziecko zacznie zasypiać w <15 minut.",
-    algorithmOverride: { bedtimeFadingMinutes: BEDTIME_FADING_STEP_MINUTES },
+      "Przesuwaj porę kładzenia o 15 minut później co 3 dni, aż dziecko zacznie zasypiać w około 15 minut.",
+    algorithmOverride: {
+      bedtimeFadingMinutes: BEDTIME_FADING_STEP_MINUTES,
+      shiftEveryDays: BEDTIME_FADING_INTERVAL_DAYS,
+    },
   };
 }
 
 /**
- * Ocenia kategorię CAT2: Opór przed snem i długa latencja zasypiania (Bedtime Fading).
+ * Ocenia kategorię CAT2: Opór przed snem i długa latencja zasypiania.
+ *
+ * @description
+ * Przemęczenie (spec. v2.0): latencja >20 min + przewaga płaczu + dług snu.
+ * Niedomęczenie: latencja ≥30 min przy przewadze spokojnego nastroju → bedtime fading.
  *
  * @param {readonly SleepLog[]} logs - Dzienniki snu
  * @param {number} chronicDebtMinutes - Chroniczny dług senny
@@ -246,24 +361,30 @@ export function evaluateCat2BedtimeResistance(
   logs: readonly SleepLog[],
   chronicDebtMinutes: number,
 ): DiagnosticTreeResult {
-  const averageLatency = calculateAverageBedtimeLatency(logs);
-  const nightLogs = logs.filter((l) => l.type === "night");
-  const isCrying = nightLogs.some((l) => l.mood === "crying");
-  const isCalm = nightLogs.some((l) => l.mood === "easy");
+  const nightLogs = logs.filter((l) => l.type === "night" && l.fellAsleepAt && l.putDownAt);
+  const averageLatency = average(nightLogs.map(latencyMinutes));
+  // Brak zapisanego nastroju to brak danych, nie „spokój”
+  const mood = resolveDominantBedtimeMood(nightLogs);
+
+  if (
+    averageLatency > OVERTIRED_LATENCY_THRESHOLD_MINUTES &&
+    mood === "crying" &&
+    chronicDebtMinutes > OVERTIRED_DEBT_THRESHOLD_MINUTES
+  ) {
+    return buildOvertiredResistanceResult();
+  }
 
   if (averageLatency >= BEDTIME_LATENCY_THRESHOLD_MINUTES) {
-    if (isCrying || chronicDebtMinutes > 45) return buildOvertiredResistanceResult();
-    // Niedomęczenie tylko przy zapisanym spokojnym nastroju — brak danych to nie „spokój”
-    if (isCalm) return buildUndertiredResistanceResult();
+    if (mood === "easy") return buildUndertiredResistanceResult();
     return {
       category: "CAT2_BEDTIME_RESISTANCE_LATENCY",
       diagnosisCode: DIAGNOSIS_CODES.CAT2_UNCLEAR,
       severity: "info",
       confidenceScore: 0.5,
       isTriggered: false,
-      title: "Długie zasypianie bez informacji o nastroju",
+      title: "Długie zasypianie bez jasnej przyczyny",
       explanation:
-        "Zasypianie trwa ponad 30 minut, ale bez zapisanego nastroju nie da się odróżnić przemęczenia od niedomęczenia.",
+        "Zasypianie trwa ponad 30 minut, ale z zapisanych danych nie da się odróżnić zmęczenia od niedomęczenia.",
       clinicalAction: "Zapisuj nastrój przy usypianiu przez kilka wieczorów.",
     };
   }
@@ -274,14 +395,14 @@ export function evaluateCat2BedtimeResistance(
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
-    title: "Prawidłowa latencja zasypiania wieczornego",
-    explanation: "Dziecko zasypia w optymalnym oknie czasowym bez nadmiernego oporu.",
+    title: "Zasypianie wieczorem bez trudności",
+    explanation: "Dziecko zasypia w rozsądnym czasie, bez dużego oporu.",
     clinicalAction: "Kontynuuj stałe godziny i rytuał przedsenny.",
   };
 }
 
 /**
- * Wykrywa powtarzalne Split Nights (wybudzenie >= 60 min w ≥3 z ostatnich 7 nocy).
+ * Wykrywa powtarzalne rozbite noce (wybudzenie >= 60 min w ≥3 z ostatnich 7 nocy).
  *
  * @param {readonly SleepLog[]} logs - Dzienniki snu
  * @returns {boolean} True jeśli wzorzec się powtarza
@@ -294,66 +415,97 @@ function detectSplitNight(logs: readonly SleepLog[]): boolean {
 }
 
 /**
- * Wykrywa powtarzalne wczesne pobudki (04:00–05:30 czasu dziecka w ≥3 z ostatnich 7 nocy).
+ * Wybiera noce z wczesną pobudką (04:00–05:30 czasu dziecka) spośród ostatnich 7 nocy.
  *
  * @param {readonly SleepLog[]} logs - Dzienniki snu
  * @param {string} timeZone - Strefa IANA dziecka
- * @returns {boolean} True jeśli wzorzec się powtarza
+ * @returns {readonly SleepLog[]} Noce z wczesną pobudką
  */
-function detectEarlyMorningWaking(logs: readonly SleepLog[], timeZone: string): boolean {
-  const earlyNights = selectRecentNights(logs).filter((l) => {
+function selectEarlyWakingNights(logs: readonly SleepLog[], timeZone: string): readonly SleepLog[] {
+  return selectRecentNights(logs).filter((l) => {
     if (!l.wokeUpAt) return false;
     const wakeMin = getMinutesFromMidnightInTimeZone(l.wokeUpAt, timeZone);
     return wakeMin >= EARLY_WAKE_START_MINUTES && wakeMin <= EARLY_WAKE_END_MINUTES;
   });
-  return earlyNights.length >= REPEAT_MIN_NIGHTS;
 }
 
 /**
- * Tworzy wynik wczesnej pobudki porannej w oparciu o stan długu sennego.
+ * Sen nocny w minutach: od zaśnięcia do pobudki, bez czasu nocnych wybudzeń.
  *
- * @param {number} chronicDebtMinutes - Chroniczny dług senny dziecka
+ * @param {SleepLog} log - Noc
+ * @returns {number} Minuty snu nocnego
+ */
+function nightSleepMinutes(log: SleepLog): number {
+  if (!log.wokeUpAt || !log.fellAsleepAt) return 0;
+  const spanMin = (toMs(log.wokeUpAt) - toMs(log.fellAsleepAt)) / MILLISECONDS_PER_MINUTE;
+  const awakeMin = log.nightWakings.reduce((sum, w) => sum + w.estimatedDurationMin, 0);
+  return Math.max(0, spanMin - awakeMin);
+}
+
+/**
+ * Wynik wczesnych pobudek wg długości nocy (spec. v2.0, protokół Flynn-Evans).
+ *
+ * @param {number} averageNightMin - Średni sen nocny w nocach z wczesną pobudką
  * @returns {DiagnosticTreeResult} Wynik diagnozy porannej
  */
-function resolveEarlyMorningWakeResult(chronicDebtMinutes: number): DiagnosticTreeResult {
-  if (chronicDebtMinutes > 60) {
+function resolveEarlyMorningWakeResult(averageNightMin: number): DiagnosticTreeResult {
+  if (averageNightMin >= EARLY_WAKE_LONG_NIGHT_MINUTES) {
     return {
       category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
-      diagnosisCode: DIAGNOSIS_CODES.CAT2_OVERTIRED,
+      diagnosisCode: DIAGNOSIS_CODES.CAT3_EARLY_WAKING,
       severity: "medium",
       confidenceScore: 0.75,
       isTriggered: true,
-      title: "Wczesna pobudka z przemęczenia (Kortyzol o świcie)",
+      title: "Wczesne pobudki po długiej nocy",
       explanation:
-        "Chroniczny dług senny powoduje przedwczesny wyrzut hormonów wybudzających nad ranem.",
-      clinicalAction: "Przyspiesz wieczorny sen o 20 minut, by zapobiec porannemu wybudzeniu.",
-      algorithmOverride: { wakeWindowOffsetMinutes: -20 },
+        "Dziecko śpi w nocy wystarczająco długo, ale budzi się bardzo wcześnie. Taki wzorzec często oznacza, że cały rytm dnia przesunął się na wcześniej.",
+      clinicalAction:
+        "Przesuwaj porę kładzenia na noc o 15 minut później co 2 dni, aż pobudka wypadnie o docelowej godzinie. Wieczorem daj więcej światła, rano trzymaj sypialnię zaciemnioną.",
+      algorithmOverride: {
+        bedtimeFadingMinutes: PHASE_SHIFT_STEP_MINUTES,
+        shiftEveryDays: PHASE_SHIFT_INTERVAL_DAYS,
+      },
+    };
+  }
+  if (averageNightMin < EARLY_WAKE_SHORT_NIGHT_MINUTES) {
+    return {
+      category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
+      diagnosisCode: DIAGNOSIS_CODES.CAT3_EARLY_WAKING_SHORT_NIGHT,
+      severity: "medium",
+      confidenceScore: 0.75,
+      isTriggered: true,
+      title: "Wczesne pobudki po krótkiej nocy",
+      explanation:
+        "Noc jest krótka, a pobudka wypada bardzo wcześnie. Taki wzorzec częściej oznacza nawyk lub zmęczenie niż przesunięty rytm dnia.",
+      clinicalAction:
+        "Do docelowej godziny pobudki traktuj czas jak noc: ciemno, cicho, bez zabawy. Dzień zaczynaj o docelowej godzinie i od niej licz pierwszą drzemkę.",
     };
   }
   return {
     category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
-    diagnosisCode: DIAGNOSIS_CODES.CAT3_EARLY_WAKING,
-    severity: "medium",
-    confidenceScore: 0.8,
+    diagnosisCode: DIAGNOSIS_CODES.CAT3_EARLY_WAKING_UNCLEAR,
+    severity: "low",
+    confidenceScore: 0.6,
     isTriggered: true,
-    title: "Wyprzedzenie fazy dobowej (Wczesna pobudka)",
-    explanation: "Zegar biologiczny dziecka przestawił się na zbyt wczesny świt.",
+    title: "Powtarzające się wczesne pobudki",
+    explanation: "Dziecko kilka razy w tygodniu budzi się między 4:00 a 5:30.",
     clinicalAction:
-      "Przesuń porę wieczornego snu o 15-30 minut później i zaciemnij sypialnię roletami blackout.",
+      "Trzymaj sypialnię zaciemnioną do docelowej godziny pobudki i nie kładź dziecka na pierwszą drzemkę zbyt wcześnie.",
   };
 }
 
 /**
- * Ocenia wczesne pobudki poranne w drzewie Flynn-Evans (głód, wyprzedzenie fazy lub kortyzol).
+ * Ocenia wczesne pobudki poranne (spec. v2.0 i protokół E. Flynn-Evans z Baby Sleep Science —
+ * opinia ekspercka, nie badanie).
  *
  * @param {DiagnosticEvaluationInput} input - Komplet danych diagnostycznych
  * @returns {DiagnosticTreeResult} Wynik diagnozy porannej
  */
-function evaluateFlynnEvansTree(input: DiagnosticEvaluationInput): DiagnosticTreeResult {
-  const { currentMetrics, recentSleepLogs } = input;
+function evaluateEarlyWakingTree(input: DiagnosticEvaluationInput): DiagnosticTreeResult {
+  const earlyNights = selectEarlyWakingNights(input.recentSleepLogs, input.timeZone);
 
-  if (detectEarlyMorningWaking(recentSleepLogs, input.timeZone)) {
-    return resolveEarlyMorningWakeResult(currentMetrics.chronicSleepDebtMin);
+  if (earlyNights.length >= REPEAT_MIN_NIGHTS) {
+    return resolveEarlyMorningWakeResult(average(earlyNights.map(nightSleepMinutes)));
   }
 
   return {
@@ -362,14 +514,14 @@ function evaluateFlynnEvansTree(input: DiagnosticEvaluationInput): DiagnosticTre
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
-    title: "Prawidłowa poranna pobudka",
-    explanation: "Poranny czas pobudki jest zgodny z fizjologiczną normą okołodobową.",
-    clinicalAction: "Utrzymuj stabilną poranną kotwicę czasową.",
+    title: "Poranne pobudki o zwykłej porze",
+    explanation: "Poranne pobudki nie wypadają regularnie przed 5:30.",
+    clinicalAction: "Utrzymuj stałą godzinę porannej pobudki.",
   };
 }
 
 /**
- * Ocenia kategorię CAT3: Wczesne pobudki poranne i Split Nights.
+ * Ocenia kategorię CAT3: Wczesne pobudki poranne i rozbite noce.
  *
  * @param {DiagnosticEvaluationInput} input - Dane diagnostyczne dziecka
  * @returns {DiagnosticTreeResult} Wynik diagnozy CAT3
@@ -382,18 +534,17 @@ export function evaluateCat3EarlyWakingAndSplitNight(
       category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
       diagnosisCode: DIAGNOSIS_CODES.CAT3_SPLIT_NIGHT,
       severity: "high",
-      confidenceScore: 0.9,
+      confidenceScore: 0.85,
       isTriggered: true,
-      title: "Rozbita noc (Split Night) – wyczerpane ciśnienie snu",
+      title: "Rozbite noce z długim czuwaniem",
       explanation:
-        "Dziecko czuwa w nocy przez ponad godzinę z powodu zbyt dużej ilości snu w dzień.",
-      clinicalAction:
-        "Wprowadź limit drzemek w dzień (Nap Capping) i wydłuż ostatnie okno czuwania.",
+        "Dziecko kilka razy w tygodniu czuwa w nocy ponad godzinę. Taki wzorzec często oznacza za dużo snu w ciągu dnia.",
+      clinicalAction: "Skróć łączny sen w dzień i wydłuż ostatnie okno czuwania przed nocą.",
       algorithmOverride: { maxDaytimeSleepCapMinutes: -30 },
     };
   }
 
-  return evaluateFlynnEvansTree(input);
+  return evaluateEarlyWakingTree(input);
 }
 
 /**
@@ -410,9 +561,8 @@ function resolveShortNapResult(effectiveAgeDays: number): DiagnosticTreeResult {
       severity: "info",
       confidenceScore: 0.85,
       isTriggered: true,
-      title: "Rozwojowe krótkie drzemki (1 cykl snu)",
-      explanation:
-        "Pojedyncze cykle 30-45 minut są fizjologiczną normą u dzieci poniżej 6 miesięcy.",
+      title: "Krótkie drzemki typowe dla wieku",
+      explanation: "Drzemki po 30–45 minut są częste i normalne u dzieci poniżej 6 miesięcy.",
       clinicalAction: "Nie przedłużaj drzemek na siłę; dostosuj długość kolejnego okna czuwania.",
     };
   }
@@ -422,11 +572,127 @@ function resolveShortNapResult(effectiveAgeDays: number): DiagnosticTreeResult {
     severity: "medium",
     confidenceScore: 0.8,
     isTriggered: true,
-    title: "Trudność z samodzielnym łączeniem cykli w dzień",
+    title: "Krótkie drzemki w ciągu dnia",
     explanation:
-      "Dziecko wybudza się po 40 minutach i potrzebuje wsparcia w przejściu w kolejny cykl.",
+      "Dziecko często budzi się po około 40 minutach drzemki. Taki wzorzec często oznacza, że potrzebuje pomocy, żeby przejść w kolejny cykl snu.",
     clinicalAction:
-      "Zastosuj technikę Wake-to-Sleep lub delikatne podanie smoczka/dotyk w 35. minucie drzemki.",
+      "Spróbuj delikatnie pomóc tuż przed końcem pierwszego cyklu (smoczek, dotyk około 35. minuty drzemki).",
+  };
+}
+
+/** Dzień z drzemkami i sygnałem gotowości do mniejszej liczby drzemek. */
+interface NapDaySignal {
+  readonly date: string;
+  readonly napCount: number;
+  readonly hasResistance: boolean;
+}
+
+/**
+ * Zbiera dla każdej doby fizjologicznej liczbę drzemek i sygnał oporu:
+ * długie zasypianie na ostatnią drzemkę albo długie zasypianie na noc tej doby.
+ *
+ * @param {readonly SleepLog[]} logs - Logi snu
+ * @returns {readonly NapDaySignal[]} Doby od najnowszej
+ */
+function collectNapDaySignals(logs: readonly SleepLog[]): readonly NapDaySignal[] {
+  const naps = logs.filter((l) => l.type === "nap" && l.status === "completed");
+  const dates = [...new Set(naps.map((n) => n.physiologicalDate))].toSorted().reverse();
+  return dates.map((date) => {
+    const dayNaps = naps
+      .filter((n) => n.physiologicalDate === date)
+      .toSorted((a, b) => toMs(a.putDownAt) - toMs(b.putDownAt));
+    const lastNap = dayNaps[dayNaps.length - 1];
+    const night = logs.find((l) => l.type === "night" && l.physiologicalDate === date);
+    const hasResistance =
+      (lastNap !== undefined && latencyMinutes(lastNap) >= NAP_RESISTANCE_LATENCY_MINUTES) ||
+      (night !== undefined && latencyMinutes(night) >= BEDTIME_LATENCY_THRESHOLD_MINUTES);
+    return { date, napCount: dayNaps.length, hasResistance };
+  });
+}
+
+/**
+ * Sprawdza, czy daty (od najnowszej) to kolejne dni kalendarzowe.
+ *
+ * @param {readonly string[]} dates - Daty YYYY-MM-DD od najnowszej
+ * @returns {boolean} True dla dni z rzędu
+ */
+function areConsecutiveDates(dates: readonly string[]): boolean {
+  return dates.every((date, index) => {
+    const previous = dates[index - 1];
+    if (previous === undefined) return true;
+    return toMs(`${previous}T00:00:00Z`) - toMs(`${date}T00:00:00Z`) === MILLISECONDS_PER_DAY;
+  });
+}
+
+/**
+ * Wykrywa gotowość do przejścia drzemkowego: sygnał oporu przez ≥5 dni z rzędu
+ * w wieku typowym dla 3→2 lub 2→1.
+ *
+ * @param {readonly SleepLog[]} logs - Logi snu
+ * @param {number} effectiveAgeDays - Wiek efektywny
+ * @returns {"3to2" | "2to1" | null} Rodzaj przejścia lub null
+ */
+function detectNapTransition(
+  logs: readonly SleepLog[],
+  effectiveAgeDays: number,
+): "3to2" | "2to1" | null {
+  const days = collectNapDaySignals(logs).slice(0, NAP_TRANSITION_MIN_DAYS);
+  if (days.length < NAP_TRANSITION_MIN_DAYS) return null;
+  if (!areConsecutiveDates(days.map((d) => d.date))) return null;
+  if (!days.every((d) => d.hasResistance)) return null;
+
+  const counts = days.map((d) => d.napCount).toSorted((a, b) => a - b);
+  const typicalNapCount = counts[Math.floor(counts.length / 2)] ?? 0;
+  if (
+    typicalNapCount >= 3 &&
+    effectiveAgeDays >= THREE_TO_TWO_MIN_AGE_DAYS &&
+    effectiveAgeDays <= THREE_TO_TWO_MAX_AGE_DAYS
+  ) {
+    return "3to2";
+  }
+  if (
+    typicalNapCount === 2 &&
+    effectiveAgeDays >= TWO_TO_ONE_MIN_AGE_DAYS &&
+    effectiveAgeDays <= TWO_TO_ONE_MAX_AGE_DAYS
+  ) {
+    return "2to1";
+  }
+  return null;
+}
+
+/**
+ * Tworzy wynik gotowości do przejścia drzemkowego.
+ *
+ * @param {"3to2" | "2to1"} transition - Rodzaj przejścia
+ * @returns {DiagnosticTreeResult} Wynik NAP_TRANSITION_READY
+ */
+function buildNapTransitionResult(transition: "3to2" | "2to1"): DiagnosticTreeResult {
+  const base = {
+    category: "CAT4_SHORT_NAPS_TRANSITIONS",
+    diagnosisCode: DIAGNOSIS_CODES.CAT4_TRANSITION_READY,
+    severity: "medium",
+    confidenceScore: 0.8,
+    isTriggered: true,
+    explanation:
+      "Od co najmniej 5 dni z rzędu dziecko długo zasypia na ostatnią drzemkę albo na noc. Taki wzorzec często oznacza gotowość do mniejszej liczby drzemek.",
+  } as const;
+  if (transition === "2to1") {
+    return {
+      ...base,
+      title: "Gotowość do przejścia na jedną drzemkę",
+      clinicalAction:
+        "Przesuwaj poranną drzemkę o 15 minut później co 3 dni, aż zacznie się około 12:00–12:30. W okresie przejściowym kładź dziecko na noc nieco wcześniej.",
+      algorithmOverride: {
+        wakeWindowOffsetMinutes: NAP_SHIFT_STEP_MINUTES,
+        shiftEveryDays: NAP_SHIFT_INTERVAL_DAYS,
+      },
+    };
+  }
+  return {
+    ...base,
+    title: "Gotowość do przejścia z trzech na dwie drzemki",
+    clinicalAction:
+      "Zrezygnuj z trzeciej drzemki i wydłuż okna czuwania. W okresie przejściowym kładź dziecko na noc nieco wcześniej.",
   };
 }
 
@@ -439,18 +705,20 @@ function resolveShortNapResult(effectiveAgeDays: number): DiagnosticTreeResult {
 export function evaluateCat4ShortNapsAndTransitions(
   input: DiagnosticEvaluationInput,
 ): DiagnosticTreeResult {
+  const { effectiveAgeDays } = input.currentMetrics;
+  const transition = detectNapTransition(input.recentSleepLogs, effectiveAgeDays);
+  if (transition) return buildNapTransitionResult(transition);
+
   const naps = input.recentSleepLogs.filter((l) => l.type === "nap" && l.status === "completed");
   const shortNaps = naps.filter((n) => {
     if (!n.wokeUpAt || !n.fellAsleepAt) return false;
-    const dur =
-      (new Date(n.wokeUpAt).getTime() - new Date(n.fellAsleepAt).getTime()) /
-      MILLISECONDS_PER_MINUTE;
+    const dur = (toMs(n.wokeUpAt) - toMs(n.fellAsleepAt)) / MILLISECONDS_PER_MINUTE;
     return dur <= SHORT_NAP_THRESHOLD_MINUTES;
   });
 
   const isShortNapDominant = naps.length >= 3 && shortNaps.length / naps.length >= 0.5;
   if (isShortNapDominant) {
-    return resolveShortNapResult(input.currentMetrics.effectiveAgeDays);
+    return resolveShortNapResult(effectiveAgeDays);
   }
 
   return {
@@ -459,84 +727,198 @@ export function evaluateCat4ShortNapsAndTransitions(
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
-    title: "Stabilna struktura drzemek dziennych",
-    explanation: "Długości drzemek i łączenie cykli są prawidłowe.",
+    title: "Stabilne drzemki w ciągu dnia",
+    explanation: "Długość drzemek nie wskazuje na problem.",
     clinicalAction: "Kontynuuj dotychczasowy rytm dnia.",
   };
 }
 
 /**
- * Sprawdza, czy dziecko znajduje się w oknie Extinction Burst (14-28 dni od planu).
+ * Noce zakończone od startu planu (najnowsze pierwsze).
  *
- * @param {string | null | undefined} planStartIso - Data wdrożenia planu w ISO
- * @param {string} nowIso - Czas odniesienia (funkcja czysta, bez Date.now())
- * @returns {boolean} True jeśli mieści się w oknie 14-28 dni
+ * @param {readonly SleepLog[]} logs - Logi snu
+ * @param {string | null | undefined} planStartIso - Start planu
+ * @returns {readonly SleepLog[]} Noce planu
  */
-function isInsideExtinctionBurstWindow(
+function selectPlanNights(
+  logs: readonly SleepLog[],
   planStartIso: string | null | undefined,
-  nowIso: string,
-): boolean {
-  if (!planStartIso) return false;
-  const startMs = new Date(planStartIso).getTime();
-  const diffDays = Math.floor((new Date(nowIso).getTime() - startMs) / MILLISECONDS_PER_DAY);
-  return diffDays >= EXTINCTION_BURST_MIN_DAYS && diffDays <= EXTINCTION_BURST_MAX_DAYS;
+): readonly SleepLog[] {
+  if (!planStartIso) return [];
+  const startMs = toMs(planStartIso);
+  if (Number.isNaN(startMs)) return [];
+  return selectRecentNights(logs, Number.POSITIVE_INFINITY).filter(
+    (l) => toMs(l.putDownAt) >= startMs,
+  );
 }
 
 /**
- * Sprawdza obecność infekcji, ząbkowania lub trybu chorobowego.
+ * Czy noc ma oznaki protestu: pobudki, płacz albo długie zasypianie.
+ *
+ * @param {SleepLog} night - Noc
+ * @returns {boolean} True przy oznakach protestu
+ */
+function hasProtestSigns(night: SleepLog): boolean {
+  return (
+    night.nightWakings.length > 0 ||
+    night.mood === "crying" ||
+    latencyMinutes(night) >= OVERTIRED_LATENCY_THRESHOLD_MINUTES
+  );
+}
+
+/**
+ * Wybuch wygaszania: noce 2–5 od startu planu z oznakami protestu.
+ *
+ * @param {readonly SleepLog[]} planNights - Noce planu (najnowsze pierwsze)
+ * @returns {boolean} True w trakcie wybuchu
+ */
+function isExtinctionBurst(planNights: readonly SleepLog[]): boolean {
+  const latest = planNights[0];
+  return (
+    latest !== undefined &&
+    planNights.length >= EXTINCTION_BURST_FIRST_NIGHT &&
+    planNights.length <= EXTINCTION_BURST_LAST_NIGHT &&
+    hasProtestSigns(latest)
+  );
+}
+
+/**
+ * Wzrost pobudek: ostatnie noce mają średnio o ≥1 pobudkę więcej niż wcześniejsze.
+ *
+ * @param {readonly SleepLog[]} nightsNewestFirst - Noce od najnowszej
+ * @returns {boolean} True przy wyraźnym wzroście
+ */
+function hasWakingIncrease(nightsNewestFirst: readonly SleepLog[]): boolean {
+  const recent = nightsNewestFirst.slice(0, WAKING_INCREASE_RECENT_NIGHTS);
+  const earlier = nightsNewestFirst.slice(WAKING_INCREASE_RECENT_NIGHTS);
+  if (recent.length < WAKING_INCREASE_RECENT_NIGHTS) return false;
+  if (earlier.length < WAKING_INCREASE_MIN_EARLIER_NIGHTS) return false;
+  const recentAvg = average(recent.map((n) => n.nightWakings.length));
+  const earlierAvg = average(earlier.map((n) => n.nightWakings.length));
+  return (
+    recentAvg >= WAKING_INCREASE_MIN_AVERAGE && recentAvg - earlierAvg >= WAKING_INCREASE_MIN_DELTA
+  );
+}
+
+/**
+ * Spontaniczny nawrót: po ≥7 nocach planu ostatnie noce wyraźnie gorsze od poprzednich.
+ *
+ * @param {readonly SleepLog[]} planNights - Noce planu (najnowsze pierwsze)
+ * @returns {boolean} True przy nawrocie
+ */
+function isSpontaneousRelapse(planNights: readonly SleepLog[]): boolean {
+  if (planNights.length < SPONTANEOUS_RELAPSE_MIN_NIGHTS) return false;
+  const recent = planNights.slice(0, 2);
+  const earlier = planNights.slice(2, SPONTANEOUS_RELAPSE_MIN_NIGHTS);
+  const recentAvg = average(recent.map((n) => n.nightWakings.length));
+  const earlierAvg = average(earlier.map((n) => n.nightWakings.length));
+  return (
+    recentAvg >= WAKING_INCREASE_MIN_AVERAGE && recentAvg - earlierAvg >= WAKING_INCREASE_MIN_DELTA
+  );
+}
+
+/**
+ * Sprawdza chorobę (tagi gorączka, infekcja, szczepienie lub tryb choroby) i ząbkowanie.
+ * Ząbkowanie nie włącza trybu choroby (Azevedo 2015).
  *
  * @param {DiagnosticEvaluationInput} input - Dane diagnostyczne dziecka
- * @returns {DiagnosticTreeResult | null} Wynik diagnozy infekcji lub null
+ * @returns {DiagnosticTreeResult | null} Wynik choroby lub null
  */
-function checkIllnessOrTeething(input: DiagnosticEvaluationInput): DiagnosticTreeResult | null {
+function checkIllness(input: DiagnosticEvaluationInput): DiagnosticTreeResult | null {
   const tags = input.todayContext?.tags ?? [];
-  const isIllOrTeething =
-    tags.some((t) => ["gorączka", "ząbkowanie", "infekcja_ucha"].includes(t)) ||
+  const isIll =
+    tags.some((t) => ILLNESS_DAY_TAGS.includes(t)) ||
     input.child.activeDayMode === "illness_regression";
-
-  if (!isIllOrTeething) return null;
+  if (!isIll) return null;
 
   return {
     category: "CAT5_REGRESSION_ILLNESS_CRISIS",
-    diagnosisCode: DIAGNOSIS_CODES.CAT5_ILLNESS_OR_TEETHING,
+    diagnosisCode: DIAGNOSIS_CODES.CAT5_ILLNESS,
     severity: "medium",
     confidenceScore: 0.95,
     isTriggered: true,
-    title: "Okres infekcji, bólu lub ząbkowania",
-    explanation: "Dolegliwości fizyczne zakłócają sen dziecka.",
-    clinicalAction: "Skróć okna czuwania o 20% i zawieś jakiekolwiek zmiany w nawykach snu.",
+    title: "Choroba zaburza sen",
+    explanation: "W czasie choroby sen często się pogarsza i to jest w porządku.",
+    clinicalAction:
+      "Skróć okna czuwania i wstrzymaj zmiany w nawykach snu. Do planu wróć 3–5 dni po ustąpieniu objawów.",
     algorithmOverride: { recommendedDayMode: "illness_regression" },
   };
 }
 
 /**
- * Sprawdza wystąpienie regresji 4. miesiąca życia.
+ * Tworzy wynik dla ząbkowania (bez trybu choroby).
+ *
+ * @returns {DiagnosticTreeResult} Wynik TEETHING_DISCOMFORT
+ */
+function buildTeethingResult(): DiagnosticTreeResult {
+  return {
+    category: "CAT5_REGRESSION_ILLNESS_CRISIS",
+    diagnosisCode: DIAGNOSIS_CODES.CAT5_TEETHING,
+    severity: "low",
+    confidenceScore: 0.7,
+    isTriggered: true,
+    title: "Ząbkowanie",
+    explanation:
+      "Ząbkowanie pogarsza sen tylko u części dzieci i zwykle przez kilka dni. Wysoka gorączka nie jest objawem ząbkowania.",
+    clinicalAction:
+      "Utrzymaj zwykły rytm i rytuał, pocieszaj dziecko, gdy tego potrzebuje. Przy gorączce skontaktuj się z lekarzem i oznacz chorobę.",
+  };
+}
+
+/**
+ * Wynik dla wzrostu pobudek zależnie od wieku: zmiana snu ok. 4. mies. albo
+ * przejściowe regresje 8–10 i 18–24 mies.
  *
  * @param {DiagnosticEvaluationInput} input - Dane diagnostyczne dziecka
- * @returns {DiagnosticTreeResult | null} Wynik diagnozy regresji 4. miesiąca lub null
+ * @returns {DiagnosticTreeResult | null} Wynik regresji lub null
  */
-function checkFourMonthRegression(input: DiagnosticEvaluationInput): DiagnosticTreeResult | null {
-  const isFourMonthWindow =
-    input.currentMetrics.effectiveAgeDays >= FOUR_MONTH_MIN_DAYS &&
-    input.currentMetrics.effectiveAgeDays <= FOUR_MONTH_MAX_DAYS;
+function checkDevelopmentalRegression(
+  input: DiagnosticEvaluationInput,
+): DiagnosticTreeResult | null {
+  const age = input.currentMetrics.effectiveAgeDays;
+  const nights = selectRecentNights(input.recentSleepLogs, Number.POSITIVE_INFINITY);
+  if (!hasWakingIncrease(nights)) return null;
 
-  if (isFourMonthWindow && calculateAverageNightWakings(input.recentSleepLogs) >= 3) {
+  if (age >= FOUR_MONTH_CHANGE_MIN_DAYS && age <= FOUR_MONTH_CHANGE_MAX_DAYS) {
     return {
       category: "CAT5_REGRESSION_ILLNESS_CRISIS",
       diagnosisCode: DIAGNOSIS_CODES.CAT5_FOUR_MONTH,
-      severity: "high",
-      confidenceScore: 0.85,
+      severity: "medium",
+      confidenceScore: 0.7,
       isTriggered: true,
-      title: "Regresja snu 4. miesiąca (Przebudowa architektury)",
-      explanation: "Dojrzewanie faz snu NREM/REM skutkuje wybudzaniem po każdym cyklu.",
-      clinicalAction: "Wprowadź stałą sekwencję wyciszenia i unikaj tworzenia nowych asocjacji.",
+      title: "Zmiana snu w okolicach 4. miesiąca",
+      explanation:
+        "W tym wieku sen dojrzewa: cykle snu stają się podobne do dorosłych i między nimi łatwiej o wybudzenie. To trwała zmiana, a nie etap, który sam minie po kilku tygodniach.",
+      clinicalAction:
+        "Wprowadź stałą sekwencję wyciszenia i daj dziecku chwilę na samodzielny powrót do snu, zanim pomożesz.",
     };
   }
-  return null;
+
+  const isTransientBand =
+    (age >= REGRESSION_8_10_MIN_DAYS && age <= REGRESSION_8_10_MAX_DAYS) ||
+    (age >= REGRESSION_18_24_MIN_DAYS && age <= REGRESSION_18_24_MAX_DAYS);
+  if (!isTransientBand) return null;
+
+  return {
+    category: "CAT5_REGRESSION_ILLNESS_CRISIS",
+    diagnosisCode: DIAGNOSIS_CODES.CAT5_TRANSIENT_REGRESSION,
+    severity: "medium",
+    confidenceScore: 0.65,
+    isTriggered: true,
+    title: "Przejściowe pogorszenie snu",
+    explanation:
+      "W tym wieku pogorszenie snu często towarzyszy nowym umiejętnościom albo lękowi separacyjnemu i zwykle mija w 2–4 tygodnie.",
+    clinicalAction:
+      "Trzymaj stały rytm i rytuał. Jeśli pogorszenie trwa ponad miesiąc, porozmawiaj z lekarzem.",
+  };
 }
 
 /**
  * Ocenia kategorię CAT5: Regresje, kryzysy i skoki rozwojowe.
+ *
+ * @description
+ * Kolejność: choroba → wybuch wygaszania (noce 2–5 planu) → spontaniczny nawrót
+ * (po ≥7 nocach planu) → ząbkowanie → wzrost pobudek zależny od wieku.
  *
  * @param {DiagnosticEvaluationInput} input - Dane diagnostyczne dziecka
  * @returns {DiagnosticTreeResult} Wynik diagnozy CAT5
@@ -544,26 +926,43 @@ function checkFourMonthRegression(input: DiagnosticEvaluationInput): DiagnosticT
 export function evaluateCat5RegressionsAndCrisis(
   input: DiagnosticEvaluationInput,
 ): DiagnosticTreeResult {
-  const illnessResult = checkIllnessOrTeething(input);
+  const illnessResult = checkIllness(input);
   if (illnessResult) return illnessResult;
 
-  if (isInsideExtinctionBurstWindow(input.child.currentPlanStartDateIso, input.nowIso)) {
+  const planNights = selectPlanNights(input.recentSleepLogs, input.child.currentPlanStartDateIso);
+  if (isExtinctionBurst(planNights)) {
     return {
       category: "CAT5_REGRESSION_ILLNESS_CRISIS",
       diagnosisCode: DIAGNOSIS_CODES.CAT5_EXTINCTION_BURST,
-      severity: "high",
-      confidenceScore: 0.9,
+      severity: "medium",
+      confidenceScore: 0.8,
       isTriggered: true,
-      title: "Detekcja Extinction Burst (Szczyt wygaszania)",
+      title: "Chwilowo więcej protestu po zmianie nawyków",
       explanation:
-        "Nagły nawrót protestów w 14-28 dniu to fizjologiczna próba powrotu do starych nawyków.",
+        "Nasilenie płaczu lub pobudek w 2.–5. nocy po zmianie to częsty, przejściowy etap (tzw. wybuch wygaszania). Zwykle oznacza, że dziecko zauważyło zmianę.",
       clinicalAction:
-        "Zachowaj żelazną konsekwencję. Objawy ustąpią samoistnie w ciągu 48-72 godzin.",
+        "Jeśli plan jest dla Was w porządku, trzymaj się go konsekwentnie przez kolejne noce. Gdy dziecko wygląda na chore, wstrzymaj plan.",
     };
   }
 
-  const fourMonthResult = checkFourMonthRegression(input);
-  if (fourMonthResult) return fourMonthResult;
+  if (isSpontaneousRelapse(planNights)) {
+    return {
+      category: "CAT5_REGRESSION_ILLNESS_CRISIS",
+      diagnosisCode: DIAGNOSIS_CODES.CAT5_SPONTANEOUS_RELAPSE,
+      severity: "medium",
+      confidenceScore: 0.7,
+      isTriggered: true,
+      title: "Nawrót pobudek po okresie poprawy",
+      explanation:
+        "Powrót pobudek po kilku lepszych nocach zdarza się często, zwłaszcza po chorobie, podróży lub zmianie otoczenia. Zwykle szybko mija, jeśli reakcje dorosłych pozostają takie same.",
+      clinicalAction: "Reaguj tak samo jak w planie i nie wracaj do dawnych sposobów usypiania.",
+    };
+  }
+
+  if ((input.todayContext?.tags ?? []).includes(TEETHING_DAY_TAG)) return buildTeethingResult();
+
+  const regressionResult = checkDevelopmentalRegression(input);
+  if (regressionResult) return regressionResult;
 
   return {
     category: "CAT5_REGRESSION_ILLNESS_CRISIS",
@@ -571,31 +970,56 @@ export function evaluateCat5RegressionsAndCrisis(
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
-    title: "Stabilny etap rozwojowy",
-    explanation: "Brak cech ostrych regresji lub kryzysów w zachowaniu sennym.",
-    clinicalAction: "Kontynuuj bieżący plan pielęgnacji snu.",
+    title: "Stabilny okres",
+    explanation: "Nic nie wskazuje na nagłe pogorszenie snu.",
+    clinicalAction: "Kontynuuj bieżący rytm i plan.",
   };
 }
 
 /**
- * Ocenia kategorię CAT6: Noworodek (<16 tyg.) – ochrona kliniczna i sen aktywny.
+ * Liczy drzemki dłuższe niż 2 h w ostatnich 7 dobach.
+ *
+ * @param {readonly SleepLog[]} logs - Logi snu
+ * @returns {number} Liczba długich drzemek
+ */
+function countLongNewbornNaps(logs: readonly SleepLog[]): number {
+  const latestMs = Math.max(...logs.map((l) => toMs(l.putDownAt)));
+  const fromMs = latestMs - REPEAT_WINDOW_NIGHTS * MILLISECONDS_PER_DAY;
+  return logs.filter((l) => {
+    if (l.type !== "nap" || l.status !== "completed" || !l.wokeUpAt) return false;
+    if (toMs(l.putDownAt) < fromMs) return false;
+    const durationMin = (toMs(l.wokeUpAt) - toMs(l.fellAsleepAt)) / MILLISECONDS_PER_MINUTE;
+    return durationMin > NEWBORN_MAX_NAP_MINUTES;
+  }).length;
+}
+
+/**
+ * Ocenia kategorię CAT6: Noworodek (<16 tyg.) – ochrona i sen aktywny.
  *
  * @param {number} effectiveAgeDays - Wiek efektywny dziecka w dniach
+ * @param {readonly SleepLog[]} [logs=[]] - Logi snu (do wykrycia długich drzemek)
  * @returns {DiagnosticTreeResult} Wynik diagnozy CAT6
  */
-export function evaluateCat6NewbornCare(effectiveAgeDays: number): DiagnosticTreeResult {
+export function evaluateCat6NewbornCare(
+  effectiveAgeDays: number,
+  logs: readonly SleepLog[] = [],
+): DiagnosticTreeResult {
   if (effectiveAgeDays < NEWBORN_MAX_AGE_DAYS) {
+    const hasLongNaps = logs.length > 0 && countLongNewbornNaps(logs) >= NEWBORN_LONG_NAP_MIN_COUNT;
+    const baseAction =
+      "Karm na żądanie i reaguj na płacz. Przy kwileniu we śnie odczekaj chwilę (ok. 60 sekund), bo to może być sen aktywny.";
     return {
       category: "CAT6_NEWBORN_DAY_NIGHT_ACTIVE_SLEEP",
       diagnosisCode: DIAGNOSIS_CODES.CAT6_NEWBORN_GUARDRAIL,
       severity: "high",
       confidenceScore: 1.0,
       isTriggered: true,
-      title: "Kliniczna ochrona noworodka (<16 tygodni życia)",
+      title: "Ochrona snu noworodka (poniżej 16 tygodni)",
       explanation:
-        "Układ nerwowy niemowlęcia nie produkuje dojrzałej melatoniny. Wszelki trening snu jest zakazany.",
-      clinicalAction:
-        "Karm na żądanie, odpowiadaj natychmiast na płacz i stosuj regułę 60 sekund pauzy w śnie aktywnym.",
+        "Rytm dobowy dopiero się kształtuje (zwykle między 8. a 16. tygodniem), więc to nie jest czas na naukę samodzielnego zasypiania.",
+      clinicalAction: hasLongNaps
+        ? `${baseAction} Budź dziecko z drzemki dziennej po 2 godzinach, żeby więcej snu przypadało na noc.`
+        : baseAction,
     };
   }
 
@@ -605,28 +1029,79 @@ export function evaluateCat6NewbornCare(effectiveAgeDays: number): DiagnosticTre
     severity: "info",
     confidenceScore: 0.95,
     isTriggered: false,
-    title: "Dojrzały rytm okołodobowy niemowlęcia",
-    explanation: "Dziecko ukończyło 16. tydzień życia i posiada dojrzałą produkcję melatoniny.",
-    clinicalAction: "Można bezpiecznie wprowadzać samodzielne nawyki zasypiania.",
+    title: "Rytm dobowy jest już wyraźny",
+    explanation: "Dziecko skończyło 16 tygodni; rytm dnia i nocy jest zwykle już ustalony.",
+    clinicalAction: "Jeśli chcesz, możesz stopniowo uczyć samodzielnego zasypiania.",
   };
 }
 
 /**
- * Wykrywa wzorzec nawykowych karmień nocnych: ≥2 karmienia mlekiem w nocy
- * przez ≥3 z ostatnich 7 nocy.
+ * Czy noc ma wzorzec karmienia dla uspokojenia (spec. v2.0): ≥2 karmienia mlekiem,
+ * w tym krótkie (≤5 min) albo co ≤60 min.
  *
- * @param {readonly SleepLog[]} logs - Dzienniki snu dziecka
- * @returns {boolean} True jeśli wzorzec się powtarza
+ * @param {SleepLog} night - Noc
+ * @returns {boolean} True przy wzorcu
  */
-function isComfortNursingPattern(logs: readonly SleepLog[]): boolean {
-  const feedingNights = selectRecentNights(logs).filter(
-    (log) => log.nightWakings.filter((w) => w.fedMilk).length >= HABITUAL_NIGHT_FEEDS_PER_NIGHT,
-  );
-  return feedingNights.length >= REPEAT_MIN_NIGHTS;
+function isComfortFeedingNight(night: SleepLog): boolean {
+  const feeds = night.nightWakings
+    .filter((w) => w.fedMilk)
+    .toSorted((a, b) => toMs(a.wokeAt) - toMs(b.wokeAt));
+  if (feeds.length < HABITUAL_NIGHT_FEEDS_PER_NIGHT) return false;
+  const shortFeeds = feeds.filter((w) => w.estimatedDurationMin <= COMFORT_FEED_MAX_MINUTES);
+  const hasFrequentFeeds = feeds.some((w, index) => {
+    const previous = feeds[index - 1];
+    if (!previous) return false;
+    const gapMin = (toMs(w.wokeAt) - toMs(previous.wokeAt)) / MILLISECONDS_PER_MINUTE;
+    return gapMin > 0 && gapMin <= COMFORT_FEED_MAX_INTERVAL_MINUTES;
+  });
+  return shortFeeds.length >= HABITUAL_NIGHT_FEEDS_PER_NIGHT || hasFrequentFeeds;
 }
 
 /**
- * Ocenia kategorię CAT7: Ograniczanie karmień nocnych (Night Weaning).
+ * Czy nocne karmienia to głównie pierś.
+ *
+ * @param {readonly SleepLog[]} nights - Noce
+ * @returns {boolean} True przy przewadze karmienia piersią
+ */
+function isMostlyBreastfed(nights: readonly SleepLog[]): boolean {
+  const feeds = nights.flatMap((n) => n.nightWakings.filter((w) => w.fedMilk));
+  const breast = feeds.filter((w) => w.interventions.includes("breast")).length;
+  return feeds.length > 0 && breast / feeds.length >= 0.5;
+}
+
+/**
+ * Tworzy wynik karmienia dla uspokojenia, łagodniejszy dla piersi i dla 6–9 mies.
+ *
+ * @param {number} effectiveAgeDays - Wiek efektywny
+ * @param {boolean} isBreastfed - Przewaga karmienia piersią
+ * @returns {DiagnosticTreeResult} Wynik HABITUAL_NIGHT_FEEDING_ASSOCIATION
+ */
+function buildComfortFeedingResult(
+  effectiveAgeDays: number,
+  isBreastfed: boolean,
+): DiagnosticTreeResult {
+  const isYoung = effectiveAgeDays < WEANING_FULL_AGE_DAYS;
+  const explanation =
+    "Dziecko budzi się na krótkie albo bardzo częste karmienia. Taki wzorzec często oznacza, że karmienie pomaga zasnąć, a nie zaspokaja głód.";
+  const action = isBreastfed
+    ? "Jeśli chcesz to zmienić, skracaj nocne karmienia powoli, np. co 3–4 noce, a uspokajanie powierz drugiemu rodzicowi. Szybkie ograniczenie nocnych karmień może zmniejszyć laktację, więc w razie wątpliwości porozmawiaj z doradczynią laktacyjną."
+    : "Jeśli chcesz to zmienić, zmniejszaj nocną porcję mleka stopniowo co 2 noce, a uspokajanie powierz drugiemu rodzicowi.";
+  return {
+    category: "CAT7_NIGHT_WEANING_FEEDING",
+    diagnosisCode: DIAGNOSIS_CODES.CAT7_HABITUAL_FEEDING,
+    severity: isYoung ? "low" : "medium",
+    confidenceScore: 0.8,
+    isTriggered: true,
+    title: "Karmienie w nocy dla uspokojenia",
+    explanation: isYoung
+      ? `${explanation} Między 6. a 9. miesiącem część dzieci nadal potrzebuje jeść w nocy, więc zmiana to wybór rodziny.`
+      : explanation,
+    clinicalAction: action,
+  };
+}
+
+/**
+ * Ocenia kategorię CAT7: Ograniczanie karmień nocnych.
  *
  * @param {DiagnosticEvaluationInput} input - Dane diagnostyczne dziecka
  * @returns {DiagnosticTreeResult} Wynik diagnozy CAT7
@@ -641,25 +1116,18 @@ export function evaluateCat7NightWeaning(input: DiagnosticEvaluationInput): Diag
       severity: "info",
       confidenceScore: 0.95,
       isTriggered: false,
-      title: "Fizjologiczne nocne zapotrzebowanie kaloryczne",
-      explanation: "U dzieci poniżej 6. miesiąca życia nocne karmienia są niezbędne metabolicznie.",
-      clinicalAction: "Karm według potrzeb głodu bez prób redukcji porcji nocnych.",
+      title: "Nocne karmienia są w tym wieku potrzebne",
+      explanation: "Dzieci poniżej 6. miesiąca zwykle potrzebują jeść także w nocy.",
+      clinicalAction: "Karm według potrzeb, bez prób ograniczania nocnych karmień.",
     };
   }
 
-  if (isComfortNursingPattern(recentSleepLogs)) {
-    return {
-      category: "CAT7_NIGHT_WEANING_FEEDING",
-      diagnosisCode: DIAGNOSIS_CODES.CAT7_HABITUAL_FEEDING,
-      severity: "medium",
-      confidenceScore: 0.85,
-      isTriggered: true,
-      title: "Ssanie jako asocjacja uspokojenia (Comfort Nursing)",
-      explanation:
-        "Dziecko wybudza się wielokrotnie na krótkie ssanie bez realnego głodu kalorycznego.",
-      clinicalAction:
-        "Stopniowo skracaj czas nocnych karmień lub podawaj wodę/smoczek, angażując drugiego rodzica.",
-    };
+  const comfortNights = selectRecentNights(recentSleepLogs).filter(isComfortFeedingNight);
+  if (comfortNights.length >= REPEAT_MIN_NIGHTS) {
+    return buildComfortFeedingResult(
+      currentMetrics.effectiveAgeDays,
+      isMostlyBreastfed(comfortNights),
+    );
   }
 
   return {
@@ -668,9 +1136,9 @@ export function evaluateCat7NightWeaning(input: DiagnosticEvaluationInput): Diag
     severity: "info",
     confidenceScore: 0.9,
     isTriggered: false,
-    title: "Zrównoważony rytm nocnego odżywiania",
-    explanation: "Częstotliwość nocnych karmień jest odpowiednia dla etapu rozwoju.",
-    clinicalAction: "Dbaj o sycące posiłki stałe w ciągu dnia.",
+    title: "Nocne karmienia bez wyraźnego wzorca uspokajania",
+    explanation: "Nocne karmienia nie wyglądają na nawykowe.",
+    clinicalAction: "Dbaj o sycące posiłki w ciągu dnia.",
   };
 }
 
@@ -694,7 +1162,7 @@ export function evaluateAll7DiagnosticCategories(
     evaluateCat3EarlyWakingAndSplitNight(windowed),
     evaluateCat4ShortNapsAndTransitions(windowed),
     evaluateCat5RegressionsAndCrisis(windowed),
-    evaluateCat6NewbornCare(input.currentMetrics.effectiveAgeDays),
+    evaluateCat6NewbornCare(input.currentMetrics.effectiveAgeDays, logs),
     evaluateCat7NightWeaning(windowed),
   ];
 }

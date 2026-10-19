@@ -157,6 +157,8 @@ export interface DiagnosticAlgorithmOverride {
   readonly bedtimeFadingMinutes?: number;
   readonly recommendedDayMode?: DayMode;
   readonly maxDaytimeSleepCapMinutes?: number;
+  /** Co ile dni powtarzać przesunięcie (bedtime fading, przesuwanie rytmu lub drzemki). */
+  readonly shiftEveryDays?: number;
 }
 
 export interface DiagnosticTreeResult {

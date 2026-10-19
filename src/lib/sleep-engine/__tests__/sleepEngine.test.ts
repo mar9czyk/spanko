@@ -229,7 +229,8 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
     const undertiredResult = evaluateCat2BedtimeResistance([undertiredLog], 10);
     expect(undertiredResult.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT2_UNDERTIRED);
-    expect(undertiredResult.algorithmOverride?.bedtimeFadingMinutes).toBe(20);
+    expect(undertiredResult.algorithmOverride?.bedtimeFadingMinutes).toBe(15);
+    expect(undertiredResult.algorithmOverride?.shiftEveryDays).toBe(3);
   });
 
   it("CAT3: wykrywa zjawisko Split Night (wybudzenie w nocy >=60 min)", () => {
@@ -264,7 +265,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     expect(result.algorithmOverride?.maxDaytimeSleepCapMinutes).toBe(-30);
   });
 
-  it("CAT3: rozpoznaje wczesną pobudkę z przemęczenia w drzewie Flynn-Evans", () => {
+  it("CAT3: wczesna pobudka po krótkiej nocy (<9,5 h) daje protokół lock-in", () => {
     const earlyWakeLog: SleepLog = {
       ...dummyNightLog,
       wokeUpAt: "2026-04-11T04:45:00.000Z",
@@ -285,7 +286,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat3EarlyWakingAndSplitNight(mockInput);
-    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT2_OVERTIRED);
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT3_EARLY_WAKING_SHORT_NIGHT);
   });
 
   it("CAT4: klasyfikuje krótkie drzemki jako rozwojowe u dzieci <6 miesięcy", () => {
@@ -322,18 +323,26 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     expect(result.severity).toBe("info");
   });
 
-  it("CAT5: aktywuje detektor Extinction Burst w oknie 14-28 dni po wdrożeniu planu", () => {
-    const twentyDaysAgo = new Date(
-      new Date(BASE_EVAL.nowIso).getTime() - 20 * 86_400_000,
-    ).toISOString();
+  it("CAT5: wybuch wygaszania w 2.–5. nocy planu przy oznakach protestu", () => {
+    const protestNight: SleepLog = {
+      ...dummyNightLog,
+      nightWakings: [
+        {
+          wokeAt: "2026-04-11T01:00:00.000Z",
+          estimatedDurationMin: 20,
+          fedMilk: false,
+          interventions: ["room_presence"],
+        },
+      ],
+    };
     const mockInput: DiagnosticEvaluationInput = {
       ...BASE_EVAL,
       child: {
         birthDateIso: "2025-06-01",
         activeDayMode: "home",
-        currentPlanStartDateIso: twentyDaysAgo,
+        currentPlanStartDateIso: "2026-04-08T12:00:00.000Z",
       },
-      recentSleepLogs: [dummyNightLog],
+      recentSleepLogs: repeatNights(protestNight, 3),
       dailyTotalsLast14DaysMin: [],
       currentMetrics: {
         effectiveAgeDays: 300,
@@ -346,10 +355,11 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
 
     const result = evaluateCat5RegressionsAndCrisis(mockInput);
     expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT5_EXTINCTION_BURST);
-    expect(result.severity).toBe("high");
+    expect(result.severity).toBe("medium");
+    expect(result.explanation).not.toMatch(/48|72/);
   });
 
-  it("CAT5: wykrywa ząbkowanie lub chorobę i sugeruje tryb ochronny", () => {
+  it("CAT5: gorączka (także przy ząbkowaniu) włącza tryb choroby", () => {
     const mockInput: DiagnosticEvaluationInput = {
       ...BASE_EVAL,
       child: { birthDateIso: "2025-06-01", activeDayMode: "home" },
@@ -366,7 +376,7 @@ describe("Sleep Engine: 7 Deterministycznych Drzew Diagnostycznych", () => {
     };
 
     const result = evaluateCat5RegressionsAndCrisis(mockInput);
-    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT5_ILLNESS_OR_TEETHING);
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT5_ILLNESS);
     expect(result.algorithmOverride?.recommendedDayMode).toBe("illness_regression");
   });
 
