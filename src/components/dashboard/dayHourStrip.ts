@@ -1,8 +1,11 @@
 import type { SleepType } from "@/lib/types/database";
 import type { TimelineEvent } from "./types";
 
-const MS_PER_HOUR = 3_600_000;
-export const DAY_STRIP_HOURS = 24;
+const MS_PER_MINUTE = 60_000;
+export const DAY_STRIP_SLOT_MINUTES = 15;
+export const DAY_STRIP_SLOTS = (24 * 60) / DAY_STRIP_SLOT_MINUTES;
+const SLOT_MS = DAY_STRIP_SLOT_MINUTES * MS_PER_MINUTE;
+const DAY_MS = DAY_STRIP_SLOTS * SLOT_MS;
 
 export interface DayStripSleep {
   readonly startIso: string;
@@ -19,24 +22,38 @@ export interface DayStripInput {
   readonly diaperIsos: readonly string[];
 }
 
-export interface DayStripHour {
+export interface DayStripSlot {
   readonly startMs: number;
-  /** Część godziny przespana, 0..1. */
+  /** Część 15-minutowego odcinka przespana, 0..1. */
   readonly sleepFraction: number;
-  /** Rodzaj snu dominujący w tej godzinie. */
+  /** Rodzaj snu dominujący w odcinku. */
   readonly sleepType: SleepType | null;
-  readonly feedings: number;
-  readonly diapers: number;
   readonly state: "past" | "current" | "future";
 }
 
+export interface DayStripMark {
+  readonly kind: "feeding" | "diaper";
+  /** Położenie na pasku, 0..1 od początku doby. */
+  readonly offset: number;
+}
+
+export interface DayStrip {
+  /** Pierwsza pełna godzina doby (od niej liczą się odcinki). */
+  readonly startMs: number;
+  readonly slots: readonly DayStripSlot[];
+  readonly marks: readonly DayStripMark[];
+  /** Położenie „teraz” na pasku, 0..1, albo null poza dobą. */
+  readonly nowOffset: number | null;
+}
+
 /**
- * Buduje 24 godzinne kreseczki doby fizjologicznej, licząc od pełnej godziny porannej pobudki.
+ * Buduje pasek doby fizjologicznej: 96 odcinków po 15 minut od pełnej godziny porannej
+ * pobudki, z udziałem snu w każdym odcinku oraz dokładnym położeniem karmień i pieluch.
  *
  * @param {DayStripInput} input - Początek doby, teraz, sny, karmienia i pieluchy
- * @returns {readonly DayStripHour[]} 24 godziny z udziałem snu i zdarzeniami
+ * @returns {DayStrip} Odcinki, znaczniki zdarzeń i położenie „teraz”
  */
-export function buildDayHourStrip(input: DayStripInput): readonly DayStripHour[] {
+export function buildDayStrip(input: DayStripInput): DayStrip {
   const first = new Date(input.dayStartIso);
   first.setMinutes(0, 0, 0);
   const firstMs = first.getTime();
@@ -46,13 +63,12 @@ export function buildDayHourStrip(input: DayStripInput): readonly DayStripHour[]
     endMs: sleep.endIso ? new Date(sleep.endIso).getTime() : nowMs,
     type: sleep.type,
   }));
-  const hourIndex = (iso: string) => Math.floor((new Date(iso).getTime() - firstMs) / MS_PER_HOUR);
-  const feedingIndexes = input.feedingIsos.map(hourIndex);
-  const diaperIndexes = input.diaperIsos.map(hourIndex);
+  const toOffset = (iso: string) => (new Date(iso).getTime() - firstMs) / DAY_MS;
+  const inDay = (offset: number) => offset >= 0 && offset < 1;
 
-  return Array.from({ length: DAY_STRIP_HOURS }, (_, index) => {
-    const startMs = firstMs + index * MS_PER_HOUR;
-    const endMs = startMs + MS_PER_HOUR;
+  const slots = Array.from({ length: DAY_STRIP_SLOTS }, (_, index): DayStripSlot => {
+    const startMs = firstMs + index * SLOT_MS;
+    const endMs = startMs + SLOT_MS;
     let asleepMs = 0;
     let dominant: { type: SleepType; ms: number } | null = null;
     for (const sleep of sleeps) {
@@ -63,13 +79,19 @@ export function buildDayHourStrip(input: DayStripInput): readonly DayStripHour[]
     }
     return {
       startMs,
-      sleepFraction: Math.min(1, asleepMs / MS_PER_HOUR),
+      sleepFraction: Math.min(1, asleepMs / SLOT_MS),
       sleepType: dominant?.type ?? null,
-      feedings: feedingIndexes.filter((i) => i === index).length,
-      diapers: diaperIndexes.filter((i) => i === index).length,
       state: nowMs >= endMs ? "past" : nowMs >= startMs ? "current" : "future",
     };
   });
+
+  const marks: DayStripMark[] = [
+    ...input.feedingIsos.map((iso) => ({ kind: "feeding" as const, offset: toOffset(iso) })),
+    ...input.diaperIsos.map((iso) => ({ kind: "diaper" as const, offset: toOffset(iso) })),
+  ].filter((mark) => inDay(mark.offset));
+
+  const nowOffset = (nowMs - firstMs) / DAY_MS;
+  return { startMs: firstMs, slots, marks, nowOffset: inDay(nowOffset) ? nowOffset : null };
 }
 
 /**

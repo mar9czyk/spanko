@@ -1,23 +1,25 @@
-import { Droplets, Milk } from "lucide-react";
 import type { ReactNode } from "react";
-import { buildDayHourStrip, type DayStripHour, type DayStripInput } from "./dayHourStrip";
+import { useI18n } from "@/i18n/I18nProvider";
+import { buildDayStrip, type DayStripInput, type DayStripSlot } from "./dayHourStrip";
 
-const MIN_BAR_PX = 6;
-const MAX_EXTRA_BAR_PX = 34;
-const LABEL_EVERY_HOURS = 3;
+const AWAKE_TICK_PX = 3;
+const MIN_SLEEP_TICK_PX = 4;
+const MAX_EXTRA_SLEEP_TICK_PX = 24;
+const MS_PER_HOUR = 3_600_000;
+const LABEL_HOURS = [0, 3, 6, 9, 12, 15, 18, 21] as const;
 
 /**
- * Dobiera kolor kreseczki: drzemka bursztynowa, noc fioletowa, czuwanie szare.
+ * Dobiera kolor kreski: drzemka bursztynowa, noc fioletowa, czuwanie szare.
  *
- * @param {DayStripHour} hour - Godzina paska
+ * @param {DayStripSlot} slot - Odcinek paska
  * @returns {string} Klasy Tailwind
  */
-function barColor(hour: DayStripHour): string {
-  if (hour.sleepFraction > 0) {
-    return hour.sleepType === "night" ? "bg-violet-400" : "bg-amber-400";
+function tickColor(slot: DayStripSlot): string {
+  if (slot.sleepFraction > 0) {
+    return slot.sleepType === "night" ? "bg-violet-400" : "bg-amber-400";
   }
-  if (hour.state === "future") return "bg-slate-800";
-  return hour.state === "current" ? "bg-slate-400" : "bg-slate-600";
+  if (slot.state === "future") return "bg-slate-800";
+  return slot.state === "current" ? "bg-slate-300" : "bg-slate-600";
 }
 
 /**
@@ -31,11 +33,22 @@ function formatHour(ms: number): string {
 }
 
 /**
- * Pasek doby: 24 kreseczki, po jednej na godzinę od porannej pobudki. Wysokość kreseczki
- * to część godziny przespana, a ikonki nad nią to karmienia i zmiany pieluchy.
+ * Procentowe położenie na pasku dla stylu `left`.
+ *
+ * @param {number} offset - Położenie 0..1
+ * @returns {string} Wartość CSS
+ */
+function toPercent(offset: number): string {
+  return `${(offset * 100).toFixed(3)}%`;
+}
+
+/**
+ * Pasek doby w układzie „lustra”: 96 cienkich kresek po 15 minut od porannej pobudki.
+ * Sen rośnie w górę od linii (drzemka bursztynowa, noc fioletowa), a pod linią schodzą
+ * karmienia (zielona kreska) i zmiany pieluchy (niebieski romb) w dokładnym momencie.
  *
  * @param {object} props - Dane paska i opis dla czytników ekranu
- * @returns {ReactNode} Pasek godzin
+ * @returns {ReactNode} Pasek doby
  */
 export function DayHourStrip({
   input,
@@ -44,33 +57,69 @@ export function DayHourStrip({
   input: DayStripInput;
   ariaLabel: string;
 }): ReactNode {
-  const hours = buildDayHourStrip(input);
+  const { t } = useI18n();
+  const strip = buildDayStrip(input);
   return (
     <div role="img" aria-label={ariaLabel} className="w-full">
-      <div className="flex items-end gap-[3px] h-16">
-        {hours.map((hour) => (
-          <div
-            key={hour.startMs}
-            className={`flex-1 min-w-0 h-full flex flex-col items-center justify-end gap-0.5 ${hour.state === "future" ? "opacity-50" : ""}`}
-          >
-            {hour.feedings > 0 && <Milk className="w-3 h-3 shrink-0 text-emerald-400" />}
-            {hour.diapers > 0 && <Droplets className="w-3 h-3 shrink-0 text-sky-400" />}
+      <div className="relative h-12">
+        <div className="absolute inset-x-0 top-0 h-7 flex items-end">
+          {strip.slots.map((slot) => (
+            <div key={slot.startMs} className="flex-1 flex justify-center">
+              <div
+                className={`w-[2px] rounded-full ${tickColor(slot)}`}
+                style={{
+                  height:
+                    slot.sleepFraction > 0
+                      ? MIN_SLEEP_TICK_PX + MAX_EXTRA_SLEEP_TICK_PX * slot.sleepFraction
+                      : AWAKE_TICK_PX,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="absolute inset-x-0 top-7 h-px bg-slate-700/70" />
+        {strip.marks.map((mark) =>
+          mark.kind === "feeding" ? (
             <div
-              className={`w-full rounded-sm ${barColor(hour)} ${hour.state === "current" ? "ring-1 ring-amber-200/70" : ""}`}
-              style={{ height: MIN_BAR_PX + MAX_EXTRA_BAR_PX * hour.sleepFraction }}
+              key={`f-${mark.offset}`}
+              className="absolute top-[30px] h-3 w-[2px] -translate-x-1/2 rounded-full bg-emerald-400"
+              style={{ left: toPercent(mark.offset) }}
             />
-          </div>
-        ))}
+          ) : (
+            <div
+              key={`d-${mark.offset}`}
+              className="absolute top-[32px] h-1.5 w-1.5 -translate-x-1/2 rotate-45 rounded-[1px] bg-sky-400"
+              style={{ left: toPercent(mark.offset) }}
+            />
+          ),
+        )}
+        {strip.nowOffset !== null && (
+          <div
+            className="absolute -top-1 bottom-0 border-l border-dashed border-slate-300/60"
+            style={{ left: toPercent(strip.nowOffset) }}
+          />
+        )}
       </div>
-      <div className="flex gap-[3px] pt-1" aria-hidden="true">
-        {hours.map((hour, index) => (
+      <div className="relative h-3" aria-hidden="true">
+        {LABEL_HOURS.map((hour) => (
           <span
-            key={hour.startMs}
-            className="flex-1 min-w-0 overflow-visible whitespace-nowrap text-[9px] font-mono text-slate-500"
+            key={hour}
+            className="absolute whitespace-nowrap text-[9px] font-mono text-slate-500"
+            style={{ left: toPercent(hour / 24) }}
           >
-            {index % LABEL_EVERY_HOURS === 0 ? formatHour(hour.startMs) : ""}
+            {formatHour(strip.startMs + hour * MS_PER_HOUR)}
           </span>
         ))}
+      </div>
+      <div className="flex justify-end gap-3 pt-1.5 text-[10px] text-slate-400" aria-hidden="true">
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-[2px] rounded-full bg-emerald-400" />
+          {t("timeline.legendFeeding")}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rotate-45 rounded-[1px] bg-sky-400" />
+          {t("timeline.legendDiaper")}
+        </span>
       </div>
     </div>
   );
