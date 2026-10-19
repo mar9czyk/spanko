@@ -4,6 +4,32 @@ Dokument stanowi kompletną instrukcję budowy aplikacji **Spanko (PWA)** metod�
 
 ---
 
+## 0. Aktualizacja Założeń Produktowych (2026-10-19) — NADRZĘDNA wobec sekcji poniżej
+
+Analiza rynku (Huckleberry, Napper, Baby Daybook, Nara Baby, Betteroo, Pampers Sleep Coach, Taking Cara Babies) pokazała, że sam tracker + prognoza drzemki to dziś standard (i towar — Nara Baby daje go za darmo). Spanko pozycjonujemy jako **coach celów snu**: rodzic wybiera cel, a aplikacja prowadzi go do niego planem opartym na danych dziecka.
+
+### 0.1. Nowe założenia
+1. **Rynek międzynarodowy od startu.** i18n (EN domyślnie, PL drugi), strefy czasowe, jednostki `ml`/`oz`. Prompty AI per język w `admin_settings`. Docelowo powłoka Capacitor + App Store / Google Play (akwizycja + pewne push na iOS).
+2. **Zakres wieku: baby & toddler (0–36 mies.).** Zgodnie z istniejącą matrycą.
+3. **Pełny tracker wszystkiego, co wpływa na sen** (tryb bazowy, darmowy): sen i pobudki, karmienie (pierś L/P + czas, butelka ml/oz, posiłki stałe), pieluchy (mokra/brudna/obie), sposób usypiania, czynniki (ząbkowanie, choroba, szczepienie, skok rozwojowy, podróż, spacer/światło dzienne).
+4. **Silnik Celów (Goals Engine) — główny feature płatny.** Rodzic wybiera cel → deterministyczna ocena gotowości (+ czerwone flagi → pediatra) → plan krok po kroku z wybraną metodą → 1–3 zadania „na dziś” → pomiar postępu na danych → adaptacja planu. Metody od łagodnych do **stanowczych (Ferber / sprawdzanie w odstępach, extinction)** — wybór należy do rodzica, z jasnym opisem i ograniczeniami wiekowymi. Na start 3 cele dla baby (4–12 mies.):
+   * `reduce_night_wakings` — eliminacja pobudek nocnych,
+   * `night_weaning` — odstawienie mleka w nocy,
+   * `independent_sleep_onset` — samodzielne / szybsze zasypianie.
+5. **Insights = coaching, nie wytłumaczalność.** Wnioski AI formułują rady „co zrobić dziś, żeby zbliżyć się do celu”. Wyjaśnienie „dlaczego” zostaje jako drugi poziom (rozwijane). Liczby i decyzje nadal wyłącznie z silnika deterministycznego.
+6. **Bezpieczeństwo:** plany treningu snu niedostępne < 4 mies. (wiek korygowany), metody stanowcze ≥ 6 mies.; obowiązkowa checklista czerwonych flag przed startem planu; disclaimer „nie zastępuje porady lekarskiej”. Brak eksperta w zespole → treści planów oparte na publikowanych metodach i literaturze (AAP, badania nad graduated extinction), z bibliografią w `docs/agent/goals-engine.md`; walidacja przez konsultanta snu jako cel na później.
+7. **Model biznesowy (bez reklam):**
+   * **Free na zawsze:** pełny tracker, wspólne konto rodziny, podstawowa prognoza następnej drzemki.
+   * **Premium** (~$8.99/mies. lub ~$59–69/rok): Silnik Celów, coaching AI, pełny plan dnia, raporty PDF dla pediatry.
+   * **Program celu jednorazowo** (~$19–29): jeden cel bez subskrypcji.
+   * **Trial 7 dni** startowany w momencie wyboru pierwszego celu.
+   * Później: marketplace konsultantów snu (prowizja).
+8. **Ekran główny „Ścieżka Celu”:** pasek aktywnego celu + postęp → karta „Dziś” z zadaniami planu → prognoza drzemki jako tło → cienka oś doby → kontekstowy wielki przycisk snu + szybkie akcje (karmienie, pielucha). Tryb nocny: licznik pobudek + podpowiedź z planu („odczekaj 3 min, uspokajaj bez karmienia”). Bez aktywnego celu: dotychczasowy widok „Tu i Teraz” + zachęta do wyboru celu.
+
+Szczegółowe fazy wdrożenia: **FAZA 7–11** na końcu dokumentu oraz `docs/plan-faza-7-11.md`.
+
+---
+
 ## 1. Architektura Systemu (100% Self-Hosted na VPS Mikr.us + Lokalny Build)
 
 ### 1.1. Stos Technologiczny
@@ -721,3 +747,14 @@ echo "✅ Deploy zakończony sukcesem!"
 > 4. Dodaj w `package.json` skrypt `"deploy": "./scripts/deploy.sh"`.
 > Uruchom `pnpm check && pnpm test`.
 > ```
+
+---
+
+### FAZA 7–11: Tracker → Silnik Celów → Coaching → i18n → Monetyzacja (dodane 2026-10-19)
+
+Pełny plan z modelem danych, modułami i Definition of Done: `docs/plan-faza-7-11.md`. Skrót:
+* **FAZA 7 — Pełny Tracker (Free):** `day_context.event_type` (`feeding` | `diaper` | `tag`), stoper piersi L/P, butelka ml/oz, pieluchy, nowe tagi (szczepienie, podróż, światło dzienne); moduł `feedingSignals.ts` podpięty do drzew diagnostycznych; szybkie akcje 🍼/🧷 w Floating Action Bar.
+* **FAZA 8 — Silnik Celów (pure TS, `src/lib/goals-engine/`):** kolekcje `child_goals` i `goal_daily_tasks`; 3 cele baby (`reduce_night_wakings`, `night_weaning`, `independent_sleep_onset`); metody od łagodnych do stanowczych (Ferber, extinction ≥ 6 mies.); ocena gotowości + czerwone flagi; progresja `advance | hold | step_back | pause | achieved`; dokumentacja `docs/agent/goals-engine.md`.
+* **FAZA 9 — Coaching AI + Ekran „Ścieżka Celu”:** nowy schemat Zod (rady na dziś, wskazówka nocna, „dlaczego” jako drugi poziom), `POST /api/ai/goal-coach`, onboarding `/goals/new`, dashboard z paskiem celu i zadaniami dnia, nocna podpowiedź kroku planu.
+* **FAZA 10 — i18n:** `next-intl`, EN domyślnie + PL, jednostki ml/oz, 12h/24h, prompty per `locale`.
+* **FAZA 11 — Monetyzacja:** Free / Premium (~$8.99 mies., ~$59–69 rok) / jednorazowy Program Celu (~$19–29), trial 7 dni od wyboru celu; Stripe (web) → RevenueCat (Capacitor); `requirePremium()`; raport PDF dla pediatry.
