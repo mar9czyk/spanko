@@ -5,6 +5,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import type { MessageKey } from "@/i18n/messages";
 import type { TranslateParams } from "@/i18n/translate";
 import { pickActiveChild, readStoredActiveChildId, storeActiveChildId } from "@/lib/active-child";
+import { prepareChildPhoto } from "@/lib/child-photo";
 import { authorizedFetch, loadChildren } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
 import {
@@ -17,6 +18,7 @@ import {
   minutesSinceLastFeeding,
   predictNextSleepSlot,
   resolvePhysiologicalDate,
+  resolveSleepRestedness,
 } from "@/lib/sleep-engine";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
@@ -389,6 +391,19 @@ export function useDashboardState() {
     }
   };
 
+  const handleChangeChildPhoto = async (file: File | null): Promise<boolean> => {
+    if (!child || isDemoData) return false;
+    try {
+      const photo = file ? await prepareChildPhoto(file) : null;
+      const updated = await pb.collection("children").update<ChildRecord>(child.id, { photo });
+      setChild(updated);
+      setChildren((list) => list.map((item) => (item.id === updated.id ? updated : item)));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSelectDayMode = (mode: ActiveDayMode) => persistChildPatch({ active_day_mode: mode });
 
   const handleToggleAntiOrthosomnia = () =>
@@ -604,6 +619,7 @@ export function useDashboardState() {
     child,
     children,
     handleSelectChild,
+    handleChangeChildPhoto,
     effectiveAgeDays,
     ageDisplay: formatChildAge(effectiveAgeDays, t),
     activeInsight,
@@ -616,6 +632,7 @@ export function useDashboardState() {
     ),
     morningWakeTimeDisplay: formatClock(latestNightLog?.woke_up_at),
     sleepBatteryPercent: chronicDrive.sleepBatteryPercent,
+    sleepRestedness: resolveSleepRestedness(chronicDrive.chronicSleepDebtMin),
     sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
     latestLastNapEndAt: circadianParams.latestLastNapEndAt || FALLBACK_LAST_NAP_CAPPING,
     sweetSpotTimeDisplay: formatClock(sweetSpotPrediction?.sweetSpotIso),

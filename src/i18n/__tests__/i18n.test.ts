@@ -5,6 +5,7 @@ import {
   dateLocaleTag,
   detectLocale,
   detectUnits,
+  formatDuration,
   formatVolume,
   translate,
   translateDynamic,
@@ -78,5 +79,21 @@ describe("jednostki objętości", () => {
     expect(presets.map((p) => p.label)).toEqual(["2 oz", "3 oz", "4 oz", "5 oz", "6 oz"]);
     expect(presets[2]?.ml).toBe(118);
     expect(bottlePresets("metric").map((p) => p.ml)).toEqual([60, 90, 120, 150, 180]);
+  });
+});
+
+describe("formatDuration", () => {
+  it("poniżej godziny pokazuje same minuty", () => {
+    expect(formatDuration(0)).toBe("0 min");
+    expect(formatDuration(45)).toBe("45 min");
+  });
+
+  it("powyżej godziny pokazuje godziny i minuty", () => {
+    expect(formatDuration(110)).toBe("1h 50 min");
+    expect(formatDuration(725)).toBe("12h 5 min");
+  });
+
+  it("pełne godziny bez minut", () => {
+    expect(formatDuration(120)).toBe("2h");
   });
 });

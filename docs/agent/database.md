@@ -36,6 +36,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `due_date` (date/datetime, format ISO, opcjonalne — dla wcześniaków urodzonych $\ge 21$ dni przed terminem)
 - `active_day_mode` (select: `home` | `on_the_go` | `illness_regression`, default: `home`)
 - `anti_orthosomnia_mode` (bool, default: `false` — wyłącza dokładne minuty na korzyść elastycznego kompasu)
+- `photo` (file, opcjonalne, `protected`, max 5 MB, jpeg/png/webp, miniatura `96x96` — zdjęcie w przełączniku dzieci; klient zmniejsza je do 512 px przed wysłaniem, a URL buduje z tokenem `pb.files.getToken()`)
 - `created`, `updated` (autodate)
 
 #### 4. `sleep_logs` (Rejestr Snów i Drzemek)

@@ -57,6 +57,7 @@ Silnik łączy trzy fizjologiczne wektory decydujące o gotowości dziecka do sn
   - `average`: w normie.
 - **7-dniowy Dług Ważony Wykładniczo:** Wagi: `[0.28, 0.22, 0.16, 0.12, 0.09, 0.07, 0.06]`.
 - **Wskaźnik Baterii Snu:** Od 15% do 100%, informujący rodzica o zapasie energii i ryzyku wyrzutu kortyzolu.
+- **Stan wyspania (`resolveSleepRestedness`):** dług $\le 75$ min → `rested`, $76$–$149$ min → `slightly_tired` (aktywna kompensacja okna), $\ge 150$ min → `very_tired` (wyłączone omijanie WMZ). Dashboard pokazuje słowo zamiast procentu.
 - Jeśli dług $> 75$ min $\rightarrow$ przyspieszenie okna o 15 minut (`CHRONIC_SLEEP_DEBT_COMPENSATION`).
 
 ### 3.3. Napęd 3: Zegar Okołodobowy i Strefa Zakazana (Circadian Drive & WMZ)

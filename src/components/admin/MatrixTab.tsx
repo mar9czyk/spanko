@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { formatDuration } from "@/i18n/translate";
 import type { MatrixPreviewRow } from "@/lib/admin/matrixPreview";
 import { resolveSleepMatrix, validateSleepMatrix } from "@/lib/sleep-engine/matrixOverride";
 import type { AgeBracketConfig } from "@/lib/types/database";
@@ -43,7 +44,7 @@ const COLUMNS: readonly { key: keyof AgeBracketConfig; label: string; editable: 
  */
 function formatDelta(delta: number): string {
   if (delta === 0) return "bez zmian";
-  return `${delta > 0 ? "+" : "−"}${Math.abs(delta)} min`;
+  return `${delta > 0 ? "+" : "−"}${formatDuration(Math.abs(delta))}`;
 }
 
 /**
@@ -148,15 +149,15 @@ function PreviewTable({ rows }: { rows: readonly MatrixPreviewRow[] }): ReactNod
                 {row.label}
               </th>
               <td className="text-right">
-                {row.firstWindow.before.sweetSpotAfterWakeMin} →{" "}
-                {row.firstWindow.after.sweetSpotAfterWakeMin} min
+                {formatDuration(row.firstWindow.before.sweetSpotAfterWakeMin)} →{" "}
+                {formatDuration(row.firstWindow.after.sweetSpotAfterWakeMin)}
                 <span className="block text-[10px] text-slate-500">
                   {formatDelta(row.firstWindowDeltaMin)}
                 </span>
               </td>
               <td className="text-right">
-                {row.bedtimeWindow.before.sweetSpotAfterWakeMin} →{" "}
-                {row.bedtimeWindow.after.sweetSpotAfterWakeMin} min
+                {formatDuration(row.bedtimeWindow.before.sweetSpotAfterWakeMin)} →{" "}
+                {formatDuration(row.bedtimeWindow.after.sweetSpotAfterWakeMin)}
                 <span className="block text-[10px] text-slate-500">
                   {formatDelta(row.bedtimeDeltaMin)}
                 </span>

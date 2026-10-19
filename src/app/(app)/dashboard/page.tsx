@@ -77,6 +77,7 @@ export default function DashboardPage() {
         onSelectChild={state.handleSelectChild}
         onSelectDayMode={state.handleSelectDayMode}
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
+        onChangeChildPhoto={state.isDemoData ? undefined : state.handleChangeChildPhoto}
       />
       {goalState.goal ? (
         <GoalPathCard
@@ -113,6 +114,7 @@ export default function DashboardPage() {
         reasonDescription={state.reasonDescription}
         effectiveAgeDays={state.effectiveAgeDays}
         batteryPercent={state.sleepBatteryPercent}
+        sleepRestedness={state.sleepRestedness}
         sleepNeedsProfile={state.sleepNeedsProfile}
         latestLastNapEndAt={state.latestLastNapEndAt}
       />

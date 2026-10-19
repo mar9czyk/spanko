@@ -85,6 +85,8 @@ export interface ChildRecord {
   readonly anti_orthosomnia_mode: boolean;
   /** Strefa IANA dziecka (granica doby fizjologicznej); domyślnie Europe/Warsaw */
   readonly timezone?: string;
+  /** Nazwa pliku zdjęcia w PocketBase (chronione, URL wymaga tokenu plików); pusta, gdy brak */
+  readonly photo?: string;
   readonly created: string;
   readonly updated: string;
 }
