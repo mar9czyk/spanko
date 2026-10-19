@@ -11,6 +11,10 @@ Mobile-first Progressive Web App combining a real-time baby sleep/routine tracke
   - `pnpm test` -> runs Vitest unit tests for the deterministic sleep engine
 - **Deploy:** `pnpm deploy` (lokalny build + SSH na Mikr.us) — konfiguracja i serwer: `deploy/mikrus/README.md`
 
+## Workflow
+- 1 sesja = 1 zadanie = 1 commit; plan faz i checklisty: `docs/plan-workflow-claude-code.md` (czytaj swoją sekcję, odhaczaj po zakończeniu).
+- `.claude/settings.json`: model `opusplan`, allowlista, hook PostToolUse uruchamia `pnpm check` po edycji plików w `src/`.
+
 ## Core Architectural Guardrails
 1. **Deterministic First, AI Second:** Never use LLMs to calculate wake windows, sleep debt, or circadian anchors. All math and diagnostic trees live in `src/lib/sleep-engine/` as pure, unit-tested TypeScript functions.
 2. **OpenRouter Server-Only:** All OpenRouter calls happen server-side in `src/app/api/ai/` using models and prompts fetched from PocketBase `admin_settings`. No STT/voice in MVP.
