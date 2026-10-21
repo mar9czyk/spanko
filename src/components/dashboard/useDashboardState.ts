@@ -388,7 +388,7 @@ export function useDashboardState() {
 
   const handleAcceptInsight = async (insightId: string) => {
     setActiveInsight((prev) =>
-      prev?.id === insightId ? { ...prev, parent_feedback: "accepted" } : prev,
+      prev?.id === insightId ? { ...prev, status: "validated", parent_feedback: "accepted" } : prev,
     );
     if (isDemoData) return;
     try {
@@ -402,12 +402,6 @@ export function useDashboardState() {
       reportError(error, t("dashboard.saveInsightError"));
       await loadDashboardData();
     }
-  };
-
-  const handleAdjustInsight = (insightId: string) => {
-    setActiveInsight((prev) =>
-      prev?.id === insightId ? { ...prev, parent_feedback: "adjusted" } : prev,
-    );
   };
 
   const saveSleepLog = async (log: SleepLogRecord, patch: Partial<SleepLogRecord>) => {
@@ -642,7 +636,6 @@ export function useDashboardState() {
     handleSelectDayMode,
     handleToggleAntiOrthosomnia,
     handleAcceptInsight,
-    handleAdjustInsight,
     handleCycleSleepStatus,
     handleQuickNightWake,
     handleDetectedNightWake,
