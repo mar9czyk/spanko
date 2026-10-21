@@ -9,6 +9,8 @@ interface ActiveSleepTimerProps {
   readonly status: SleepStatus;
   readonly sleepType: SleepType;
   readonly startTimeIso?: string;
+  /** Sugerowana pora wybudzenia z drzemki (HH:mm); miękka sugestia, nie limit. */
+  readonly wakeSuggestion?: string | null;
 }
 
 /**
@@ -58,6 +60,7 @@ export function ActiveSleepTimer({
   status,
   sleepType,
   startTimeIso,
+  wakeSuggestion,
 }: ActiveSleepTimerProps): ReactNode {
   const { t } = useI18n();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -100,6 +103,11 @@ export function ActiveSleepTimer({
           {t("timer.sync")}
         </span>
       </div>
+      {wakeSuggestion && (
+        <p className="mt-2 text-xs text-amber-300">
+          {t("timer.napWakeSuggestion", { time: wakeSuggestion })}
+        </p>
+      )}
     </div>
   );
 }

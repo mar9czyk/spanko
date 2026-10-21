@@ -16,8 +16,9 @@ export const pl = {
   "login.logoAlt": "Logo Spanko",
   "login.intro.windows.title": "Okna czuwania na miarę",
   "login.intro.windows.text": "Wyliczane z wieku i ostatnich drzemek, bez zgadywania.",
-  "login.intro.battery.title": "Bateria snu",
-  "login.intro.battery.text": "Zobacz dług senny i najlepszy moment na drzemkę.",
+  "login.intro.battery.title": "Wyspanie względem zwykłego rytmu",
+  "login.intro.battery.text":
+    "Zobacz, jak dziecko śpi na tle własnej normy i kiedy najlepiej na drzemkę.",
   "login.intro.thumb.title": "Jedna ręka, środek nocy",
   "login.intro.thumb.text": "Ciemny ekran i duże przyciski — bez pisania.",
   "login.google": "Zaloguj przez Google",
@@ -77,7 +78,7 @@ export const pl = {
   "insightCard.adjust": "Skoryguj",
   "insightCard.history": "Karta Rozwoju i Kalendarz Historii",
 
-  "battery.period": "ostatnie 7 dni",
+  "battery.period": "względem zwykłego snu, ostatnie 3 doby",
   "battery.level.rested": "Wyspane",
   "battery.level.slightlyTired": "Lekko niewyspane",
   "battery.level.veryTired": "Mocno niewyspane",
@@ -98,6 +99,7 @@ export const pl = {
   "timer.nap": "Drzemka w toku",
   "timer.night": "Sen nocny w toku",
   "timer.sync": "Synchronizacja na żywo",
+  "timer.napWakeSuggestion": "Sugerowana pobudka ok. {time}",
 
   "wakeListener.title": "Nasłuch pobudki",
   "wakeListener.start": "Nasłuchuj pobudki",
@@ -154,6 +156,8 @@ export const pl = {
   "reason.ILLNESS_PROTECTIVE_MODE": "Tryb ochronny: choroba/regresja",
   "reason.FLEXIBLE_ON_THE_GO_WINDOW": "Elastyczne okno w drodze",
   "reason.CIRCADIAN_WMZ_AVOIDANCE_SHIFT": "Przesunięcie poza Strefę Zakazaną",
+  "reason.CIRCADIAN_BEDTIME_LATE_CAP": "Wcześniej, by nie przesuwać zwykłej pory snu",
+  "reason.NO_NAP_DAY_BEDTIME": "Dzień bez drzemki: sen nocny o przewidywanej porze",
 
   "timeline.wake": "Pobudka {time}",
   "timeline.empty": "Brak zdarzeń w bieżącej dobie. Kliknij przycisk poniżej, aby dodać wpis.",
@@ -352,8 +356,9 @@ export const en: Record<MessageKey, string> = {
   "login.logoAlt": "Spanko logo",
   "login.intro.windows.title": "Wake windows made to measure",
   "login.intro.windows.text": "Calculated from age and recent naps — no guesswork.",
-  "login.intro.battery.title": "Sleep battery",
-  "login.intro.battery.text": "See sleep debt and the best moment for the next nap.",
+  "login.intro.battery.title": "Rest compared with usual rhythm",
+  "login.intro.battery.text":
+    "See how your baby sleeps against their own norm and the best moment for the next nap.",
   "login.intro.thumb.title": "One hand, middle of the night",
   "login.intro.thumb.text": "Dark screen and big buttons — no typing.",
   "login.google": "Sign in with Google",
@@ -413,7 +418,7 @@ export const en: Record<MessageKey, string> = {
   "insightCard.adjust": "Adjust",
   "insightCard.history": "Sleep profile & history",
 
-  "battery.period": "last 7 days",
+  "battery.period": "vs usual sleep, last 3 days",
   "battery.level.rested": "Well rested",
   "battery.level.slightlyTired": "A bit short on sleep",
   "battery.level.veryTired": "Very short on sleep",
@@ -434,6 +439,7 @@ export const en: Record<MessageKey, string> = {
   "timer.nap": "Nap in progress",
   "timer.night": "Night sleep in progress",
   "timer.sync": "Live sync",
+  "timer.napWakeSuggestion": "Suggested wake-up around {time}",
 
   "wakeListener.title": "Wake listener",
   "wakeListener.start": "Listen for waking",
@@ -489,6 +495,8 @@ export const en: Record<MessageKey, string> = {
   "reason.ILLNESS_PROTECTIVE_MODE": "Protective mode: illness/regression",
   "reason.FLEXIBLE_ON_THE_GO_WINDOW": "Flexible on-the-go window",
   "reason.CIRCADIAN_WMZ_AVOIDANCE_SHIFT": "Shifted out of the forbidden zone",
+  "reason.CIRCADIAN_BEDTIME_LATE_CAP": "Earlier, to keep the usual bedtime",
+  "reason.NO_NAP_DAY_BEDTIME": "No-nap day: night sleep at the predicted bedtime",
 
   "timeline.wake": "Wake-up {time}",
   "timeline.empty": "No events in the current day. Tap the button below to add an entry.",

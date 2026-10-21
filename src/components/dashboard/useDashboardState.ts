@@ -9,6 +9,7 @@ import { prepareChildPhoto } from "@/lib/child-photo";
 import { authorizedFetch, loadChildren } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
 import {
+  applyObservedNapsCount,
   calculateChronicDrive,
   calculateCircadianParameters,
   calculateEffectiveAgeDays,
@@ -18,9 +19,11 @@ import {
   getMinutesFromMidnightInTimeZone,
   minutesSinceLastFeeding,
   predictNextSleepSlot,
+  resolveInsightDayAdjustments,
   resolveInsightWwOffset,
   resolvePhysiologicalDate,
   resolveSleepRestedness,
+  suggestNapWakeTime,
 } from "@/lib/sleep-engine";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
@@ -254,36 +257,72 @@ export function useDashboardState() {
   const effectiveAgeDays = child
     ? calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso)
     : 0;
-  const ageBracket = getAgeBracket(effectiveAgeDays);
-
-  const chronicDrive = useMemo(
+  // Pełne doby (bez bieżącej): norma, dług i wykrywanie mniejszej liczby drzemek
+  const completedDays = useMemo(
     () =>
-      calculateChronicDrive(
-        aggregateDailySleepSummaries(recentLogs).filter(
-          (day) => day.physiologicalDate !== physiologicalDate,
-        ),
-        ageBracket,
+      aggregateDailySleepSummaries(recentLogs).filter(
+        (day) => day.physiologicalDate !== physiologicalDate,
       ),
-    [recentLogs, physiologicalDate, ageBracket],
+    [recentLogs, physiologicalDate],
+  );
+  const ageBracket = useMemo(
+    () => applyObservedNapsCount(getAgeBracket(effectiveAgeDays), completedDays),
+    [effectiveAgeDays, completedDays],
   );
 
-  const morningWakeTimes = recentLogs
-    .filter((log) => log.type === "night" && log.status === "completed" && log.woke_up_at)
+  const chronicDrive = useMemo(
+    () => calculateChronicDrive(completedDays, ageBracket),
+    [completedDays, ageBracket],
+  );
+
+  const completedNightLogs = recentLogs.filter(
+    (log) => log.type === "night" && log.status === "completed" && log.woke_up_at,
+  );
+  const morningWakeTimes = completedNightLogs
     .slice(0, MORNING_WAKE_SAMPLE_SIZE)
     .map((log) => getMinutesFromMidnightInTimeZone(log.woke_up_at ?? nowIso, timeZone));
+  const nightBedtimes = completedNightLogs
+    .slice(0, MORNING_WAKE_SAMPLE_SIZE)
+    .map((log) =>
+      getMinutesFromMidnightInTimeZone(log.fell_asleep_at || log.put_down_at || nowIso, timeZone),
+    );
+
+  // Korekty z drzew diagnostycznych (bedtime fading, nap capping) z limitami silnika
+  const dayAdjustments = resolveInsightDayAdjustments(activeInsight);
 
   const circadianParams = calculateCircadianParameters({
     morningWakeTimesLast5DaysMinutesFromMidnight: morningWakeTimes,
+    bedtimesLast5DaysMinutesFromMidnight: nightBedtimes,
     bracket: ageBracket,
+    bedtimeShiftMin: dayAdjustments.bedtimeShiftMin,
+    daytimeSleepCapOffsetMin: dayAdjustments.daytimeSleepCapOffsetMin,
   });
 
   const lastCompletedLog = recentLogs.find((log) => log.status === "completed" && log.woke_up_at);
-  const todayNapsCount = recentLogs.filter(
+  const todayCompletedNaps = recentLogs.filter(
     (log) =>
       log.type === "nap" &&
       log.status === "completed" &&
       log.physiological_date === physiologicalDate,
-  ).length;
+  );
+  const todayNapsCount = todayCompletedNaps.length;
+
+  const activeNapStartIso =
+    currentSleepLog?.type === "nap" && currentSleepLog.status === "sleeping"
+      ? currentSleepLog.fell_asleep_at || currentSleepLog.put_down_at
+      : undefined;
+  const napWakeSuggestionIso = activeNapStartIso
+    ? suggestNapWakeTime({
+        napStartIso: activeNapStartIso,
+        daytimeSleepBeforeNapMin: todayCompletedNaps.reduce(
+          (sum, log) =>
+            sum + calculateDurationInMinutes(log.fell_asleep_at || log.put_down_at, log.woke_up_at),
+          0,
+        ),
+        bracket: ageBracket,
+        daytimeSleepCapOffsetMin: dayAdjustments.daytimeSleepCapOffsetMin,
+      })
+    : null;
 
   const sweetSpotPrediction =
     child && lastCompletedLog?.woke_up_at
@@ -591,6 +630,7 @@ export function useDashboardState() {
     sleepRestedness: resolveSleepRestedness(chronicDrive.chronicSleepDebtMin),
     sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
     latestLastNapEndAt: circadianParams.latestLastNapEndAt || FALLBACK_LAST_NAP_CAPPING,
+    napWakeSuggestionDisplay: napWakeSuggestionIso ? formatClock(napWakeSuggestionIso) : null,
     sweetSpotTimeDisplay: formatClock(sweetSpotPrediction?.sweetSpotIso),
     compassRangeDisplay: sweetSpotPrediction
       ? `${formatClock(sweetSpotPrediction.compassWindowStartIso)} — ${formatClock(sweetSpotPrediction.compassWindowEndIso)}`

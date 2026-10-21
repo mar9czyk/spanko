@@ -49,6 +49,45 @@ export function resolveInsightWwOffset(
   return clampInsightWwOffset(overrides[ENGINE_WW_OFFSET_KEY]);
 }
 
+/** Klucz przesunięcia pory nocnej (bedtime fading) z drzew diagnostycznych. */
+export const ENGINE_BEDTIME_FADING_KEY = "bedtimeFadingMinutes";
+
+/** Klucz korekty limitu snu dziennego (nap capping) z drzew diagnostycznych. */
+export const ENGINE_DAYTIME_CAP_KEY = "maxDaytimeSleepCapMinutes";
+
+/**
+ * Odczytuje liczbę z nadpisań wniosku (0, gdy brak lub niepoprawna).
+ *
+ * @param {Record<string, unknown>} overrides - algorithm_override_json
+ * @param {string} key - Klucz nadpisania
+ * @returns {number} Wartość w pełnych minutach
+ */
+function readOverrideMinutes(overrides: Record<string, unknown>, key: string): number {
+  const value = overrides[key];
+  return typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 0;
+}
+
+/**
+ * Wyznacza korekty rytmu dnia z aktywnego wniosku: bedtime fading i nap capping.
+ *
+ * @description
+ * Czyta wyłącznie klucze drzew diagnostycznych; limity (±30 min pory snu, do −60 min snu dziennego)
+ * nakłada silnik w `calculateCircadianParameters` i `suggestNapWakeTime`.
+ *
+ * @param {object | null | undefined} insight - Nadpisania wniosku
+ * @returns {{ bedtimeShiftMin: number; daytimeSleepCapOffsetMin: number }} Korekty w minutach
+ */
+export function resolveInsightDayAdjustments(
+  insight: { readonly algorithm_override_json?: Record<string, unknown> | null } | null | undefined,
+): { bedtimeShiftMin: number; daytimeSleepCapOffsetMin: number } {
+  const overrides = insight?.algorithm_override_json;
+  if (!overrides) return { bedtimeShiftMin: 0, daytimeSleepCapOffsetMin: 0 };
+  return {
+    bedtimeShiftMin: readOverrideMinutes(overrides, ENGINE_BEDTIME_FADING_KEY),
+    daytimeSleepCapOffsetMin: readOverrideMinutes(overrides, ENGINE_DAYTIME_CAP_KEY),
+  };
+}
+
 /**
  * Zostawia z nadpisań przesłanych przez rodzica tylko ograniczone przesunięcie okna.
  *

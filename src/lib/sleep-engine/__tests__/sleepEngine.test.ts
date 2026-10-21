@@ -21,7 +21,7 @@ import type { DiagnosticEvaluationInput, SleepLog } from "../types";
 
 describe("Sleep Engine: 3 Napędy Snu", () => {
   it("posiada kompletną matrycę wiekową DEFAULT_SLEEP_MATRIX dla 0-36 miesięcy", () => {
-    expect(DEFAULT_SLEEP_MATRIX).toHaveLength(12);
+    expect(DEFAULT_SLEEP_MATRIX).toHaveLength(13);
     expect(DEFAULT_SLEEP_MATRIX[0]?.minAgeDays).toBe(0);
     expect(DEFAULT_SLEEP_MATRIX[DEFAULT_SLEEP_MATRIX.length - 1]?.maxAgeDays).toBe(1095);
   });
@@ -38,7 +38,7 @@ describe("Sleep Engine: 3 Napędy Snu", () => {
     expect(ageMildPreterm).toBe(100);
   });
 
-  it("koryguje wiek dla wcześniaków urodzonych >=21 dni przed terminem", () => {
+  it("koryguje wiek dla wcześniaków urodzonych >21 dni przed terminem", () => {
     const birth = "2026-01-01T00:00:00.000Z";
     const due30Days = "2026-01-31T00:00:00.000Z";
     const now = "2026-04-11T00:00:00.000Z"; // 100 dni metrykalnych
