@@ -1,13 +1,13 @@
 import { Check, Edit3, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CORRECT_INSIGHT_QUERY_PARAM } from "@/components/insights/useInsightsState";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ChildInsightRecord } from "@/lib/types/database";
 
 interface SmartInsightCardProps {
   readonly insight: ChildInsightRecord | null;
   readonly onAccept: (insightId: string) => void;
-  readonly onAdjust: (insightId: string) => void;
 }
 
 /**
@@ -17,6 +17,7 @@ interface SmartInsightCardProps {
  * @returns {ReactNode} Górny wiersz karty
  */
 function InsightHeader({ category, title }: { category: string; title: string }) {
+  const { t, tDynamic } = useI18n();
   return (
     <div className="flex items-start gap-2.5">
       <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 mt-0.5">
@@ -24,7 +25,7 @@ function InsightHeader({ category, title }: { category: string; title: string })
       </div>
       <div className="flex-1 min-w-0">
         <span className="text-xs font-semibold uppercase tracking-wider text-amber-400/90 block">
-          {category}
+          {tDynamic(`insights.cat.${category}`, t("insights.default"))}
         </span>
         <h2 className="text-sm font-semibold text-ink leading-snug line-clamp-1">{title}</h2>
       </div>
@@ -34,6 +35,7 @@ function InsightHeader({ category, title }: { category: string; title: string })
 
 /**
  * Pasek przycisków akcji rodzica dla wniosku AI [👍 Działa] oraz [✏️ Skoryguj].
+ * Korekta otwiera formularz na stronie wniosków (/insights?correct=<id>).
  *
  * @param {object} props - Identyfikator i handlery akcji
  * @returns {ReactNode} Wiersz przycisków
@@ -42,12 +44,10 @@ function InsightActions({
   insightId,
   isAccepted,
   onAccept,
-  onAdjust,
 }: {
   insightId: string;
   isAccepted: boolean;
   onAccept: (id: string) => void;
-  onAdjust: (id: string) => void;
 }) {
   const { t } = useI18n();
   return (
@@ -55,6 +55,8 @@ function InsightActions({
       <button
         type="button"
         onClick={() => onAccept(insightId)}
+        disabled={isAccepted}
+        aria-pressed={isAccepted}
         className={`flex-1 py-1 px-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-all min-h-[32px] ${
           isAccepted
             ? "bg-emerald-950/60 text-emerald-300 border border-emerald-500/40"
@@ -64,14 +66,13 @@ function InsightActions({
         <Check className="w-3.5 h-3.5 text-emerald-400" />
         <span>{isAccepted ? t("insightCard.worksActive") : t("insightCard.works")}</span>
       </button>
-      <button
-        type="button"
-        onClick={() => onAdjust(insightId)}
+      <Link
+        href={`/insights?${CORRECT_INSIGHT_QUERY_PARAM}=${encodeURIComponent(insightId)}`}
         className="flex-1 py-1 px-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-amber-300 bg-[#1E2738] hover:bg-amber-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[32px]"
       >
         <Edit3 className="w-3.5 h-3.5 text-amber-400" />
         <span>{t("insightCard.adjust")}</span>
-      </button>
+      </Link>
     </div>
   );
 }
@@ -86,26 +87,17 @@ function InsightActions({
  * @param {SmartInsightCardProps} props - Dane wniosku oraz akcje rodzica
  * @returns {ReactNode} Wyrenderowana karta wniosku
  */
-export function SmartInsightCard({
-  insight,
-  onAccept,
-  onAdjust,
-}: SmartInsightCardProps): ReactNode {
+export function SmartInsightCard({ insight, onAccept }: SmartInsightCardProps): ReactNode {
   const { t } = useI18n();
   if (!insight) return null;
 
-  const isAccepted = insight.parent_feedback === "accepted";
+  const isAccepted = insight.parent_feedback === "accepted" || insight.status === "validated";
 
   return (
     <div className="w-full bg-[#151B28] border border-[#263348] rounded-2xl p-3 flex flex-col gap-2 shadow-lg shadow-black/40">
       <InsightHeader category={insight.category} title={insight.title} />
       <p className="text-sm text-slate-300 leading-relaxed pl-8 pr-1">{insight.explanation}</p>
-      <InsightActions
-        insightId={insight.id}
-        isAccepted={isAccepted}
-        onAccept={onAccept}
-        onAdjust={onAdjust}
-      />
+      <InsightActions insightId={insight.id} isAccepted={isAccepted} onAccept={onAccept} />
       <div className="flex justify-end pt-0.5">
         <Link
           href="/insights"

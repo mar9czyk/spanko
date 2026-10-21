@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadDaysRange } from "@/lib/client-data";
 import { buildPastDay, type PastDayView, shiftPhysiologicalDate } from "./dayHistory";
 
@@ -13,21 +13,31 @@ export type PastDaysStatus = "idle" | "loading" | "ready" | "error";
  * @param {string | undefined} childId - Id dziecka
  * @param {string | null} lastDate - Najnowsza doba YYYY-MM-DD; null = nic nie ładuj
  * @param {number} count - Liczba dób
- * @returns {object} Status i doby
+ * @returns {object} Status, doby i `reload` (np. po edycji wpisu)
  */
 export function usePastDays(childId: string | undefined, lastDate: string | null, count: number) {
   const [status, setStatus] = useState<PastDaysStatus>("idle");
   const [days, setDays] = useState<readonly PastDayView[]>([]);
+  const [version, setVersion] = useState(0);
+  const reload = useCallback(() => setVersion((value) => value + 1), []);
+  const loadedKeyRef = useRef<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: version celowo przeładowuje doby po edycji wpisu
   useEffect(() => {
     if (!childId || !lastDate) {
+      loadedKeyRef.current = null;
       setStatus("idle");
       setDays([]);
       return;
     }
     let isCurrent = true;
-    setStatus("loading");
-    setDays([]);
+    // Przeładowanie tych samych dób (po edycji) zostawia stare dane do czasu nowych
+    const key = `${childId}|${lastDate}|${count}`;
+    if (loadedKeyRef.current !== key) {
+      loadedKeyRef.current = key;
+      setStatus("loading");
+      setDays([]);
+    }
     const dates = Array.from({ length: count }, (_, index) =>
       shiftPhysiologicalDate(lastDate, -index),
     );
@@ -43,7 +53,7 @@ export function usePastDays(childId: string | undefined, lastDate: string | null
     return () => {
       isCurrent = false;
     };
-  }, [childId, lastDate, count]);
+  }, [childId, lastDate, count, version]);
 
-  return { status, days };
+  return { status, days, reload };
 }

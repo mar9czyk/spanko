@@ -18,7 +18,7 @@ import { dateLocaleTag } from "@/i18n/translate";
  */
 export default function HistoryPage(): ReactNode {
   const { t, locale } = useI18n();
-  const { status, days } = useHistoryState();
+  const { status, days, reload } = useHistoryState();
   const formatDate = (date: string) =>
     new Date(`${date}T12:00:00Z`).toLocaleDateString(dateLocaleTag(locale), {
       timeZone: "UTC",
@@ -72,6 +72,7 @@ export default function HistoryPage(): ReactNode {
           morningWakeIso={day.dayStartIso}
           nowIso={pastDayStripNowIso(day) ?? new Date().toISOString()}
           currentSleepLog={null}
+          onEntryEdited={reload}
         />
       ))}
     </main>

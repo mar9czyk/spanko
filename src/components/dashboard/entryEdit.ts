@@ -1,0 +1,123 @@
+import type { DayContextRecord, SleepLogRecord } from "@/lib/types/database";
+import type { TimelineEvent } from "./types";
+
+const MS_PER_DAY = 86_400_000;
+const CLOCK_PATTERN = /^(\d{2}):(\d{2})$/;
+
+/** Godziny wpisu w formularzu edycji (HH:mm, czas lokalny urządzenia). */
+export interface EntryTimeDraft {
+  readonly start: string;
+  /** Tylko sen: godzina pobudki. */
+  readonly end?: string;
+}
+
+export type EntryEditError = "invalid_time" | "end_before_start" | "in_future";
+
+export type EntryEditPatch =
+  | {
+      readonly collection: "sleep_logs";
+      readonly id: string;
+      readonly patch: Partial<
+        Pick<SleepLogRecord, "fell_asleep_at" | "put_down_at" | "woke_up_at">
+      >;
+    }
+  | {
+      readonly collection: "day_context";
+      readonly id: string;
+      readonly patch: Pick<DayContextRecord, "timestamp">;
+    };
+
+/**
+ * Formatuje moment ISO do wartości pola `<input type="time">` (HH:mm, czas lokalny).
+ *
+ * @param {string | undefined} iso - Moment ISO
+ * @returns {string} Godzina HH:mm albo pusty tekst
+ */
+export function toClockInputValue(iso?: string): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/**
+ * Ustawia godzinę HH:mm (czas lokalny) na momencie najbliższym pierwotnemu.
+ *
+ * @description
+ * Wpis o 00:30 przestawiony na 23:50 trafia na poprzedni wieczór, a nie na koniec tego
+ * samego dnia kalendarzowego — korekta godziny nie przenosi wpisu o dobę.
+ *
+ * @param {string} originalIso - Pierwotny moment wpisu
+ * @param {string} clock - Nowa godzina HH:mm
+ * @returns {string | null} Nowy moment ISO albo null przy błędnej godzinie
+ */
+export function applyClockTime(originalIso: string, clock: string): string | null {
+  const match = CLOCK_PATTERN.exec(clock);
+  const original = new Date(originalIso);
+  if (!match || Number.isNaN(original.getTime())) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  const sameDay = new Date(original);
+  sameDay.setHours(hours, minutes, 0, 0);
+  const candidates = [-1, 0, 1].map((deltaDays) => {
+    const candidate = new Date(sameDay);
+    candidate.setDate(sameDay.getDate() + deltaDays);
+    return candidate;
+  });
+  const nearest = candidates.reduce((best, candidate) =>
+    Math.abs(candidate.getTime() - original.getTime()) <
+    Math.abs(best.getTime() - original.getTime())
+      ? candidate
+      : best,
+  );
+  return Math.abs(nearest.getTime() - original.getTime()) < MS_PER_DAY
+    ? nearest.toISOString()
+    : null;
+}
+
+/**
+ * Zamienia nowe godziny wpisu z osi czasu na zmianę rekordu w PocketBase.
+ *
+ * @description
+ * Sen: zmienia początek (zaśnięcie albo odłożenie, zależnie od tego, które pole wyznacza
+ * start) i pobudkę; odłożenie późniejsze niż nowe zaśnięcie przesuwa razem z nim.
+ * Karmienie, pielucha, tagi: zmienia `timestamp`. Doba fizjologiczna wpisu się nie zmienia.
+ *
+ * @param {TimelineEvent} event - Edytowany wpis
+ * @param {EntryTimeDraft} draft - Nowe godziny HH:mm
+ * @param {string} nowIso - Bieżący moment (wpis nie może trafić w przyszłość)
+ * @returns {EntryEditPatch | EntryEditError} Zmiana rekordu albo kod błędu
+ */
+export function buildEntryTimePatch(
+  event: TimelineEvent,
+  draft: EntryTimeDraft,
+  nowIso: string,
+): EntryEditPatch | EntryEditError {
+  const nowMs = Date.parse(nowIso);
+  if (event.kind !== "nap") {
+    if (!event.timeIso) return "invalid_time";
+    const timestamp = applyClockTime(event.timeIso, draft.start);
+    if (!timestamp) return "invalid_time";
+    if (Date.parse(timestamp) > nowMs) return "in_future";
+    return { collection: "day_context", id: event.id, patch: { timestamp } };
+  }
+
+  if (!event.startIso) return "invalid_time";
+  const start = applyClockTime(event.startIso, draft.start);
+  const end = event.endIso && draft.end ? applyClockTime(event.endIso, draft.end) : undefined;
+  if (!start || end === null) return "invalid_time";
+  if (end && Date.parse(end) <= Date.parse(start)) return "end_before_start";
+  if (Date.parse(end ?? start) > nowMs) return "in_future";
+
+  const patch: Partial<Pick<SleepLogRecord, "fell_asleep_at" | "put_down_at" | "woke_up_at">> = {
+    ...(event.startField === "put_down_at" ? { put_down_at: start } : { fell_asleep_at: start }),
+    ...(event.startField === "fell_asleep_at" &&
+    event.putDownIso &&
+    Date.parse(event.putDownIso) > Date.parse(start)
+      ? { put_down_at: start }
+      : {}),
+    ...(end ? { woke_up_at: end } : {}),
+  };
+  return { collection: "sleep_logs", id: event.id, patch };
+}

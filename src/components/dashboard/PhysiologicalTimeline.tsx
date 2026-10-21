@@ -5,6 +5,7 @@ import { formatDuration } from "@/i18n/translate";
 import type { SleepLogRecord } from "@/lib/types/database";
 import { DayHourStrip } from "./DayHourStrip";
 import { collectDayStripEvents, type DayStripSleep } from "./dayHourStrip";
+import { EditEntrySheet, type EditedEntry } from "./EditEntrySheet";
 import { TimelineEventCard } from "./TimelineEventCard";
 import type { TimelineEvent } from "./types";
 
@@ -20,6 +21,8 @@ interface PhysiologicalTimelineProps {
   readonly navigation?: TimelineNavigation;
   /** Tekst pustej doby; domyślnie zachęta do dodania wpisu. */
   readonly emptyText?: string;
+  /** Wywoływane po zapisaniu edycji wpisu; brak = karty tylko do odczytu. */
+  readonly onEntryEdited?: (entry: EditedEntry) => void;
 }
 
 export interface TimelineNavigation {
@@ -126,9 +129,11 @@ export function PhysiologicalTimeline({
   currentSleepLog,
   navigation,
   emptyText,
+  onEntryEdited,
 }: PhysiologicalTimelineProps): ReactNode {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [editedEvent, setEditedEvent] = useState<TimelineEvent | null>(null);
   const activeSleep = toActiveSleep(currentSleepLog);
 
   if (events.length === 0 && !activeSleep) {
@@ -193,9 +198,20 @@ export function PhysiologicalTimeline({
       {isExpanded && (
         <div className="flex flex-col gap-2">
           {events.map((event) => (
-            <TimelineEventCard key={event.id} event={event} />
+            <TimelineEventCard
+              key={event.id}
+              event={event}
+              onEdit={onEntryEdited ? setEditedEvent : undefined}
+            />
           ))}
         </div>
+      )}
+      {onEntryEdited && (
+        <EditEntrySheet
+          event={editedEvent}
+          onClose={() => setEditedEvent(null)}
+          onSaved={onEntryEdited}
+        />
       )}
     </section>
   );

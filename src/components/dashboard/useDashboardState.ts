@@ -45,6 +45,7 @@ import {
   DEV_FIXTURE_TIMELINE,
   IS_DEV_FIXTURES_ENABLED,
 } from "./devFixtures";
+import type { EditedEntry } from "./EditEntrySheet";
 import {
   formatClock,
   mapDayContextToTimelineEvent,
@@ -243,7 +244,10 @@ export function useDashboardState() {
           return;
         }
         setRecentLogs((prev) => [updatedLog, ...prev.filter((log) => log.id !== updatedLog.id)]);
-        setCurrentSleepLog(updatedLog.status !== "completed" ? updatedLog : null);
+        // Edycja dawnego, zakończonego snu nie może zamknąć trwającego
+        setCurrentSleepLog((prev) =>
+          updatedLog.status !== "completed" ? updatedLog : prev?.id === updatedLog.id ? null : prev,
+        );
       })
       .catch((error) =>
         setErrorMessage(error instanceof Error ? error.message : tRef.current("dashboard.noSync")),
@@ -388,7 +392,7 @@ export function useDashboardState() {
 
   const handleAcceptInsight = async (insightId: string) => {
     setActiveInsight((prev) =>
-      prev?.id === insightId ? { ...prev, parent_feedback: "accepted" } : prev,
+      prev?.id === insightId ? { ...prev, status: "validated", parent_feedback: "accepted" } : prev,
     );
     if (isDemoData) return;
     try {
@@ -402,12 +406,6 @@ export function useDashboardState() {
       reportError(error, t("dashboard.saveInsightError"));
       await loadDashboardData();
     }
-  };
-
-  const handleAdjustInsight = (insightId: string) => {
-    setActiveInsight((prev) =>
-      prev?.id === insightId ? { ...prev, parent_feedback: "adjusted" } : prev,
-    );
   };
 
   const saveSleepLog = async (log: SleepLogRecord, patch: Partial<SleepLogRecord>) => {
@@ -589,6 +587,19 @@ export function useDashboardState() {
   const handleSaveDayTag = (tag: string) =>
     saveDayContext({ event_type: "tag", feeding_type: "none", tags: [tag] });
 
+  /** Po edycji godzin wpisu z osi czasu bieżącej doby podmienia rekord w stanie. */
+  const handleEntryEdited = (entry: EditedEntry) => {
+    if (entry.collection === "day_context") {
+      setDayContext((prev) =>
+        prev
+          .map((record) => (record.id === entry.record.id ? entry.record : record))
+          .sort((a, b) => b.timestamp.localeCompare(a.timestamp)),
+      );
+      return;
+    }
+    setRecentLogs((prev) => prev.map((log) => (log.id === entry.record.id ? entry.record : log)));
+  };
+
   const minutesSinceFeeding = minutesSinceLastFeeding(
     dayContext
       .filter((r) => r.feeding_type !== "none")
@@ -642,7 +653,6 @@ export function useDashboardState() {
     handleSelectDayMode,
     handleToggleAntiOrthosomnia,
     handleAcceptInsight,
-    handleAdjustInsight,
     handleCycleSleepStatus,
     handleQuickNightWake,
     handleDetectedNightWake,
@@ -656,5 +666,6 @@ export function useDashboardState() {
     nowIso,
     handleSaveMoodAndIntervention,
     handleSaveDayTag,
+    handleEntryEdited,
   };
 }
