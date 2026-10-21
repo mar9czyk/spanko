@@ -24,7 +24,7 @@ function NightQuickWakeButton({ onQuickWake }: { onQuickWake: () => void }) {
     <button
       type="button"
       onClick={onQuickWake}
-      className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-98 transition-all min-h-[52px]"
+      className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-98 transition-all min-h-[52px]"
     >
       <Zap className="w-5 h-5 fill-current" />
       <span>{t("fab.quickWake")}</span>
@@ -74,7 +74,7 @@ function SleepCycleButton({ log, onCycle }: { log: SleepLogRecord | null; onCycl
     <button
       type="button"
       onClick={onCycle}
-      className={`flex-1 py-3 px-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all min-h-[50px] ${config.style}`}
+      className={`flex-1 py-3 px-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all min-h-[50px] ${config.style}`}
     >
       {config.icon}
       <span>{t(config.labelKey)}</span>
@@ -120,7 +120,7 @@ export function FloatingActionBar({
             className="w-12 h-[50px] rounded-2xl bg-[#1E2738] hover:bg-[#253248] border border-[#263348] flex items-center justify-center shadow-md active:scale-98 transition-all shrink-0"
             title={t("fab.diaper")}
           >
-            <Droplets className="w-5 h-5 text-sky-400" />
+            <Droplets className="w-5 h-5 text-diaper" />
           </button>
           <SleepCycleButton log={currentSleepLog} onCycle={onCycleSleepStatus} />
           <button

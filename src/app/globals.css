@@ -2,18 +2,43 @@
 
 :root {
   --background: #0b0f17;
-  --foreground: #f1f5f9;
+  /* Ciepła złamana biel: ok. 13,5:1 na tle; czysta biel nocą powoduje halację */
+  --foreground: #ddd8cf;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-ink: var(--foreground);
+  --font-sans: var(--font-atkinson);
   --font-mono: var(--font-geist-mono);
+}
+
+@theme {
+  /* Łagodny koral zamiast czerwieni: płacz, mocne niewyspanie. Czerwień tylko dla błędów technicznych */
+  --color-coral-200: #fbcfc8;
+  --color-coral-300: #f7afa6;
+  --color-coral-400: #f28b82;
+  --color-coral-500: #e8736a;
+  --color-coral-600: #d45b52;
+  /* Przygaszony turkus dla pieluch zamiast jaskrawego błękitu */
+  --color-diaper: #8fc7be;
 }
 
 body {
   background: #0b0f17;
-  color: #f1f5f9;
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  color: var(--foreground);
+  font-family: var(--font-atkinson), Arial, Helvetica, sans-serif;
+}
+
+/* Animacje Tailwind wyłączone przy prefers-reduced-motion; reguła poza @layer wygrywa z klasami narzędziowymi */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
 }

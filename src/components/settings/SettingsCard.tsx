@@ -18,8 +18,8 @@ export function SettingsCard({
   return (
     <section className="rounded-2xl border border-[#263348] bg-[#151B28] p-4 flex flex-col gap-3">
       <div>
-        <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
-        {hint && <p className="text-[11px] text-slate-500 mt-0.5">{hint}</p>}
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
+        {hint && <p className="text-xs text-slate-400 mt-0.5">{hint}</p>}
       </div>
       {children}
     </section>

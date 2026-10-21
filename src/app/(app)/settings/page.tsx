@@ -31,7 +31,7 @@ export default function SettingsPage(): ReactNode {
           <span>{t("settings.back")}</span>
         </Link>
         <div>
-          <h1 className="text-lg font-bold text-slate-100">{t("settings.title")}</h1>
+          <h1 className="text-lg font-bold text-ink">{t("settings.title")}</h1>
           <p className="text-xs text-slate-400 mt-0.5">{t("settings.subtitle")}</p>
         </div>
       </header>

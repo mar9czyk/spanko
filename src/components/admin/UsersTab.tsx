@@ -61,10 +61,10 @@ function UserCard({
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-slate-800 bg-[#151B28] p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="min-w-0 truncate text-sm font-semibold text-slate-100">{row.email}</h3>
-        <span className="shrink-0 text-[11px] text-slate-500">{row.name}</span>
+        <h3 className="min-w-0 truncate text-sm font-semibold text-ink">{row.email}</h3>
+        <span className="shrink-0 text-xs text-slate-400">{row.name}</span>
       </div>
-      <p className="text-[11px] text-slate-500">
+      <p className="text-xs text-slate-400">
         Rejestracja: {formatDate(row.created)} · Ostatnio: {formatDate(row.last_seen_at)}
       </p>
       <div className="flex flex-wrap gap-2">

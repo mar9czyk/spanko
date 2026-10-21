@@ -41,9 +41,9 @@ function ContentRow({
   const [value, setValue] = useState(current);
   return (
     <div className="flex items-end gap-2">
-      <label className="flex min-w-0 flex-1 flex-col gap-1 text-[11px] text-slate-500">
+      <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-slate-400">
         <span className="truncate">
-          {contentKey} <span className="text-slate-600">(domyślnie: {defaultText || "—"})</span>
+          {contentKey} <span className="text-slate-400">(domyślnie: {defaultText || "—"})</span>
         </span>
         <input
           className={inputClass}
@@ -126,11 +126,11 @@ function AnnouncementsSection(): ReactNode {
         Ogłoszenia (baner na dashboardzie)
       </h3>
       <StatusMessage error={error} loading={items || error ? undefined : "Ładowanie…"} />
-      {items?.length === 0 && <p className="text-xs text-slate-500">Brak ogłoszeń.</p>}
+      {items?.length === 0 && <p className="text-xs text-slate-400">Brak ogłoszeń.</p>}
       {items?.map((item) => (
         <div key={item.id} className="flex flex-col gap-1.5 rounded-lg border border-slate-800 p-2">
           <p className="text-xs text-slate-200">{item.message}</p>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-slate-400">
             {item.level} ·{" "}
             {item.starts_at ? new Date(item.starts_at).toLocaleString("pl-PL") : "od razu"} →{" "}
             {item.ends_at ? new Date(item.ends_at).toLocaleString("pl-PL") : "bez końca"}
@@ -284,7 +284,7 @@ export function ContentTab(): ReactNode {
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
           Własne teksty
         </h3>
-        <p className="text-[11px] text-slate-500">
+        <p className="text-xs text-slate-400">
           Klucz musi odpowiadać kluczowi używanemu w aplikacji (np. tag.infekcja_ucha).
         </p>
         {customItems.map((item) => (

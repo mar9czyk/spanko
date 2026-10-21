@@ -22,8 +22,8 @@ function AuditEntry({ entry }: { entry: AdminAuditLogRecord }): ReactNode {
   return (
     <details className="rounded-xl border border-slate-800 bg-[#151B28] p-3">
       <summary className="cursor-pointer list-none">
-        <p className="text-sm font-semibold text-slate-100">{entry.action}</p>
-        <p className="text-[11px] text-slate-500">
+        <p className="text-sm font-semibold text-ink">{entry.action}</p>
+        <p className="text-xs text-slate-400">
           {new Date(entry.created).toLocaleString("pl-PL")} · {entry.actor_email || "—"}
           {entry.target_collection ? ` · ${entry.target_collection}/${entry.target_id ?? ""}` : ""}
         </p>
@@ -36,8 +36,8 @@ function AuditEntry({ entry }: { entry: AdminAuditLogRecord }): ReactNode {
           ] as const
         ).map(([label, value]) => (
           <div key={label}>
-            <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">{label}</p>
-            <pre className="max-h-48 overflow-auto rounded-lg bg-[#0B0F17] p-2 text-[11px] text-slate-300">
+            <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">{label}</p>
+            <pre className="max-h-48 overflow-auto rounded-lg bg-[#0B0F17] p-2 text-xs text-slate-300">
               {JSON.stringify(value ?? null, null, 2)}
             </pre>
           </div>

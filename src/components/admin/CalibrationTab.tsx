@@ -84,7 +84,7 @@ export function CalibrationTab(): ReactNode {
       <div className="flex flex-wrap items-center gap-2">
         <select
           aria-label="Okno raportu"
-          className="min-h-11 rounded-xl border border-slate-700 bg-[#151B28] px-3 text-sm text-slate-100"
+          className="min-h-11 rounded-xl border border-slate-700 bg-[#151B28] px-3 text-sm text-ink"
           value={days}
           onChange={(event) =>
             setDays(Number(event.target.value) as (typeof WINDOW_OPTIONS)[number])
@@ -117,7 +117,7 @@ export function CalibrationTab(): ReactNode {
       {data && (
         <>
           <section className="rounded-xl border border-slate-800 bg-[#151B28] p-3 text-xs text-slate-300">
-            <h2 className="mb-2 text-sm font-semibold text-slate-100">
+            <h2 className="mb-2 text-sm font-semibold text-ink">
               Błąd prognozy ({data.measured} snów)
             </h2>
             {data.rows.length === 0 ? (
@@ -126,7 +126,7 @@ export function CalibrationTab(): ReactNode {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[520px]">
                   <thead>
-                    <tr className="text-[11px] uppercase tracking-wider text-slate-500">
+                    <tr className="text-xs uppercase tracking-wider text-slate-400">
                       <th className="pb-2 text-left font-medium">Wiek</th>
                       <th className="pb-2 text-left font-medium">Sen</th>
                       <th className="pb-2 pl-2 text-right font-medium">N</th>
@@ -163,14 +163,14 @@ export function CalibrationTab(): ReactNode {
               </div>
             )}
             {data.lastComputedAt && (
-              <p className="mt-2 text-[10px] text-slate-500">
+              <p className="mt-2 text-xs text-slate-400">
                 Ostatni pomiar: {new Date(data.lastComputedAt).toLocaleString("pl-PL")}
               </p>
             )}
           </section>
 
           <section className="rounded-xl border border-slate-800 bg-[#151B28] p-3 text-xs text-slate-300">
-            <h2 className="mb-2 text-sm font-semibold text-slate-100">
+            <h2 className="mb-2 text-sm font-semibold text-ink">
               Wnioski odrzucone przez rodziców
             </h2>
             {data.feedback.length === 0 ? (
@@ -178,7 +178,7 @@ export function CalibrationTab(): ReactNode {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="text-[11px] uppercase tracking-wider text-slate-500">
+                  <tr className="text-xs uppercase tracking-wider text-slate-400">
                     <th className="pb-2 text-left font-medium">Diagnoza</th>
                     <th className="pb-2 pl-2 text-right font-medium">Wnioski</th>
                     <th className="pb-2 pl-2 text-right font-medium">Ocenione</th>

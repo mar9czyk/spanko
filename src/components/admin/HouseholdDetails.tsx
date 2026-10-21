@@ -106,7 +106,7 @@ export function HouseholdDetails({ householdId }: { householdId: string }): Reac
       {error && <StatusMessage error={error} />}
 
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">
+        <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">
           Członkowie ({details.members.length})
         </p>
         <ul className="flex flex-col gap-1">
@@ -115,7 +115,7 @@ export function HouseholdDetails({ householdId }: { householdId: string }): Reac
               {member.email}
               {member.is_admin ? " · admin" : ""}
               {member.is_blocked ? " · zablokowany" : ""}
-              <span className="text-slate-500">
+              <span className="text-slate-400">
                 {" "}
                 · ostatnio:{" "}
                 {member.last_seen_at ? new Date(member.last_seen_at).toLocaleString("pl-PL") : "—"}
@@ -126,14 +126,14 @@ export function HouseholdDetails({ householdId }: { householdId: string }): Reac
       </div>
 
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">
+        <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">
           Dzieci ({details.children.length})
         </p>
         <ul className="flex flex-col gap-1">
           {details.children.map((child) => (
             <li key={child.id}>
               {child.name}{" "}
-              <span className="text-slate-500">
+              <span className="text-slate-400">
                 · ur. {child.birth_date.slice(0, 10)} · {child.active_day_mode}
               </span>
             </li>
@@ -142,7 +142,7 @@ export function HouseholdDetails({ householdId }: { householdId: string }): Reac
       </div>
 
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">Kod zaproszenia</p>
+        <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">Kod zaproszenia</p>
         <p>
           {inviteActive ? (
             <>

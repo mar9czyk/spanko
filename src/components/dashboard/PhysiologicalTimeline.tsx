@@ -81,7 +81,7 @@ function TimelineHeader({
             <button
               type="button"
               onClick={navigation.onToday}
-              className="min-h-9 rounded-lg px-2 text-[11px] font-semibold text-amber-300 hover:text-amber-200"
+              className="min-h-9 rounded-lg px-2 text-xs font-semibold text-amber-300 hover:text-amber-200"
             >
               {t("timeline.today")}
             </button>
@@ -90,7 +90,7 @@ function TimelineHeader({
       ) : (
         title
       )}
-      <span className="shrink-0 text-[11px] text-amber-400/90 font-mono flex items-center gap-1 bg-[#151B28] px-2 py-0.5 rounded-md border border-amber-500/20">
+      <span className="shrink-0 text-xs text-amber-400/90 tabular-nums flex items-center gap-1 bg-[#151B28] px-2 py-0.5 rounded-md border border-amber-500/20">
         <Sun className="w-3 h-3 text-amber-400" />
         {t("timeline.wake", { time: wakeTime })}
       </span>

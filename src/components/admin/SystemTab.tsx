@@ -95,12 +95,12 @@ function FeatureFlagsSection(): ReactNode {
       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
         Przełączniki funkcji
       </h3>
-      <p className="text-[11px] text-slate-500">
+      <p className="text-xs text-slate-400">
         Pusta lista gospodarstw = funkcja dla wszystkich. Kod sprawdza flagi po stronie serwera
         (isFeatureEnabledFor).
       </p>
       <StatusMessage error={error} loading={flags || error ? undefined : "Ładowanie…"} />
-      {flags?.length === 0 && <p className="text-xs text-slate-500">Brak flag.</p>}
+      {flags?.length === 0 && <p className="text-xs text-slate-400">Brak flag.</p>}
       {flags?.map((flag) => (
         <FlagRow
           key={`${flag.id}:${flag.enabled}:${rolloutOf(flag).join(",")}`}
@@ -186,9 +186,9 @@ function FlagRow({
     <div className="flex flex-col gap-2 rounded-lg border border-slate-800 p-2">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-mono text-xs text-slate-100">{flag.key}</p>
+          <p className="truncate font-mono text-xs text-ink">{flag.key}</p>
           {flag.description && (
-            <p className="truncate text-[11px] text-slate-500">{flag.description}</p>
+            <p className="truncate text-xs text-slate-400">{flag.description}</p>
           )}
         </div>
         <button
@@ -313,7 +313,7 @@ export function SystemTab(): ReactNode {
         </PrimaryButton>
         {backupMessage && <p className="text-xs text-slate-300">{backupMessage}</p>}
         {info.backups?.slice(0, 5).map((backup) => (
-          <p key={backup.key} className="text-[11px] text-slate-500">
+          <p key={backup.key} className="text-xs text-slate-400">
             {backup.key} · {(backup.size / BYTES_PER_MB).toFixed(1)} MB ·{" "}
             {new Date(backup.modified).toLocaleString("pl-PL")}
           </p>

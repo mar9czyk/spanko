@@ -16,7 +16,7 @@ interface AppLayoutProps {
  */
 export default function AppLayout({ children }: AppLayoutProps): ReactNode {
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex flex-col items-center">
+    <div className="min-h-screen bg-[#0B0F17] text-ink flex flex-col items-center">
       <div className="w-full max-w-md min-h-screen flex flex-col relative px-4 pt-4 pb-32">
         {children}
       </div>

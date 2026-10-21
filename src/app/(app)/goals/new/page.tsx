@@ -136,7 +136,7 @@ export default function NewGoalPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
-        <h1 className="text-base font-semibold text-slate-100">{t("goal.new.title")}</h1>
+        <h1 className="text-base font-semibold text-ink">{t("goal.new.title")}</h1>
       </header>
 
       {error && (
@@ -184,10 +184,10 @@ export default function NewGoalPage() {
               }}
               className="text-left rounded-2xl bg-[#151B28] border border-[#263348] hover:border-violet-500/40 p-3.5 min-h-[64px]"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+              <span className="flex items-center gap-2 text-sm font-semibold text-ink">
                 {localize(METHOD_TITLES[m], LOCALE)}
                 {METHOD_CATALOG[m].isFirm && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-300">
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-md bg-coral-500/15 text-coral-300">
                     {t("goal.new.firm")}
                   </span>
                 )}
@@ -207,7 +207,7 @@ export default function NewGoalPage() {
         <section className="flex flex-col gap-3">
           {isSleepTrainingGoal(goal) && (
             <div className="rounded-2xl bg-[#151B28] border border-[#263348] p-3.5 flex flex-col gap-2">
-              <h2 className="text-sm font-semibold text-slate-100">{t("goal.new.before")}</h2>
+              <h2 className="text-sm font-semibold text-ink">{t("goal.new.before")}</h2>
               <p className="text-xs text-slate-400">{t("goal.new.disclaimer")}</p>
               <ul className="list-disc pl-4 text-xs text-slate-300 flex flex-col gap-1">
                 {RED_FLAGS.map((flag) => (
@@ -250,7 +250,7 @@ export default function NewGoalPage() {
               ))}
 
               <div className="rounded-2xl bg-[#151B28] border border-[#263348] p-3.5 flex flex-col gap-2">
-                <h2 className="text-sm font-semibold text-slate-100">
+                <h2 className="text-sm font-semibold text-ink">
                   {t("goal.new.plan", { days: preview.plan.totalDays })}
                 </h2>
                 <ol className="flex flex-col gap-1.5">
@@ -258,7 +258,7 @@ export default function NewGoalPage() {
                     const task = buildDailyTasks(preview.plan, index)[0];
                     return (
                       <li key={planStep.fromDay} className="text-xs text-slate-300">
-                        <span className="font-mono text-amber-300">
+                        <span className="tabular-nums text-amber-300">
                           {t("goal.new.days", { from: planStep.fromDay, to: planStep.toDay })}
                         </span>{" "}
                         {task ? describeTask(task, LOCALE) : ""}

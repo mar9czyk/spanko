@@ -88,7 +88,7 @@ export function AccountSection({ user }: { readonly user: UserRecord }): ReactNo
             {t("settings.delete.description")}
           </p>
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] text-slate-400">
+            <span className="text-xs text-slate-400">
               {t("settings.delete.confirmLabel", { email: user.email })}
             </span>
             <input
@@ -96,7 +96,7 @@ export function AccountSection({ user }: { readonly user: UserRecord }): ReactNo
               value={confirmEmail}
               autoComplete="off"
               onChange={(event) => setConfirmEmail(event.target.value)}
-              className="w-full rounded-xl border border-[#263348] bg-[#0B0F17] px-3 py-2 text-sm text-slate-100 focus:border-red-500/60 focus:outline-none"
+              className="w-full rounded-xl border border-[#263348] bg-[#0B0F17] px-3 py-2 text-sm text-ink focus:border-red-500/60 focus:outline-none"
             />
           </label>
           {error && (

@@ -23,10 +23,10 @@ function InsightHeader({ category, title }: { category: string; title: string })
         <Lightbulb className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/90 block">
+        <span className="text-xs font-semibold uppercase tracking-wider text-amber-400/90 block">
           {category}
         </span>
-        <h2 className="text-xs font-semibold text-slate-100 leading-snug line-clamp-1">{title}</h2>
+        <h2 className="text-sm font-semibold text-ink leading-snug line-clamp-1">{title}</h2>
       </div>
     </div>
   );
@@ -55,7 +55,7 @@ function InsightActions({
       <button
         type="button"
         onClick={() => onAccept(insightId)}
-        className={`flex-1 py-1 px-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all min-h-[32px] ${
+        className={`flex-1 py-1 px-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-all min-h-[32px] ${
           isAccepted
             ? "bg-emerald-950/60 text-emerald-300 border border-emerald-500/40"
             : "bg-[#1E2738] text-slate-300 hover:text-emerald-300 hover:bg-emerald-950/30 border border-transparent"
@@ -67,7 +67,7 @@ function InsightActions({
       <button
         type="button"
         onClick={() => onAdjust(insightId)}
-        className="flex-1 py-1 px-2.5 rounded-lg text-xs font-medium text-slate-300 hover:text-amber-300 bg-[#1E2738] hover:bg-amber-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[32px]"
+        className="flex-1 py-1 px-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-amber-300 bg-[#1E2738] hover:bg-amber-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[32px]"
       >
         <Edit3 className="w-3.5 h-3.5 text-amber-400" />
         <span>{t("insightCard.adjust")}</span>
@@ -99,7 +99,7 @@ export function SmartInsightCard({
   return (
     <div className="w-full bg-[#151B28] border border-[#263348] rounded-2xl p-3 flex flex-col gap-2 shadow-lg shadow-black/40">
       <InsightHeader category={insight.category} title={insight.title} />
-      <p className="text-[11px] text-slate-300 leading-relaxed pl-8 pr-1">{insight.explanation}</p>
+      <p className="text-sm text-slate-300 leading-relaxed pl-8 pr-1">{insight.explanation}</p>
       <InsightActions
         insightId={insight.id}
         isAccepted={isAccepted}
@@ -109,7 +109,7 @@ export function SmartInsightCard({
       <div className="flex justify-end pt-0.5">
         <Link
           href="/insights"
-          className="text-[10px] text-amber-400 hover:text-amber-300 font-medium transition-colors"
+          className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors"
         >
           {t("insightCard.history")} &rarr;
         </Link>

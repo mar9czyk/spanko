@@ -117,18 +117,18 @@ function LogRow({ log, onFixed }: { log: ProfileLog; onFixed: () => void }): Rea
   return (
     <li className="rounded-lg border border-slate-800 p-2 text-xs text-slate-300">
       <p>
-        <span className="font-medium text-slate-100">{log.physiological_date}</span> · {log.type} ·{" "}
+        <span className="font-medium text-ink">{log.physiological_date}</span> · {log.type} ·{" "}
         <span className={log.status === "completed" ? "text-emerald-400" : "text-amber-300"}>
           {log.status}
         </span>
         {log.night_wakings > 0 ? ` · pobudki: ${log.night_wakings}` : ""}
       </p>
-      <p className="text-[11px] text-slate-500">
+      <p className="text-xs text-slate-400">
         {formatTime(start)} → {formatTime(log.woke_up_at)}
       </p>
       {isStuck && (
         <div className="mt-2 flex flex-col gap-2 rounded-lg bg-amber-500/5 p-2">
-          <p className="text-[11px] text-amber-300">
+          <p className="text-xs text-amber-300">
             Zawieszony sen (&gt; 24 h bez zakończenia). Podaj czas pobudki, aby go zamknąć.
           </p>
           <input
@@ -196,13 +196,13 @@ function ChildProfileView({ childId, onBack }: { childId: string; onBack: () => 
       {profile && (
         <>
           <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3">
-            <h3 className="text-sm font-semibold text-slate-100">{profile.child.name}</h3>
+            <h3 className="text-sm font-semibold text-ink">{profile.child.name}</h3>
             <p className="text-xs text-slate-400">
               ur. {profile.child.birth_date.slice(0, 10)}
               {profile.child.due_date ? ` · termin ${profile.child.due_date.slice(0, 10)}` : ""} ·
               tryb dnia: {profile.child.active_day_mode}
             </p>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-xs text-slate-400">
               Podgląd tylko do odczytu — otwarcie profilu zapisało wpis w dzienniku działań.
             </p>
           </div>
@@ -225,10 +225,10 @@ function ChildProfileView({ childId, onBack }: { childId: string; onBack: () => 
                     key={`${diag.category}:${diag.diagnosisCode}`}
                     className={`rounded-lg p-2 ${diag.isTriggered ? "bg-amber-500/10" : "bg-black/20"}`}
                   >
-                    <p className="font-medium text-slate-100">
+                    <p className="font-medium text-ink">
                       {diag.isTriggered ? "⚠ " : "✓ "}
                       {diag.title}{" "}
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-xs text-slate-400">
                         {diag.category} · {diag.severity}
                       </span>
                     </p>
@@ -308,8 +308,8 @@ export function ChildrenTab(): ReactNode {
           className="min-h-11 rounded-xl border border-slate-800 bg-[#151B28] p-3 text-left"
           onClick={() => setSelectedId(child.id)}
         >
-          <span className="block text-sm font-semibold text-slate-100">{child.name}</span>
-          <span className="block text-[11px] text-slate-500">
+          <span className="block text-sm font-semibold text-ink">{child.name}</span>
+          <span className="block text-xs text-slate-400">
             {child.household_name ?? "—"} · ur. {child.birth_date.slice(0, 10)} ·{" "}
             {child.active_day_mode}
           </span>

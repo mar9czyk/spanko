@@ -7,7 +7,7 @@ import { adminRequest } from "./adminApi";
 import { StatusMessage } from "./ui";
 
 const DIFF_STYLE = {
-  same: "text-slate-500",
+  same: "text-slate-400",
   add: "bg-emerald-500/10 text-emerald-300",
   del: "bg-red-500/10 text-red-300 line-through",
 } as const;
@@ -23,7 +23,7 @@ const DIFF_MARK = { same: "  ", add: "+ ", del: "− " } as const;
 function DiffView({ before, after }: { before: string; after: string }): ReactNode {
   const ops = diffLines(before, after);
   return (
-    <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-black/30 p-2 text-[11px]">
+    <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-black/30 p-2 text-xs">
       {ops.map((op, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: diff jest statyczny, kolejność linii jest kluczem
         <span key={index} className={`block ${DIFF_STYLE[op.type]}`}>
@@ -84,7 +84,7 @@ export function PromptHistory({ refreshKey }: { refreshKey: number }): ReactNode
       </h3>
       <StatusMessage error={error} loading={versions || error ? undefined : "Ładowanie…"} />
       {versions?.length === 0 && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           Brak zapisanych wersji — używany jest prompt domyślny.
         </p>
       )}
@@ -97,13 +97,13 @@ export function PromptHistory({ refreshKey }: { refreshKey: number }): ReactNode
               aria-expanded={openId === version.id}
               onClick={() => setOpenId(openId === version.id ? null : version.id)}
             >
-              <span className="text-sm font-semibold text-slate-100">v{version.version}</span>
+              <span className="text-sm font-semibold text-ink">v{version.version}</span>
               {version.is_active && (
-                <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
+                <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300">
                   aktywna
                 </span>
               )}
-              <span className="block text-[11px] text-slate-500">
+              <span className="block text-xs text-slate-400">
                 {new Date(version.created).toLocaleString("pl-PL")}
                 {version.note ? ` · ${version.note}` : ""}
               </span>
@@ -122,13 +122,13 @@ export function PromptHistory({ refreshKey }: { refreshKey: number }): ReactNode
             <div className="mt-2">
               {active && !version.is_active ? (
                 <>
-                  <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">
+                  <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">
                     Różnice względem aktywnej v{active.version}
                   </p>
                   <DiffView before={version.system_prompt} after={active.system_prompt} />
                 </>
               ) : (
-                <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-black/30 p-2 text-[11px] text-slate-300">
+                <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-black/30 p-2 text-xs text-slate-300">
                   {version.system_prompt}
                 </pre>
               )}

@@ -7,7 +7,9 @@ export const CATEGORY_PRESENTATIONS: Record<string, CategoryPresentationConfig> 
   CAT2_BEDTIME_RESISTANCE_LATENCY: {
     badgeStyle: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   },
-  CAT3_EARLY_WAKING_SPLIT_NIGHT: { badgeStyle: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
+  CAT3_EARLY_WAKING_SPLIT_NIGHT: {
+    badgeStyle: "bg-coral-500/10 text-coral-400 border-coral-500/20",
+  },
   CAT4_SHORT_NAPS_TRANSITIONS: { badgeStyle: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
   CAT5_REGRESSION_ILLNESS_CRISIS: {
     badgeStyle: "bg-orange-500/10 text-orange-400 border-orange-500/20",

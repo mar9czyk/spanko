@@ -38,7 +38,7 @@ export default function HistoryPage(): ReactNode {
           <span>{t("insights.dashboard")}</span>
         </Link>
         <div>
-          <h1 className="text-lg font-bold text-slate-100">{t("history.title")}</h1>
+          <h1 className="text-lg font-bold text-ink">{t("history.title")}</h1>
           <p className="text-xs text-slate-400 mt-0.5">
             {t("history.subtitle", { n: HISTORY_DAYS })}
           </p>

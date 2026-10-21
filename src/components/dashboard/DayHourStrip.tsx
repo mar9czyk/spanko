@@ -88,7 +88,7 @@ export function DayHourStrip({
           ) : (
             <div
               key={`d-${mark.offset}`}
-              className="absolute top-[32px] h-1.5 w-1.5 -translate-x-1/2 rotate-45 rounded-[1px] bg-sky-400"
+              className="absolute top-[32px] h-1.5 w-1.5 -translate-x-1/2 rotate-45 rounded-[1px] bg-diaper"
               style={{ left: toPercent(mark.offset) }}
             />
           ),
@@ -100,24 +100,24 @@ export function DayHourStrip({
           />
         )}
       </div>
-      <div className="relative h-3" aria-hidden="true">
+      <div className="relative h-4" aria-hidden="true">
         {LABEL_HOURS.map((hour) => (
           <span
             key={hour}
-            className="absolute whitespace-nowrap text-[9px] font-mono text-slate-500"
+            className="absolute whitespace-nowrap text-xs tabular-nums text-slate-400"
             style={{ left: toPercent(hour / 24) }}
           >
             {formatHour(strip.startMs + hour * MS_PER_HOUR)}
           </span>
         ))}
       </div>
-      <div className="flex justify-end gap-3 pt-1.5 text-[10px] text-slate-400" aria-hidden="true">
+      <div className="flex justify-end gap-3 pt-1.5 text-xs text-slate-400" aria-hidden="true">
         <span className="flex items-center gap-1">
           <span className="h-2.5 w-[2px] rounded-full bg-emerald-400" />
           {t("timeline.legendFeeding")}
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rotate-45 rounded-[1px] bg-sky-400" />
+          <span className="h-1.5 w-1.5 rotate-45 rounded-[1px] bg-diaper" />
           {t("timeline.legendDiaper")}
         </span>
       </div>

@@ -37,7 +37,7 @@ export interface MoodOptionItem {
 export const MOOD_OPTIONS: readonly MoodOptionItem[] = [
   { value: "easy", labelKey: "mood.easy", colorClass: "text-emerald-400 border-emerald-500/30" },
   { value: "fussy", labelKey: "mood.fussy", colorClass: "text-amber-400 border-amber-500/30" },
-  { value: "crying", labelKey: "mood.crying", colorClass: "text-rose-400 border-rose-500/30" },
+  { value: "crying", labelKey: "mood.crying", colorClass: "text-coral-400 border-coral-500/30" },
 ] as const;
 
 export interface InterventionOptionItem {

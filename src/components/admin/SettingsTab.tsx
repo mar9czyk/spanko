@@ -177,10 +177,10 @@ export function SettingsTab(): ReactNode {
         }`}
       >
         <div>
-          <h3 className="text-sm font-semibold text-slate-100">
+          <h3 className="text-sm font-semibold text-ink">
             AI {aiDisabled ? "wyłączone globalnie" : "włączone"}
           </h3>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-xs text-slate-400">
             {aiDisabled
               ? "Wnioski i coach działają wyłącznie na silniku deterministycznym."
               : "Wnioski i coach korzystają z OpenRoutera (z silnikiem jako zapasem)."}
@@ -270,7 +270,7 @@ export function SettingsTab(): ReactNode {
           />
         </Field>
       </div>
-      <p className="-mt-2 text-[11px] text-slate-500">Pusta lub 0 = wartość domyślna.</p>
+      <p className="-mt-2 text-xs text-slate-400">Pusta lub 0 = wartość domyślna.</p>
 
       <Field label="Dzienny limit zapytań AI na gospodarstwo">
         <input
@@ -316,7 +316,7 @@ export function SettingsTab(): ReactNode {
               </p>
             ) : (
               connection.configured && (
-                <p className="mt-1 text-slate-500">
+                <p className="mt-1 text-slate-400">
                   Stan kredytów niedostępny (klucz bez uprawnień do /credits).
                 </p>
               )
@@ -367,7 +367,7 @@ export function SettingsTab(): ReactNode {
         </PrimaryButton>
         {sandboxError && <StatusMessage error={sandboxError} />}
         {sandbox && (
-          <pre className="max-h-96 overflow-auto rounded-lg bg-black/30 p-2 text-[11px] text-slate-300">
+          <pre className="max-h-96 overflow-auto rounded-lg bg-black/30 p-2 text-xs text-slate-300">
             {JSON.stringify(sandbox, null, 2)}
           </pre>
         )}

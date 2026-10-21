@@ -40,7 +40,7 @@ function HistoryStatusBadge({ status }: { status: ChildInsightRecord["status"] }
   const { t } = useI18n();
   if (status === "corrected_by_parent") {
     return (
-      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
         <AlertTriangle className="w-2.5 h-2.5" />
         <span>{t("insights.correctedByParent")}</span>
       </span>
@@ -48,7 +48,7 @@ function HistoryStatusBadge({ status }: { status: ChildInsightRecord["status"] }
   }
 
   return (
-    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
       <Clock className="w-2.5 h-2.5" />
       <span>{t("insights.superseded")}</span>
     </span>
@@ -71,7 +71,7 @@ function TimelineEventItem({ insight }: { insight: ChildInsightRecord }) {
 
       <div className="w-full bg-[#151B28]/70 border border-[#263348]/70 rounded-2xl p-3 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-1 flex-wrap">
-          <span className="text-[10px] text-slate-400 font-mono">
+          <span className="text-xs text-slate-400 tabular-nums">
             {formatTimestampDisplay(
               insight.valid_from || insight.created,
               dateLocaleTag(locale),
@@ -82,10 +82,10 @@ function TimelineEventItem({ insight }: { insight: ChildInsightRecord }) {
         </div>
 
         <h3 className="text-xs font-semibold text-slate-200">{insight.title}</h3>
-        <p className="text-[11px] text-slate-400 leading-relaxed">{insight.explanation}</p>
+        <p className="text-xs text-slate-400 leading-relaxed">{insight.explanation}</p>
 
         {isCorrected && insight.parent_correction_note && (
-          <div className="p-2 rounded-xl bg-amber-950/20 border border-amber-500/20 text-[11px] text-amber-200 flex items-start gap-1.5">
+          <div className="p-2 rounded-xl bg-amber-950/20 border border-amber-500/20 text-xs text-amber-200 flex items-start gap-1.5">
             <MessageSquare className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
             <span className="leading-snug">
               {t("insights.parentSays", { note: insight.parent_correction_note })}
@@ -94,7 +94,7 @@ function TimelineEventItem({ insight }: { insight: ChildInsightRecord }) {
         )}
 
         {isCorrected && (
-          <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+          <div className="text-xs text-emerald-400 flex items-center gap-1">
             <ShieldAlert className="w-3 h-3" />
             <span>{t("insights.anomalyExcluded")}</span>
           </div>
@@ -121,14 +121,14 @@ export function InsightsTimelineSection({
           <GitCommit className="w-3.5 h-3.5 text-amber-400" />
           <span>{t("insights.timelineTitle")}</span>
         </h2>
-        <span className="text-[10px] bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 font-mono">
+        <span className="text-xs bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 tabular-nums">
           {historyInsights.length}
         </span>
       </div>
 
       <div className="relative border-l-2 border-[#263348] ml-2 flex flex-col pt-1">
         {historyInsights.length === 0 ? (
-          <div className="pl-6 text-xs text-slate-500 py-2">{t("insights.timelineEmpty")}</div>
+          <div className="pl-6 text-xs text-slate-400 py-2">{t("insights.timelineEmpty")}</div>
         ) : (
           historyInsights.map((insight) => <TimelineEventItem key={insight.id} insight={insight} />)
         )}

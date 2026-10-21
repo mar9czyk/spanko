@@ -47,7 +47,7 @@ export function ProfileSection({ user }: { readonly user: UserRecord }): ReactNo
             {initial}
           </div>
           <label className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-[11px] text-slate-400">{t("settings.name")}</span>
+            <span className="text-xs text-slate-400">{t("settings.name")}</span>
             <input
               type="text"
               value={name}
@@ -58,12 +58,12 @@ export function ProfileSection({ user }: { readonly user: UserRecord }): ReactNo
                 setName(event.target.value);
                 setStatus("idle");
               }}
-              className="w-full rounded-xl border border-[#263348] bg-[#0B0F17] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-amber-500/60 focus:outline-none"
+              className="w-full rounded-xl border border-[#263348] bg-[#0B0F17] px-3 py-2 text-sm text-ink placeholder:text-slate-500 focus:border-amber-500/60 focus:outline-none"
             />
           </label>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] text-slate-400">{t("settings.email")}</span>
+          <span className="text-xs text-slate-400">{t("settings.email")}</span>
           <p className="truncate text-sm text-slate-300">{user.email}</p>
         </div>
         <div className="flex items-center justify-end gap-3">
