@@ -1,4 +1,7 @@
-import { getMinutesFromMidnightInTimeZone } from "./physiologicalDay";
+import {
+  getMinutesFromMidnightInTimeZone,
+  hasUtcOffsetChangedWithinDays,
+} from "./physiologicalDay";
 import { MILLISECONDS_PER_DAY, MILLISECONDS_PER_MINUTE } from "./threeDrives";
 import type { DiagnosticEvaluationInput, DiagnosticTreeResult, SleepLog, SleepMood } from "./types";
 
@@ -56,6 +59,11 @@ export const EARLY_WAKE_LONG_NIGHT_MINUTES = 630; // heurystyka (10,5 h)
 export const EARLY_WAKE_SHORT_NIGHT_MINUTES = 570; // heurystyka (9,5 h)
 export const PHASE_SHIFT_STEP_MINUTES = 15; // heurystyka
 export const PHASE_SHIFT_INTERVAL_DAYS = 2; // heurystyka
+/**
+ * CAT3: przez tyle dni po zmianie czasu pobudki o tej samej porze biologicznej wypadają
+ * godzinę wcześniej na zegarze, więc nie liczą się jako wczesne pobudki.
+ */
+export const CLOCK_CHANGE_ADJUSTMENT_DAYS = 7; // heurystyka
 /** CAT4: opór przed ostatnią drzemką. */
 export const NAP_RESISTANCE_LATENCY_MINUTES = 20; // heurystyka
 /** CAT4: przejście drzemkowe dopiero po ≥5 dniach sygnałów z rzędu. */
@@ -106,6 +114,7 @@ export const DIAGNOSIS_CODES = {
   CAT3_EARLY_WAKING_SHORT_NIGHT: "EARLY_MORNING_WAKING_SHORT_NIGHT",
   CAT3_EARLY_WAKING_UNCLEAR: "EARLY_MORNING_WAKING",
   CAT3_NORMAL: "NORMAL_CIRCADIAN_WAKE",
+  CAT3_CLOCK_CHANGE: "CLOCK_CHANGE_ADJUSTMENT",
   CAT4_SINGLE_CYCLE: "SINGLE_CYCLE_SHORT_NAPS",
   CAT4_TRANSITION_READY: "NAP_TRANSITION_READY",
   CAT4_DEVELOPMENTAL: "DEVELOPMENTAL_SHORT_NAPS",
@@ -504,9 +513,32 @@ function resolveEarlyMorningWakeResult(averageNightMin: number): DiagnosticTreeR
  */
 function evaluateEarlyWakingTree(input: DiagnosticEvaluationInput): DiagnosticTreeResult {
   const earlyNights = selectEarlyWakingNights(input.recentSleepLogs, input.timeZone);
+  const settledEarlyNights = earlyNights.filter(
+    (l) =>
+      !hasUtcOffsetChangedWithinDays(
+        l.wokeUpAt as string,
+        CLOCK_CHANGE_ADJUSTMENT_DAYS,
+        input.timeZone,
+      ),
+  );
+
+  if (settledEarlyNights.length >= REPEAT_MIN_NIGHTS) {
+    return resolveEarlyMorningWakeResult(average(settledEarlyNights.map(nightSleepMinutes)));
+  }
 
   if (earlyNights.length >= REPEAT_MIN_NIGHTS) {
-    return resolveEarlyMorningWakeResult(average(earlyNights.map(nightSleepMinutes)));
+    return {
+      category: "CAT3_EARLY_WAKING_SPLIT_NIGHT",
+      diagnosisCode: DIAGNOSIS_CODES.CAT3_CLOCK_CHANGE,
+      severity: "info",
+      confidenceScore: 0.8,
+      isTriggered: false,
+      title: "Przestawianie się po zmianie czasu",
+      explanation:
+        "Po zmianie czasu dziecko budzi się o tej samej porze co zwykle, ale zegar pokazuje inną godzinę. Przestawienie trwa zwykle kilka dni do tygodnia.",
+      clinicalAction:
+        "Przesuwaj drzemki i porę snu o 10–15 minut dziennie w stronę nowych godzin. Rano trzymaj sypialnię zaciemnioną, a w dzień dawaj dużo światła.",
+    };
   }
 
   return {

@@ -112,6 +112,49 @@ export function getMinutesFromMidnightInTimeZone(
 }
 
 /**
+ * Zwraca przesunięcie strefy względem UTC (w minutach) w danym momencie, np. 120 dla CEST.
+ *
+ * @param {Date | string | number} timestamp - Moment w czasie
+ * @param {string} [timeZone=DEFAULT_TIME_ZONE] - Strefa IANA dziecka
+ * @returns {number} Przesunięcie w minutach (dodatnie na wschód od Greenwich)
+ */
+export function getUtcOffsetMinutesInTimeZone(
+  timestamp: Date | string | number,
+  timeZone: string = DEFAULT_TIME_ZONE,
+): number {
+  const formatter = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" });
+  const label =
+    formatter
+      .formatToParts(new Date(parseTimestampToMilliseconds(timestamp)))
+      .find((part) => part.type === "timeZoneName")?.value ?? "GMT";
+  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(label);
+  if (!match) return 0;
+  const sign = match[1] === "-" ? -1 : 1;
+  return sign * (Number(match[2]) * 60 + Number(match[3]));
+}
+
+/**
+ * Sprawdza, czy w ciągu `days` dni przed danym momentem strefa zmieniła przesunięcie
+ * (zmiana czasu letni/zimowy). Porównuje przesunięcie w chwili zdarzenia i `days` dni wcześniej.
+ *
+ * @param {Date | string | number} timestamp - Moment zdarzenia (np. poranna pobudka)
+ * @param {number} days - Długość okna wstecz w dniach
+ * @param {string} [timeZone=DEFAULT_TIME_ZONE] - Strefa IANA dziecka
+ * @returns {boolean} True, jeśli zmiana czasu wypadła w tym oknie
+ */
+export function hasUtcOffsetChangedWithinDays(
+  timestamp: Date | string | number,
+  days: number,
+  timeZone: string = DEFAULT_TIME_ZONE,
+): boolean {
+  const eventMs = parseTimestampToMilliseconds(timestamp);
+  return (
+    getUtcOffsetMinutesInTimeZone(eventMs, timeZone) !==
+    getUtcOffsetMinutesInTimeZone(eventMs - days * MILLISECONDS_IN_DAY, timeZone)
+  );
+}
+
+/**
  * Formatuje składowe kalendarzowe do YYYY-MM-DD.
  *
  * @param {number} year - Rok
