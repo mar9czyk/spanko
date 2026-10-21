@@ -22,6 +22,7 @@ Mobile-first Progressive Web App combining a real-time baby sleep/routine tracke
 - Deterministic 3-Drive Sleep Engine & 7 Diagnostic Trees -> `docs/agent/sleep-engine.md`
 - OpenRouter JSON schemas, Insight Versioning & Admin Panel -> `docs/agent/ai-and-admin.md`
 - Silnik Celów (cele snu, plany, metody, progresja) -> `docs/agent/goals-engine.md`
+- Źródła i poziom dowodu każdego parametru silnika snu i celów -> `docs/agent/zrodla.md`
 - Internacjonalizacja EN/PL, jednostki ml/oz -> `docs/agent/i18n.md`
 - UI/UX guidelines, Dark Mode palette & 3 AM workflow -> `docs/agent/ux-guidelines.md`
 
