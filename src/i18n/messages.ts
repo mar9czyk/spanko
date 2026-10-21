@@ -74,8 +74,9 @@ export const pl = {
   "anti.clock": "Zegar",
 
   "insightCard.works": "Działa",
-  "insightCard.worksActive": "Działa!",
   "insightCard.adjust": "Skoryguj",
+  "insightCard.saved": "Zapisane, uwzględnimy to w prognozach.",
+  "insightCard.undo": "Cofnij",
   "insightCard.history": "Karta Rozwoju i Kalendarz Historii",
 
   "battery.period": "względem zwykłego snu, ostatnie 3 doby",
@@ -429,8 +430,9 @@ export const en: Record<MessageKey, string> = {
   "anti.clock": "Clock",
 
   "insightCard.works": "Works",
-  "insightCard.worksActive": "Works!",
   "insightCard.adjust": "Adjust",
+  "insightCard.saved": "Saved, we'll use it in predictions.",
+  "insightCard.undo": "Undo",
   "insightCard.history": "Sleep profile & history",
 
   "battery.period": "vs usual sleep, last 3 days",

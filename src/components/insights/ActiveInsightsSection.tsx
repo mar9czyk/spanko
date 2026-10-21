@@ -7,6 +7,7 @@ import { CATEGORY_PRESENTATIONS, DEFAULT_CATEGORY_PRESENTATION } from "./constan
 interface ActiveInsightsSectionProps {
   readonly insights: readonly ChildInsightRecord[];
   readonly onAccept: (insightId: string) => void;
+  readonly onUndoAccept: (insightId: string) => void;
   readonly onOpenCorrection: (insight: ChildInsightRecord) => void;
 }
 
@@ -64,10 +65,12 @@ function AlgorithmOverridePill({ overrides }: { overrides?: Record<string, unkno
 function ActiveInsightCard({
   insight,
   onAccept,
+  onUndoAccept,
   onOpenCorrection,
 }: {
   insight: ChildInsightRecord;
   onAccept: (id: string) => void;
+  onUndoAccept: (id: string) => void;
   onOpenCorrection: (insight: ChildInsightRecord) => void;
 }) {
   const { t } = useI18n();
@@ -92,7 +95,8 @@ function ActiveInsightCard({
       <div className="flex items-center gap-2 pt-2 border-t border-[#263348]/60">
         <button
           type="button"
-          onClick={() => onAccept(insight.id)}
+          onClick={() => (isValidated ? onUndoAccept(insight.id) : onAccept(insight.id))}
+          aria-pressed={isValidated}
           className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-all min-h-[36px] ${
             isValidated
               ? "bg-emerald-950/60 text-emerald-300 border border-emerald-500/40"
@@ -104,7 +108,11 @@ function ActiveInsightCard({
           ) : (
             <Check className="w-3.5 h-3.5 text-emerald-400" />
           )}
-          <span>{isValidated ? t("insights.confirmed") : t("insights.worksForUs")}</span>
+          <span>
+            {isValidated
+              ? `${t("insights.confirmed")} · ${t("insightCard.undo")}`
+              : t("insights.worksForUs")}
+          </span>
         </button>
 
         <button
@@ -129,6 +137,7 @@ function ActiveInsightCard({
 export function ActiveInsightsSection({
   insights,
   onAccept,
+  onUndoAccept,
   onOpenCorrection,
 }: ActiveInsightsSectionProps): ReactNode {
   const { t } = useI18n();
@@ -158,6 +167,7 @@ export function ActiveInsightsSection({
             key={insight.id}
             insight={insight}
             onAccept={onAccept}
+            onUndoAccept={onUndoAccept}
             onOpenCorrection={onOpenCorrection}
           />
         ))}
