@@ -19,6 +19,9 @@ export interface TimelineNapEvent {
   readonly startTime: string;
   readonly endTime?: string;
   readonly startIso?: string;
+  /** Pole logu, które wyznacza start (zaśnięcie albo samo odłożenie). */
+  readonly startField?: "fell_asleep_at" | "put_down_at";
+  readonly putDownIso?: string;
   readonly endIso?: string;
   readonly durationMinutes?: number;
   readonly mood?: SleepMood;
@@ -49,6 +52,7 @@ export interface TimelineTagEvent {
   readonly id: string;
   readonly kind: "tag";
   readonly time: string;
+  readonly timeIso?: string;
   readonly tags: readonly string[];
   readonly notes?: string;
 }
