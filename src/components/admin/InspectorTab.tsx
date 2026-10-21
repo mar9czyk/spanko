@@ -82,8 +82,8 @@ const STATUS_STYLE: Record<AiCallStatus, string> = {
 function JsonBlock({ title, value }: { title: string; value: unknown }): ReactNode {
   return (
     <div className="min-w-0">
-      <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">{title}</p>
-      <pre className="max-h-60 overflow-auto rounded-lg bg-black/30 p-2 text-[11px] text-slate-300">
+      <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">{title}</p>
+      <pre className="max-h-60 overflow-auto rounded-lg bg-black/30 p-2 text-xs text-slate-300">
         {JSON.stringify(value ?? null, null, 2)}
       </pre>
     </div>
@@ -132,7 +132,7 @@ function ReplayPanel({ callId }: { callId: string }): ReactNode {
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-violet-500/20 p-2">
-      <p className="text-[10px] uppercase tracking-wider text-violet-300">
+      <p className="text-xs uppercase tracking-wider text-violet-300">
         Odtwórz z innym promptem / modelem
       </p>
       <input
@@ -182,11 +182,11 @@ function QualityTable({ title, rows }: { title: string; rows: readonly QualityRo
         {title}
       </h3>
       {rows.length === 0 ? (
-        <p className="text-xs text-slate-500">Brak ocenionych wniosków.</p>
+        <p className="text-xs text-slate-400">Brak ocenionych wniosków.</p>
       ) : (
         <table className="w-full text-xs text-slate-300">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-slate-500">
+            <tr className="text-xs uppercase tracking-wider text-slate-400">
               <th className="pb-1 text-left font-medium">Klucz</th>
               <th className="pb-1 text-right font-medium">Razem</th>
               <th className="pb-1 text-right font-medium">👍</th>
@@ -238,7 +238,7 @@ function QualityView(): ReactNode {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-slate-500">Przeanalizowano wniosków: {data.analyzed}.</p>
+      <p className="text-xs text-slate-400">Przeanalizowano wniosków: {data.analyzed}.</p>
       <QualityTable title="Wg kategorii" rows={data.report.byCategory} />
       <QualityTable title="Wg wersji promptu" rows={data.report.byPromptVersion} />
       <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3">
@@ -246,14 +246,14 @@ function QualityView(): ReactNode {
           Ostatnie korekty rodziców
         </h3>
         {data.corrections.length === 0 && (
-          <p className="text-xs text-slate-500">Brak korekt z komentarzem.</p>
+          <p className="text-xs text-slate-400">Brak korekt z komentarzem.</p>
         )}
         <ul className="flex flex-col gap-2">
           {data.corrections.map((correction) => (
             <li key={correction.id} className="rounded-lg border border-slate-800 p-2 text-xs">
               <p className="font-medium text-slate-200">{correction.title}</p>
               <p className="text-slate-300">„{correction.note}”</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-400">
                 {correction.category} · {correction.feedback ?? "—"} ·{" "}
                 {new Date(correction.updated).toLocaleString("pl-PL")}
               </p>
@@ -399,16 +399,16 @@ export function InspectorTab(): ReactNode {
               <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-xs">
                 <span className={`font-semibold ${STATUS_STYLE[call.status]}`}>{call.status}</span>
                 <span className="text-slate-400">{call.kind}</span>
-                <span className="text-slate-500">{call.model}</span>
+                <span className="text-slate-400">{call.model}</span>
                 {call.fallback_used && (
-                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-300">
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-300">
                     fallback
                   </span>
                 )}
                 {call.prompt_version ? (
-                  <span className="text-[10px] text-slate-500">v{call.prompt_version}</span>
+                  <span className="text-xs text-slate-400">v{call.prompt_version}</span>
                 ) : null}
-                <span className="ml-auto text-slate-600">
+                <span className="ml-auto text-slate-400">
                   {new Date(call.created).toLocaleString()} · {call.latency_ms ?? "—"} ms
                 </span>
               </summary>
@@ -416,7 +416,7 @@ export function InspectorTab(): ReactNode {
                 <JsonBlock title="1. Silnik deterministyczny" value={call.request_snapshot_json} />
                 <JsonBlock title="2. Odpowiedź modelu" value={call.response_json} />
                 <div>
-                  <p className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">
+                  <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">
                     3. Reakcja rodzica
                   </p>
                   {call.insight ? (
@@ -427,18 +427,18 @@ export function InspectorTab(): ReactNode {
                         : ""}
                     </p>
                   ) : (
-                    <p className="text-xs text-slate-500">Brak powiązanego wniosku.</p>
+                    <p className="text-xs text-slate-400">Brak powiązanego wniosku.</p>
                   )}
                 </div>
                 {call.error_message && <StatusMessage error={call.error_message} />}
-                <p className="text-[11px] text-slate-600">
+                <p className="text-xs text-slate-400">
                   Tokeny: {call.prompt_tokens ?? "—"} / {call.completion_tokens ?? "—"}
                   {call.category ? ` · ${call.category}` : ""}
                 </p>
                 {canReplay(call) ? (
                   <ReplayPanel callId={call.id} />
                 ) : (
-                  <p className="text-[11px] text-slate-600">
+                  <p className="text-xs text-slate-400">
                     Brak zapisanego pełnego kontekstu — tego wywołania nie można odtworzyć.
                   </p>
                 )}

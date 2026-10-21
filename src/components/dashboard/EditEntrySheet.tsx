@@ -27,7 +27,7 @@ interface EditEntrySheetProps {
 }
 
 const TIME_INPUT_CLASS =
-  "min-h-12 w-full rounded-xl border border-[#263348] bg-[#0B0F17] px-3 text-lg font-mono text-slate-100 [color-scheme:dark] focus:border-amber-400 focus:outline-none";
+  "min-h-12 w-full rounded-xl border border-[#263348] bg-[#0B0F17] px-3 text-lg tabular-nums text-ink [color-scheme:dark] focus:border-amber-400 focus:outline-none";
 
 /**
  * Zapisuje zmianę godzin wpisu w PocketBase.
@@ -65,9 +65,7 @@ function TimeField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-        {label}
-      </span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</span>
       <input
         type="time"
         required
@@ -145,7 +143,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
           >
             <div className="w-12 h-1 bg-[#263348] rounded-full mx-auto" />
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-100">{t("entryEdit.title")}</h2>
+              <h2 className="text-sm font-semibold text-ink">{t("entryEdit.title")}</h2>
               <button
                 type="button"
                 onClick={onClose}
@@ -165,7 +163,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
                 <TimeField label={t("entryEdit.sleepEnd")} value={end} onChange={setEnd} />
               )}
             </div>
-            <p className="text-[11px] text-slate-400">{t("entryEdit.hint")}</p>
+            <p className="text-xs text-slate-400">{t("entryEdit.hint")}</p>
             {error && (
               <p role="alert" className="text-xs text-red-300">
                 {t(`entryEdit.error.${error}` as const)}

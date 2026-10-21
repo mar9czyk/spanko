@@ -49,7 +49,7 @@ export function ActiveSleepRemTimer(): ReactNode {
       <button
         type="button"
         onClick={handleStart}
-        className="w-full py-2 px-3 rounded-xl bg-violet-950/30 hover:bg-violet-900/40 border border-violet-500/30 text-violet-300 text-xs font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
+        className="w-full py-2 px-3 rounded-xl bg-violet-950/30 hover:bg-violet-900/40 border border-violet-500/30 text-violet-300 text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
       >
         <Timer className="w-4 h-4 text-violet-400" />
         <span>{t("rem.start")}</span>
@@ -60,7 +60,7 @@ export function ActiveSleepRemTimer(): ReactNode {
   return (
     <div className="w-full p-2.5 rounded-xl bg-[#151B28] border border-violet-500/40 flex flex-col gap-1.5 animate-fadeIn">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-violet-300 flex items-center gap-1.5">
+        <span className="text-sm font-semibold text-violet-300 flex items-center gap-1.5">
           <Timer className="w-3.5 h-3.5 animate-spin" />
           {t("rem.countdown", { seconds: secondsRemaining })}
         </span>
@@ -72,7 +72,7 @@ export function ActiveSleepRemTimer(): ReactNode {
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
-      <p className="text-[10px] text-slate-300 leading-tight">{t("rem.help")}</p>
+      <p className="text-sm text-slate-300 leading-tight">{t("rem.help")}</p>
     </div>
   );
 }

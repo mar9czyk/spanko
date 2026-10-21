@@ -36,7 +36,7 @@ function OffsetOptionButton({
     <button
       type="button"
       onClick={() => onSelect(offset)}
-      className={`py-1 px-2.5 rounded-lg text-xs font-mono font-medium transition-all ${
+      className={`py-1 px-2.5 rounded-lg text-xs tabular-nums font-medium transition-all ${
         isSelected
           ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20"
           : "bg-[#1E2738] text-slate-300 hover:bg-[#28354c]"
@@ -87,7 +87,7 @@ export function InsightCorrectionModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-[#1E2738]"
+            className="p-1.5 text-slate-400 hover:text-ink rounded-lg hover:bg-[#1E2738]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -103,19 +103,17 @@ export function InsightCorrectionModal({
             className="w-4 h-4 rounded text-amber-500 bg-[#0B0F17] border-[#263348] mt-0.5"
           />
           <div className="flex-1">
-            <span className="text-xs font-semibold text-slate-100 block">
+            <span className="text-xs font-semibold text-ink block">
               {t("correction.exception")}
             </span>
-            <span className="text-[11px] text-slate-400 block mt-0.5">
+            <span className="text-xs text-slate-400 block mt-0.5">
               {t("correction.exceptionHelp")}
             </span>
           </div>
         </label>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-medium text-slate-300">
-            {t("correction.adjustWindow")}
-          </span>
+          <span className="text-xs font-medium text-slate-300">{t("correction.adjustWindow")}</span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {WAKE_WINDOW_OFFSET_OPTIONS.map((opt) => (
               <OffsetOptionButton
@@ -129,7 +127,7 @@ export function InsightCorrectionModal({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-medium text-slate-300">{t("correction.note")}</span>
+          <span className="text-xs font-medium text-slate-300">{t("correction.note")}</span>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}

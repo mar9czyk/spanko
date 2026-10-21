@@ -45,7 +45,7 @@ export function InsightsHeader({
       </div>
 
       <div>
-        <h1 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+        <h1 className="text-lg font-bold text-ink flex items-center gap-2">
           <span>{t("insights.title")}</span>
         </h1>
         <p className="text-xs text-slate-400 mt-0.5">{t("insights.subtitle")}</p>

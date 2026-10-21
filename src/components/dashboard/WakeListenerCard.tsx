@@ -65,8 +65,8 @@ export function WakeListenerCard({
           <Ear className="w-5 h-5 text-violet-400" />
           {listener.status === "starting" ? t("wakeListener.starting") : t("wakeListener.start")}
         </button>
-        <p className="text-[11px] text-slate-500 text-center">{t("wakeListener.privacy")}</p>
-        <p className="text-[11px] text-slate-500 text-center">{t("wakeListener.otherPhone")}</p>
+        <p className="text-xs text-slate-400 text-center">{t("wakeListener.privacy")}</p>
+        <p className="text-xs text-slate-400 text-center">{t("wakeListener.otherPhone")}</p>
         {listener.error && (
           <p role="alert" className="text-xs text-red-300 flex items-center gap-1.5">
             <MicOff className="w-4 h-4 shrink-0" />
@@ -107,7 +107,7 @@ export function WakeListenerCard({
               <button
                 type="button"
                 onClick={listener.stop}
-                className="w-full min-h-[48px] text-slate-500 text-sm"
+                className="w-full min-h-[48px] text-slate-400 text-sm"
               >
                 {t("wakeListener.stop")}
               </button>
@@ -131,7 +131,7 @@ export function WakeListenerCard({
                     })}
                   </p>
                 )}
-                <p className="text-[11px] text-slate-600 text-center">
+                <p className="text-xs text-slate-400 text-center">
                   {t("wakeListener.keepScreenOn")}
                 </p>
               </div>
@@ -146,7 +146,7 @@ export function WakeListenerCard({
                     className={`flex-1 min-h-[48px] rounded-xl border text-xs font-medium ${
                       listener.sensitivity === value
                         ? "border-violet-500/60 text-violet-300 bg-violet-950/40"
-                        : "border-[#263348] text-slate-500"
+                        : "border-[#263348] text-slate-400"
                     }`}
                   >
                     {t(`wakeListener.sensitivity.${value}`)}

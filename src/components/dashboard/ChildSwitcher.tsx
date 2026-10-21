@@ -116,11 +116,11 @@ export function ChildSwitcher({
           )}
         </button>
         <div>
-          <h1 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5 leading-tight">
+          <h1 className="text-sm font-semibold text-ink flex items-center gap-1.5 leading-tight">
             {activeChild.name}
-            <span className="text-[11px] font-normal text-slate-400">({ageDisplay})</span>
+            <span className="text-xs font-normal text-slate-400">({ageDisplay})</span>
           </h1>
-          <p className="text-[10px] text-slate-500">{t("header.mode")}</p>
+          <p className="text-xs text-slate-400">{t("header.mode")}</p>
         </div>
       </div>
     );
@@ -144,14 +144,14 @@ export function ChildSwitcher({
           >
             <ChildAvatar child={item} photoUrl={urlFor(item)} size="md" isActive={isActive} />
             <span
-              className={`w-full truncate text-center text-[10px] leading-tight ${
+              className={`w-full truncate text-center text-xs leading-tight ${
                 isActive ? "font-semibold text-amber-300" : "text-slate-400"
               }`}
             >
               {item.name}
             </span>
             {isActive && (
-              <span className="w-full truncate text-center text-[9px] leading-tight text-slate-500">
+              <span className="w-full truncate text-center text-xs leading-tight text-slate-400">
                 {ageDisplay}
               </span>
             )}

@@ -22,18 +22,18 @@ function HypothesisCard({ hypothesis }: { hypothesis: ChildInsightRecord }) {
     <article className="w-full bg-[#151B28]/80 border border-violet-500/20 rounded-2xl p-3.5 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded border tracking-wide uppercase ${config.badgeStyle}`}
+          className={`text-xs font-semibold px-2 py-0.5 rounded border tracking-wide uppercase ${config.badgeStyle}`}
         >
           {tDynamic(`insights.cat.${hypothesis.category}`, t("insights.default"))}
         </span>
-        <span className="text-[10px] text-violet-300 bg-violet-950/60 border border-violet-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+        <span className="text-xs text-violet-300 bg-violet-950/60 border border-violet-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
           <Eye className="w-2.5 h-2.5" />
           <span>{t("insights.observation")}</span>
         </span>
       </div>
 
-      <h3 className="text-xs font-semibold text-slate-100">{hypothesis.title}</h3>
-      <p className="text-[11px] text-slate-300 leading-relaxed">{hypothesis.explanation}</p>
+      <h3 className="text-xs font-semibold text-ink">{hypothesis.title}</h3>
+      <p className="text-xs text-slate-300 leading-relaxed">{hypothesis.explanation}</p>
     </article>
   );
 }
@@ -55,7 +55,7 @@ export function HypothesesSection({ hypotheses }: HypothesesSectionProps): React
           <HelpCircle className="w-3.5 h-3.5" />
           <span>{t("insights.hypothesesTitle")}</span>
         </h2>
-        <span className="text-[10px] bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 font-mono">
+        <span className="text-xs bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 tabular-nums">
           {hypotheses.length}
         </span>
       </div>

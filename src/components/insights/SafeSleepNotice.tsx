@@ -41,7 +41,7 @@ export function SafeSleepNotice({ child }: SafeSleepNoticeProps): ReactNode {
           <li key={item}>{item}</li>
         ))}
       </ul>
-      <p className="pt-2 text-[11px] text-slate-400">{t("safeSleep.source")}</p>
+      <p className="pt-2 text-xs text-slate-400">{t("safeSleep.source")}</p>
     </details>
   );
 }

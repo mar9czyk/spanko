@@ -29,8 +29,8 @@ const RESTEDNESS_STYLES: Record<
   very_tired: {
     labelKey: "battery.level.veryTired",
     effectKey: "battery.effect.veryTired",
-    textClass: "text-rose-400",
-    segmentClass: "bg-rose-400",
+    textClass: "text-coral-400",
+    segmentClass: "bg-coral-400",
   },
 };
 
@@ -93,16 +93,16 @@ export function SleepBatteryIndicator({
     <div className="w-full bg-[#151B28] border border-[#263348] rounded-2xl p-3 flex flex-col gap-2 shadow-md">
       <div className="flex items-baseline justify-between gap-2">
         <span className={`text-base font-semibold ${style.textClass}`}>{t(style.labelKey)}</span>
-        <span className="text-[11px] text-slate-500">{t("battery.period")}</span>
+        <span className="text-xs text-slate-400">{t("battery.period")}</span>
       </div>
       <RestednessSegments percent={batteryPercent} segmentClass={style.segmentClass} />
-      <p className="text-xs text-slate-400">{t(style.effectKey)}</p>
-      <div className="flex items-center justify-between gap-1 text-[11px] pt-1">
+      <p className="text-sm text-slate-400">{t(style.effectKey)}</p>
+      <div className="flex items-center justify-between gap-1 text-xs pt-1">
         <span className="px-2 py-0.5 rounded-md bg-[#1E2738] text-violet-300 border border-violet-500/20 flex items-center gap-1">
           <ShieldCheck className="w-3 h-3 text-violet-400" />
           {t(PROFILE_KEYS[sleepNeedsProfile])}
         </span>
-        <span className="px-2 py-0.5 rounded-md bg-[#1E2738] text-amber-300 border border-amber-500/20 flex items-center gap-1 font-mono">
+        <span className="px-2 py-0.5 rounded-md bg-[#1E2738] text-amber-300 border border-amber-500/20 flex items-center gap-1 tabular-nums">
           <Clock className="w-3 h-3 text-amber-400" />
           {t("battery.lastNap", { time: latestLastNapEndAt })}
         </span>

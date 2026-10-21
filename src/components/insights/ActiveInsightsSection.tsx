@@ -21,7 +21,7 @@ function CategoryBadge({ category }: { category: string }) {
   const config = CATEGORY_PRESENTATIONS[category] || DEFAULT_CATEGORY_PRESENTATION;
   return (
     <span
-      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border tracking-wide uppercase ${config.badgeStyle}`}
+      className={`text-xs font-semibold px-2 py-0.5 rounded-md border tracking-wide uppercase ${config.badgeStyle}`}
     >
       {tDynamic(`insights.cat.${category}`, t("insights.default"))}
     </span>
@@ -43,7 +43,7 @@ function AlgorithmOverridePill({ overrides }: { overrides?: Record<string, unkno
       {entries.map(([key, value]) => (
         <span
           key={key}
-          className="inline-flex items-center gap-1 text-[10px] font-mono bg-[#1E2738] text-amber-300 border border-amber-500/20 px-2 py-0.5 rounded"
+          className="inline-flex items-center gap-1 text-xs tabular-nums bg-[#1E2738] text-amber-300 border border-amber-500/20 px-2 py-0.5 rounded"
         >
           <Sliders className="w-2.5 h-2.5" />
           <span>
@@ -78,13 +78,13 @@ function ActiveInsightCard({
     <article className="w-full bg-[#151B28] border border-[#263348] rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-lg shadow-black/30">
       <div className="flex items-center justify-between gap-2">
         <CategoryBadge category={insight.category} />
-        <span className="text-[10px] text-slate-400 font-medium">
+        <span className="text-xs text-slate-400 font-medium">
           {t("insights.confidence", { percent: confidencePercent })}
         </span>
       </div>
 
       <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-slate-100 leading-snug">{insight.title}</h3>
+        <h3 className="text-sm font-semibold text-ink leading-snug">{insight.title}</h3>
         <p className="text-xs text-slate-300 leading-relaxed">{insight.explanation}</p>
         <AlgorithmOverridePill overrides={insight.algorithm_override_json} />
       </div>
@@ -147,7 +147,7 @@ export function ActiveInsightsSection({
           <Sparkles className="w-3.5 h-3.5" />
           <span>{t("insights.activeTitle")}</span>
         </h2>
-        <span className="text-[10px] bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 font-mono">
+        <span className="text-xs bg-[#1E2738] px-2 py-0.5 rounded-full text-slate-300 tabular-nums">
           {insights.length}
         </span>
       </div>

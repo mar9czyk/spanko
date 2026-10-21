@@ -10,12 +10,16 @@ Dokument opisuje filozofię interfejsu aplikacji Spanko zaprojektowanego specjal
 Ekran telefonu w ciemnej sypialni o 03:00 w nocy nie może oślepiać rodzica ani wybudzać dziecka:
 * **Tło aplikacji:** Głęboka, aksamitna czerń/granat `#0B0F17`.
 * **Karty i powierzchnie:** `#151B28` (poziom 1), `#1E2738` (poziom 2).
+* **Tekst:** główny w ciepłej złamanej bieli `#DDD8CF` (klasa `text-ink`, ok. 13,5:1; czysta biel nocą powoduje halację). Drugi plan minimum `slate-400`; `slate-500` tylko dla placeholderów i elementów wyłączonych, `slate-600` tylko dla dekoracji (linie, separatory).
 * **Kolory akcentujące:**
   - Ciepły bursztyn (`#F59E0B`): usypianie, karmienia, ciepło, brak wpływu na melatoninę.
   - Kojący fiolet (`#8B5CF6`): sen nocny, faza głęboka, statystyki.
   - Szmaragd (`#10B981`): regeneracja, udany sen, potwierdzenie.
-  - Koral (`#EF4444`): płacz, alarm o przemęczeniu.
-  - **ZABRONIONE:** Chłodny, jaskrawy błękit w trybie nocnym.
+  - Łagodny koral (`coral-400` `#F28B82`): płacz, mocne niewyspanie, alarm o przemęczeniu. Czerwień (`red-*`) wyłącznie dla błędów technicznych i akcji niszczących.
+  - Przygaszony turkus (`diaper` `#8FC7BE`): pieluchy.
+  - **ZABRONIONE:** Chłodny, jaskrawy błękit w trybie nocnym (np. `sky-400`).
+* **Typografia:** font Atkinson Hyperlegible Next (`latin` + `latin-ext` dla polskich znaków). Minimum `text-xs` (12 px), bez `text-[Npx]`; treści czytane nocą (timery, pigułki, oś czasu, karta wniosku) `text-sm`–`text-base`. Zmieniające się liczby (timery, godziny) z `tabular-nums`; `font-mono` tylko w panelu admina (kody, JSON).
+* **Ruch:** animacje respektują `prefers-reduced-motion` (`MotionConfig reducedMotion="user"` + reguła w `globals.css`).
 
 ### 1.2. Zero Pisania w Nocy (Zero Mandatory Typing)
 * Żadna nocna operacja nie może wymagać klawiatury ekranowej.

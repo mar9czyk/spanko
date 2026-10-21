@@ -28,7 +28,7 @@ function DurationPill({
     <button
       type="button"
       onClick={() => onSelect(minutes)}
-      className="flex-1 py-1.5 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-medium transition-all"
+      className="flex-1 py-1.5 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-sm font-medium transition-all"
     >
       {label}
     </button>
@@ -58,7 +58,7 @@ export function MorningNightSummaryBanner({
   return (
     <div className="w-full bg-[#151B28] border border-amber-500/40 rounded-2xl p-3 flex flex-col gap-2 shadow-xl shadow-amber-500/5 my-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+        <span className="text-sm font-semibold text-amber-300 flex items-center gap-1.5">
           <Moon className="w-3.5 h-3.5" />
           {t("morning.title")}
         </span>
@@ -70,7 +70,7 @@ export function MorningNightSummaryBanner({
           <X className="w-4 h-4" />
         </button>
       </div>
-      <p className="text-[11px] text-slate-300 leading-snug">
+      <p className="text-sm text-slate-300 leading-snug">
         {t("morning.before")} <strong className="text-amber-200">{timesText}</strong>{" "}
         {t("morning.after")}
       </p>

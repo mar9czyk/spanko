@@ -20,13 +20,13 @@ function ExactClockContent({ countdown, targetTime }: { countdown: string; targe
   const { t } = useI18n();
   return (
     <div className="flex flex-col items-center">
-      <span className="text-[11px] font-medium text-amber-400/80 uppercase tracking-widest flex items-center gap-1">
+      <span className="text-xs font-medium text-amber-400/80 uppercase tracking-widest flex items-center gap-1">
         <Sparkles className="w-3 h-3 text-amber-400" /> SweetSpot
       </span>
-      <span className="text-3xl font-extrabold text-slate-50 tracking-tight font-mono my-0.5">
+      <span className="text-3xl font-extrabold text-ink tracking-tight tabular-nums my-0.5">
         {countdown}
       </span>
-      <span className="text-xs text-slate-400">{t("ring.approx", { time: targetTime })}</span>
+      <span className="text-sm text-slate-400">{t("ring.approx", { time: targetTime })}</span>
     </div>
   );
 }
@@ -42,11 +42,11 @@ function SoftCompassContent({ compassRange }: { compassRange: string }) {
   return (
     <div className="flex flex-col items-center text-center px-4">
       <Compass className="w-6 h-6 text-violet-400 animate-spin-slow mb-1" />
-      <span className="text-[10px] font-semibold text-violet-300 uppercase tracking-wider">
+      <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">
         {t("ring.window")}
       </span>
-      <span className="text-sm font-bold text-slate-100 my-1">{compassRange}</span>
-      <span className="text-[10px] text-slate-400 leading-tight">{t("ring.watch")}</span>
+      <span className="text-sm font-bold text-ink my-1">{compassRange}</span>
+      <span className="text-sm text-slate-400 leading-tight">{t("ring.watch")}</span>
     </div>
   );
 }
@@ -74,7 +74,7 @@ export function SleepCountdownRing({
           <ExactClockContent countdown={countdownDisplay} targetTime={sweetSpotTimeDisplay} />
         )}
       </div>
-      <div className="mt-2.5 px-3 py-1 rounded-full bg-[#151B28] border border-[#263348] text-[11px] text-amber-300/90 flex items-center gap-1.5 shadow-sm">
+      <div className="mt-2.5 px-3 py-1 rounded-full bg-[#151B28] border border-[#263348] text-xs text-amber-300/90 flex items-center gap-1.5 shadow-sm">
         <Moon className="w-3 h-3 text-amber-400" />
         <span className="truncate max-w-[260px]">{reasonDescription}</span>
       </div>

@@ -48,7 +48,7 @@ export default function LoginPage(): ReactNode {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex justify-center">
+    <div className="min-h-screen bg-[#0B0F17] text-ink flex justify-center">
       <motion.main
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -82,7 +82,7 @@ export default function LoginPage(): ReactNode {
                 {point.icon}
               </span>
               <div>
-                <p className="text-sm font-medium text-slate-100">{t(point.titleKey)}</p>
+                <p className="text-sm font-medium text-ink">{t(point.titleKey)}</p>
                 <p className="text-xs text-slate-400">{t(point.textKey)}</p>
               </div>
             </li>
@@ -104,7 +104,7 @@ export default function LoginPage(): ReactNode {
           </button>
           {IS_DEV_LOGIN_ENABLED && (
             <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-amber-400/30 p-3">
-              <p className="text-center text-[11px] uppercase tracking-wider text-amber-300/70">
+              <p className="text-center text-xs uppercase tracking-wider text-amber-300/70">
                 {t("login.devMode")}
               </p>
               <button

@@ -100,7 +100,7 @@ function MatrixHistory({
         Historia zmian matrycy
       </h3>
       <StatusMessage error={error} loading={versions || error ? undefined : "Ładowanie…"} />
-      {versions?.length === 0 && <p className="text-xs text-slate-500">Brak zapisanych zmian.</p>}
+      {versions?.length === 0 && <p className="text-xs text-slate-400">Brak zapisanych zmian.</p>}
       {versions?.map((version) => (
         <div
           key={version.id}
@@ -110,7 +110,7 @@ function MatrixHistory({
             <p className="text-xs text-slate-200">
               {new Date(version.created).toLocaleString("pl-PL")} · {SOURCE_LABEL[version.source]}
             </p>
-            {version.note && <p className="truncate text-[11px] text-slate-500">{version.note}</p>}
+            {version.note && <p className="truncate text-xs text-slate-400">{version.note}</p>}
           </div>
           <button
             type="button"
@@ -139,7 +139,7 @@ function PreviewTable({ rows }: { rows: readonly MatrixPreviewRow[] }): ReactNod
       </h3>
       <table className="w-full text-xs text-slate-300">
         <thead>
-          <tr className="text-[11px] uppercase tracking-wider text-slate-500">
+          <tr className="text-xs uppercase tracking-wider text-slate-400">
             <th className="pb-1 text-left font-medium">Profil</th>
             <th className="pb-1 text-right font-medium">1. drzemka</th>
             <th className="pb-1 text-right font-medium">Sen nocny</th>
@@ -154,14 +154,14 @@ function PreviewTable({ rows }: { rows: readonly MatrixPreviewRow[] }): ReactNod
               <td className="text-right">
                 {formatDuration(row.firstWindow.before.sweetSpotAfterWakeMin)} →{" "}
                 {formatDuration(row.firstWindow.after.sweetSpotAfterWakeMin)}
-                <span className="block text-[10px] text-slate-500">
+                <span className="block text-xs text-slate-400">
                   {formatDelta(row.firstWindowDeltaMin)}
                 </span>
               </td>
               <td className="text-right">
                 {formatDuration(row.bedtimeWindow.before.sweetSpotAfterWakeMin)} →{" "}
                 {formatDuration(row.bedtimeWindow.after.sweetSpotAfterWakeMin)}
-                <span className="block text-[10px] text-slate-500">
+                <span className="block text-xs text-slate-400">
                   {formatDelta(row.bedtimeDeltaMin)}
                 </span>
               </td>
@@ -263,7 +263,7 @@ export function MatrixTab(): ReactNode {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-400">
         Nadpisanie wpływa na wnioski generowane przez serwer (evaluate-insights). Pusta wartość =
         matryca domyślna.
       </p>
@@ -287,14 +287,14 @@ export function MatrixTab(): ReactNode {
                       <input
                         type="number"
                         aria-label={`${column.label} (${bracket.minAgeDays}–${bracket.maxAgeDays} dni)`}
-                        className="w-20 rounded border border-slate-700 bg-[#0B0F17] px-1.5 py-1 text-slate-100"
+                        className="w-20 rounded border border-slate-700 bg-[#0B0F17] px-1.5 py-1 text-ink"
                         value={bracket[column.key] ?? ""}
                         onChange={(event) =>
                           updateCell(rowIndex, column.key as EditableField, event.target.value)
                         }
                       />
                     ) : (
-                      <span className="px-1.5 text-slate-500">{bracket[column.key]}</span>
+                      <span className="px-1.5 text-slate-400">{bracket[column.key]}</span>
                     )}
                   </td>
                 ))}

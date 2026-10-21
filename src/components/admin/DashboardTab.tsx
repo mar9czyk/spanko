@@ -34,8 +34,8 @@ const BAR_GAP = 6;
 function Tile({ label, value }: { label: string; value: string | number }): ReactNode {
   return (
     <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3">
-      <p className="text-[11px] uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-100">{value}</p>
+      <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-ink">{value}</p>
     </div>
   );
 }
@@ -79,7 +79,7 @@ function CallsChart({ points }: { points: readonly DailyAiPoint[] }): ReactNode 
                 y={CHART_HEIGHT + 11}
                 textAnchor="middle"
                 fontSize="7"
-                className="fill-slate-500"
+                className="fill-slate-400"
               >
                 {point.date.slice(8)}
               </text>
@@ -165,7 +165,7 @@ export function DashboardTab(): ReactNode {
       <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3 text-xs text-slate-400">
         <table className="w-full">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-slate-500">
+            <tr className="text-xs uppercase tracking-wider text-slate-400">
               <th className="pb-2 text-left font-medium">Okno</th>
               <th className="pb-2 text-right font-medium">Wywołania</th>
               <th className="pb-2 text-right font-medium">Błędy</th>
@@ -179,7 +179,7 @@ export function DashboardTab(): ReactNode {
             <StatsRow label="30 dni" stats={data.ai.d30} />
           </tbody>
         </table>
-        <p className="mt-2 text-[10px] text-slate-500">
+        <p className="mt-2 text-xs text-slate-400">
           Koszt jest szacunkiem na podstawie tokenów i tabeli cen w src/lib/admin/pricing.ts.
         </p>
       </div>

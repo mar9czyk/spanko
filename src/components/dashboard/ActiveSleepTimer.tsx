@@ -86,7 +86,7 @@ export function ActiveSleepTimer({
       >
         <div className="absolute inset-2 rounded-full border border-current opacity-20 animate-ping pointer-events-none" />
         <span
-          className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${config.accent}`}
+          className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 ${config.accent}`}
         >
           {status === "falling_asleep" ? (
             <Sparkles className="w-3.5 h-3.5" />
@@ -95,16 +95,16 @@ export function ActiveSleepTimer({
           )}
           {t(config.titleKey)}
         </span>
-        <span className="text-3xl font-extrabold text-slate-50 font-mono tracking-tight my-1">
+        <span className="text-3xl font-extrabold text-ink tabular-nums tracking-tight my-1">
           {formatStopwatchTime(elapsedSeconds)}
         </span>
-        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+        <span className="text-sm text-slate-400 flex items-center gap-1">
           <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
           {t("timer.sync")}
         </span>
       </div>
       {wakeSuggestion && (
-        <p className="mt-2 text-xs text-amber-300">
+        <p className="mt-2 text-sm text-amber-300">
           {t("timer.napWakeSuggestion", { time: wakeSuggestion })}
         </p>
       )}

@@ -31,16 +31,16 @@ function NapEventCard({ event }: { event: TimelineNapEvent }) {
           {isNight ? <Moon className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
         </div>
         <div>
-          <span className="text-xs font-semibold text-slate-100 block">
+          <span className="text-sm font-semibold text-ink block">
             {isNight ? t("timeline.night") : t("timeline.nap")}
           </span>
-          <span className="text-[11px] text-slate-400 font-mono">
+          <span className="text-sm text-slate-400 tabular-nums">
             {event.startTime} {event.endTime ? `— ${event.endTime}` : ""}
           </span>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs font-mono font-medium text-slate-200 bg-[#1E2738] px-2 py-0.5 rounded-md">
+        <span className="text-xs tabular-nums font-medium text-slate-200 bg-[#1E2738] px-2 py-0.5 rounded-md">
           {durationText}
         </span>
       </div>
@@ -83,8 +83,8 @@ function FeedingEventCard({ event }: { event: TimelineFeedingEvent }) {
           )}
         </div>
         <div>
-          <span className="text-xs font-semibold text-slate-100 block">{label}</span>
-          <span className="text-[11px] text-slate-400 font-mono">{event.time}</span>
+          <span className="text-sm font-semibold text-ink block">{label}</span>
+          <span className="text-sm text-slate-400 tabular-nums">{event.time}</span>
         </div>
       </div>
     </div>
@@ -102,14 +102,14 @@ function DiaperEventCard({ event }: { event: TimelineDiaperEvent }) {
   const label = t(`diaper.${event.diaperKind}` as const).replace(/^\S+\s/, "");
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-[#151B28] border border-[#263348] shadow-sm">
-      <div className="p-2 rounded-lg bg-sky-950/50 text-sky-400">
+      <div className="p-2 rounded-lg bg-diaper/10 text-diaper">
         <Droplets className="w-4 h-4" />
       </div>
       <div>
-        <span className="text-xs font-semibold text-slate-100 block">
+        <span className="text-sm font-semibold text-ink block">
           {t("timeline.diaper", { kind: label })}
         </span>
-        <span className="text-[11px] text-slate-400 font-mono">{event.time}</span>
+        <span className="text-sm text-slate-400 tabular-nums">{event.time}</span>
       </div>
     </div>
   );
@@ -138,7 +138,7 @@ export function TimelineEventCard({
       className="relative w-full rounded-xl text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
     >
       <EventCardBody event={event} />
-      <Pencil className="absolute right-1.5 top-1.5 w-3 h-3 text-slate-500" aria-hidden="true" />
+      <Pencil className="absolute right-1.5 top-1.5 w-3 h-3 text-slate-400" aria-hidden="true" />
     </button>
   );
 }
@@ -166,12 +166,12 @@ function EventCardBody({ event }: { event: TimelineEvent }): ReactNode {
         <Tag className="w-4 h-4" />
       </div>
       <div>
-        <span className="text-xs font-semibold text-slate-200 block">
+        <span className="text-sm font-semibold text-slate-200 block">
           {t("timeline.tags", {
             tags: event.tags.map((tag) => tDynamic(`tag.${tag}`, tag)).join(", "),
           })}
         </span>
-        <span className="text-[11px] text-slate-400 font-mono">{event.time}</span>
+        <span className="text-sm text-slate-400 tabular-nums">{event.time}</span>
       </div>
     </div>
   );

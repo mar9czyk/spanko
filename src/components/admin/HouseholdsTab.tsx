@@ -36,8 +36,8 @@ function HouseholdCard({
   return (
     <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3 flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-100">{row.name}</h3>
-        <span className="text-[11px] text-slate-500">dzieci: {row.childrenCount}</span>
+        <h3 className="text-sm font-semibold text-ink">{row.name}</h3>
+        <span className="text-xs text-slate-400">dzieci: {row.childrenCount}</span>
       </div>
       <p className="text-xs text-slate-400">
         Zapytania AI: {row.aiCalls24h} (24 h) · {row.aiCalls7d} (7 dni)

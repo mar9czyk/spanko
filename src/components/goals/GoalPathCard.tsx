@@ -67,10 +67,10 @@ export function GoalPathCard({
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-amber-400 shrink-0" />
           <div>
-            <h2 className="text-sm font-semibold text-slate-100 leading-tight">
+            <h2 className="text-sm font-semibold text-ink leading-tight">
               {localize(GOAL_TITLES[goal.goal_type], locale)}
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-400">
               {t("goal.card.day", {
                 method: localize(METHOD_TITLES[goal.method], locale),
                 day,
@@ -110,7 +110,7 @@ export function GoalPathCard({
                   <button
                     type="button"
                     onClick={() => onToggleTask(key)}
-                    className={`w-full flex items-start gap-2.5 text-left p-2.5 rounded-xl border min-h-[44px] ${done ? "bg-emerald-950/30 border-emerald-500/30 text-slate-400" : "bg-[#1E2738] border-[#263348] text-slate-100"}`}
+                    className={`w-full flex items-start gap-2.5 text-left p-2.5 rounded-xl border min-h-[44px] ${done ? "bg-emerald-950/30 border-emerald-500/30 text-slate-400" : "bg-[#1E2738] border-[#263348] text-ink"}`}
                   >
                     <span
                       className={`mt-0.5 w-5 h-5 shrink-0 rounded-md border flex items-center justify-center ${done ? "bg-emerald-500 border-emerald-500 text-slate-950" : "border-slate-500"}`}
@@ -138,9 +138,7 @@ export function GoalPathCard({
               ? ` ${localize(reasonText, locale)}`
               : ""}
           </p>
-          {progressNote && !isTargetMet && (
-            <p className="text-[11px] text-slate-400">{progressNote}</p>
-          )}
+          {progressNote && !isTargetMet && <p className="text-xs text-slate-400">{progressNote}</p>}
           {isTargetMet && (
             <div className="rounded-xl bg-emerald-950/30 border border-emerald-500/30 p-2.5 flex flex-col gap-2">
               <p className="text-xs text-emerald-200">{t("goal.card.confirmQuestion")}</p>
@@ -154,7 +152,7 @@ export function GoalPathCard({
             </div>
           )}
           {coach.why && (
-            <details className="text-[11px] text-slate-400">
+            <details className="text-xs text-slate-400">
               <summary className="cursor-pointer flex items-center gap-1 list-none">
                 <ChevronDown className="w-3 h-3" /> {t("goal.card.why")}
               </summary>
@@ -173,7 +171,7 @@ export function GoalPathCard({
       <button
         type="button"
         onClick={() => onChangeStatus("abandoned")}
-        className="self-end text-[11px] text-slate-500 underline"
+        className="self-end text-xs text-slate-400 underline"
       >
         {t("goal.card.end")}
       </button>
@@ -194,7 +192,7 @@ export function ChooseGoalCard(): ReactNode {
       className="rounded-2xl bg-gradient-to-r from-amber-500/10 to-violet-500/10 border border-amber-500/30 p-3.5 flex items-center gap-3"
     >
       <Target className="w-5 h-5 text-amber-400 shrink-0" />
-      <span className="text-sm text-slate-100">
+      <span className="text-sm text-ink">
         <strong className="block text-amber-200">{t("goal.choose.title")}</strong>
         <span className="text-xs text-slate-400">{t("goal.choose.text")}</span>
       </span>

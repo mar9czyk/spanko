@@ -68,7 +68,7 @@ export function ChildPhotoSheet({
           >
             <div className="w-12 h-1 bg-[#263348] rounded-full" />
             <div className="flex w-full items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-100">{t("childPhoto.title")}</h2>
+              <h2 className="text-sm font-semibold text-ink">{t("childPhoto.title")}</h2>
               <button
                 type="button"
                 onClick={onClose}
@@ -120,7 +120,7 @@ export function ChildPhotoSheet({
                 {t("childPhoto.saveError")}
               </p>
             )}
-            <p className="text-[11px] text-slate-500">{t("childPhoto.hint")}</p>
+            <p className="text-xs text-slate-400">{t("childPhoto.hint")}</p>
           </motion.div>
         </div>
       )}
