@@ -113,6 +113,7 @@ Model dwuprocesowy (presja homeostatyczna + zegar dobowy) ma oparcie w badaniach
 ### 5.0. Zasady wspólne
 - Orkiestrator `evaluateAll7DiagnosticCategories(input)` zwraca 7 wyników (po jednym na kategorię). Drzewa widzą tylko logi z 14 dni przed `nowIso` (`selectLogsInDiagnosticWindow`).
 - Godziny (wczesne pobudki, WMZ, kotwica) liczone w strefie dziecka (`getMinutesFromMidnightInTimeZone`).
+- Zmiana czasu: kotwica poranna (średnia z 5 dób w czasie lokalnym) przesuwa się po zmianie czasu stopniowo, ok. 12 min na dobę; doba fizjologiczna nocy ze zmianą czasu zostaje przy dacie wieczoru (`__tests__/clockChange.test.ts`).
 - Powtarzalność: wzorce nocne liczone z 7 ostatnich zakończonych nocy (`REPEAT_WINDOW_NIGHTS`); minimum to 3 noce (`REPEAT_MIN_NIGHTS`) albo 5 nocy dla CAT1.
 - Brak zapisanego nastroju to brak danych, nie „spokój”.
 - Wybór głównej diagnozy (`childEngine.ts`): istotność, potem pewność, potem kolejność kategorii. Nowa diagnoza problemu dostaje status `hypothesis`, powtórzona — `active`; wyniki `info` od razu `active`.
@@ -141,6 +142,7 @@ Model dwuprocesowy (presja homeostatyczna + zegar dobowy) ma oparcie w badaniach
   - `EARLY_MORNING_WAKING_PHASE_ADVANCE` (medium, 0,75): noc ≥ 10,5 h → rytm przesunięty na wcześniej; `bedtimeFadingMinutes: 15`, `shiftEveryDays: 2`, światło wieczorem, ciemno rano,
   - `EARLY_MORNING_WAKING_SHORT_NIGHT` (medium, 0,75): noc < 9,5 h → „lock-in”: do docelowej pobudki traktować czas jak noc, pierwszą drzemkę liczyć od docelowej pobudki,
   - `EARLY_MORNING_WAKING` (low, 0,6): noc 9,5–10,5 h → zaciemnienie i niezbyt wczesna pierwsza drzemka.
+- Zmiana czasu: noce z pobudką do 7 dni po zmianie przesunięcia strefy (`hasUtcOffsetChangedWithinDays`, `CLOCK_CHANGE_ADJUSTMENT_DAYS`) nie liczą się jako wczesne pobudki. Gdy to one dobijają do progu → `CLOCK_CHANGE_ADJUSTMENT` (info, 0,8, nieaktywna): przesuwać porę o 10–15 min dziennie [H].
 - `NORMAL_CIRCADIAN_WAKE` (info).
 
 ### 5.5. CAT4 — krótkie drzemki i przejścia (`CAT4_SHORT_NAPS_TRANSITIONS`)
