@@ -1,4 +1,5 @@
 import {
+  applyObservedNapsCount,
   calculateChronicDrive,
   calculateCircadianParameters,
   calculateEffectiveAgeDays,
@@ -9,6 +10,7 @@ import {
   MILLISECONDS_PER_DAY,
   MILLISECONDS_PER_MINUTE,
   predictNextSleepSlot,
+  resolveInsightDayAdjustments,
   resolveInsightWwOffset,
 } from "@/lib/sleep-engine";
 import type { AgeBracketConfig, SleepType } from "@/lib/sleep-engine/types";
@@ -119,7 +121,8 @@ function findInsightAt(
  *
  * @description
  * Odwzorowuje `useDashboardState`: ostatnia pobudka przed odłożeniem, liczba drzemek tej doby,
- * dług z dób poprzednich, kotwica z 5 ostatnich porannych pobudek i przesunięcie z wniosku.
+ * obserwowana liczba drzemek i dług z dób poprzednich, kotwica z 5 ostatnich nocy (pobudki
+ * i zaśnięcia) oraz przesunięcia z wniosku (okno czuwania, bedtime fading, limit drzemek).
  * Przybliżenia: tryb dnia przyjmujemy jako `home` (historii trybu nie zapisujemy), a logi
  * z `ignore_in_calibration` pomijamy.
  *
@@ -152,26 +155,35 @@ export function replayPredictionForLog(params: {
 
   const effectiveAgeDays = calculateEffectiveAgeDays(child.birth_date, child.due_date, putDownIso);
   // Pulpit liczy na matrycy domyślnej (getAgeBracket bez nadpisania) — mierzymy to, co widział rodzic
-  const bracket = getAgeBracket(effectiveAgeDays, params.matrix ?? DEFAULT_SLEEP_MATRIX);
-  const chronicDrive = calculateChronicDrive(
-    aggregateDailySleepSummaries(history).filter(
-      (day) => day.physiologicalDate !== target.physiological_date,
-    ),
-    bracket,
+  const completedDays = aggregateDailySleepSummaries(history).filter(
+    (day) => day.physiologicalDate !== target.physiological_date,
   );
-  const morningWakes = history
+  const bracket = applyObservedNapsCount(
+    getAgeBracket(effectiveAgeDays, params.matrix ?? DEFAULT_SLEEP_MATRIX),
+    completedDays,
+  );
+  const chronicDrive = calculateChronicDrive(completedDays, bracket);
+  const recentNights = history
     .filter((l) => l.type === "night" && l.woke_up_at)
     .toSorted((a, b) => toMs(b.woke_up_at) - toMs(a.woke_up_at))
-    .slice(0, MORNING_WAKE_SAMPLE_SIZE)
-    .map((l) => getMinutesFromMidnightInTimeZone(l.woke_up_at as string, timeZone));
+    .slice(0, MORNING_WAKE_SAMPLE_SIZE);
+  const insight = findInsightAt(params.insights, putDownMs);
+  const dayAdjustments = resolveInsightDayAdjustments(insight);
   const circadian = calculateCircadianParameters({
-    morningWakeTimesLast5DaysMinutesFromMidnight: morningWakes,
+    morningWakeTimesLast5DaysMinutesFromMidnight: recentNights.map((l) =>
+      getMinutesFromMidnightInTimeZone(l.woke_up_at as string, timeZone),
+    ),
+    bedtimesLast5DaysMinutesFromMidnight: recentNights.map((l) =>
+      getMinutesFromMidnightInTimeZone((l.fell_asleep_at || l.put_down_at) as string, timeZone),
+    ),
     bracket,
+    bedtimeShiftMin: dayAdjustments.bedtimeShiftMin,
+    daytimeSleepCapOffsetMin: dayAdjustments.daytimeSleepCapOffsetMin,
   });
   const napIndexToday = history.filter(
     (l) => l.type === "nap" && l.physiological_date === target.physiological_date,
   ).length;
-  const insightWwOffsetMin = resolveInsightWwOffset(findInsightAt(params.insights, putDownMs));
+  const insightWwOffsetMin = resolveInsightWwOffset(insight);
 
   const prediction = predictNextSleepSlot({
     lastWakeUpIso: lastWake.woke_up_at,
