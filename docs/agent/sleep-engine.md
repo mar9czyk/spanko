@@ -1,218 +1,187 @@
 # Dokumentacja Domenowa: Deterministyczny Silnik Snu (Sleep Engine)
 
-Dokument opisuje matematyczne i fizjologiczne fundamenty silnika snu aplikacji Spanko (`src/lib/sleep-engine/`). Silnik jest w 100% deterministyczny, czysty (pure TypeScript), działa w <1 ms bez jakichkolwiek zapytań sieciowych czy wywołań LLM.
+Dokument opisuje silnik snu Spanko (`src/lib/sleep-engine/`) w stanie po etapach A–E planu poprawy (PR #11–#15). Silnik jest deterministyczny i czysty (pure TypeScript): bez zapytań sieciowych, bez LLM i bez `Date.now()` (czas odniesienia `nowIso` jest wstrzykiwany).
+
+**Poziom dowodu.** Przy liczbach podajemy w nawiasie kwadratowym poziom dowodu z [`zrodla.md`](zrodla.md): **[B]** badanie, **[W]** wytyczna, **[E]** opinia ekspercka lub praktyka kliniczna, **[H]** heurystyka Spanko (stała autorska albo ze specyfikacji Spanko v2.0). W kodzie stałe bez źródła mają komentarz `// heurystyka`. Liczby [E] i [H] to punkt startowy prognozy, nie fakt fizjologiczny, i tak też mają być opisywane rodzicom.
 
 ---
 
-## 1. Złota Zasada Architektury: Determinizm Przed AI
+## 1. Złota zasada: determinizm przed AI
 
-1. **Zero LLM w obliczeniach:** Żaden model sztucznej inteligencji nie wylicza okien czuwania, długu sennego, godzin snu ani nie podejmuje decyzji diagnostycznych w czasie rzeczywistym.
-2. **Czysta Funkcyjność:** Wszystkie moduły w `src/lib/sleep-engine/` są funkcjami czystymi, deterministycznymi i w 100% pokrytymi testami jednostkowymi w Vitest.
-3. **Rola AI:** OpenRouter pełni wyłącznie rolę asystenta komunikacji — ubiera deterministyczne wyniki i kody diagnoz w empatyczny, bezpieczny język zaleceń dla zmęczonego rodzica.
+1. **Zero LLM w obliczeniach.** Okna czuwania, dług, pora snu, diagnozy i korekty prognozy liczy wyłącznie kod.
+2. **Czyste funkcje** w `src/lib/sleep-engine/`, pokryte testami Vitest (`__tests__/`).
+3. **Rola AI.** OpenRouter tylko ubiera wynik drzew w język dla rodzica (`title`, `explanation`). Kategoria, kod diagnozy, status, pewność i nadpisania pochodzą z drzew. Wartość `wwOffsetMin` wpisana przez model nigdy nie zmienia prognozy (`insightOverride.ts`, szczegóły w `ai-and-admin.md`).
 
 ---
 
-## 2. Matryca Wiekowa i Wiek Korygowany (`matrix.ts`)
+## 2. Matryca wiekowa i wiek skorygowany (`matrix.ts`)
 
-### 2.1. Tabela Przedziałów Wiekowych (`DEFAULT_SLEEP_MATRIX`)
-Dzieci w wieku 0–36 miesięcy są podzielone na 12 przedziałów wiekowych:
-- `0–28 dni`: 5 drzemek, WW 35–60m, maks. drzemka 120m, max dzień 450m, mediana doby 960m, Tau 55m.
-- `29–60 dni`: 4 drzemki, WW 45–75m, maks. drzemka 120m, max dzień 390m, mediana doby 930m, Tau 70m.
-- `61–90 dni`: 4 drzemki, WW 60–95m, maks. drzemka 120m, max dzień 330m, mediana doby 900m, Tau 85m.
-- `91–120 dni`: 3 drzemki, WW 75–120m, maks. drzemka 120m, max dzień 270m, mediana doby 870m, Tau 105m.
-- `121–150 dni`: 3 drzemki, WW 95–140m, maks. drzemka 120m, max dzień 240m, mediana doby 855m, Tau 125m.
-- `151–180 dni`: 3 drzemki, WW 110–155m, maks. drzemka 120m, max dzień 210m, mediana doby 840m, Tau 140m.
-- `181–240 dni`: 2 drzemki, WW 135–195m, maks. drzemka 120m, max dzień 195m, mediana doby 825m, Tau 175m.
-- `241–300 dni`: 2 drzemki, WW 155–215m, maks. drzemka 120m, max dzień 180m, mediana doby 810m, Tau 195m.
-- `301–390 dni`: 2 drzemki, WW 180–240m, maks. drzemka 120m, max dzień 165m, mediana doby 795m, Tau 220m.
-- `391–540 dni`: 1 drzemka, WW 270–330m, maks. drzemka 150m, max dzień 150m, mediana doby 780m, Tau 300m.
-- `541–730 dni`: 1 drzemka, WW 300–360m, maks. drzemka 120m, max dzień 120m, mediana doby 765m, Tau 340m.
-- `731–1095 dni`: 1 drzemka, WW 330–390m, maks. drzemka 90m, max dzień 90m, mediana doby 735m, Tau 380m.
+### 2.1. Przedziały (`DEFAULT_SLEEP_MATRIX`)
+13 przedziałów 0–1095 dni. Kolumny: drzemki (zakres `minNapsCount`–`targetNapsCount`), okno czuwania rano–wieczorem (WW), maks. pojedyncza drzemka, maks. sen dzienny, mediana doby, τ, średnia i górna norma pobudek nocnych.
 
-### 2.2. Wiek Korygowany Wcześniaków (`calculateEffectiveAgeDays`)
-* Jeśli wcześniak urodził się co najmniej **21 dni przed planowanym terminem porodu** (`dueDate`) i ma mniej niż 24 miesiące (730 dni życia), silnik posługuje się **wiekiem korygowanym**:
+| Dni | Drzemki | WW (min) | Maks. drzemka / dzień | Mediana doby | τ | Pobudki śr. / górna |
+|---|---|---|---|---|---|---|
+| 0–28 | 3–5 | 35–60 | 120 / 450 | 960 | 55 | 1,7 / 3,4 |
+| 29–60 | 3–4 | 45–75 | 120 / 390 | 930 | 70 | 1,7 / 3,4 |
+| 61–90 | 3–4 | 60–95 | 120 / 330 | 900 | 85 | 2,2 / 3,4 |
+| 91–120 | 3 | 75–120 | 120 / 270 | 870 | 105 | 2,2 / 3,4 |
+| 121–150 | 2–3 | 95–140 | 120 / 240 | 855 | 125 | 2,2 / 3,0 |
+| 151–180 | 2–3 | 110–155 | 120 / 210 | 840 | 140 | 2,3 / 3,0 |
+| 181–240 | 2 | 135–195 | 120 / 195 | 825 | 175 | 2,4 / 3,0 |
+| 241–300 | 2 | 155–215 | 120 / 180 | 810 | 195 | 2,4 / 3,0 |
+| 301–390 | 2 | 180–240 | 120 / 165 | 795 | 220 | 1,8 / 2,5 |
+| 391–450 | 1–2 | 180–240 | 120 / 165 | 780 | 220 | 1,4 / 2,5 |
+| 451–540 | 1 | 270–330 | 150 / 150 | 780 | 300 | 1,1 / 2,5 |
+| 541–730 | 1 | 300–360 | 150 / 150 | 765 | 340 | 0,9 / 2,5 |
+| 731–1095 | 0–1 | 330–390 | 150 / 150 | 735 | 380 | 0,9 / 2,5 |
+
+Poziom dowodu kolumn:
+- **Mediana doby** [W/B]: w zakresach WHO 2019 i AASM 2016 (Paruthi), blisko średnich Galland 2012. To kotwica populacyjna, nigdy cel pokazywany rodzicowi (±2 SD to ok. 4–6 h).
+- **Liczba drzemek** [B]: Galland 2012 (noworodek ok. 3,1 drzemki, zakres 1,2–5), Mindell 2016 (2 drzemki już w 3.–7. mies.), Paavonen 2020 (2 drzemki u ok. 72% w 8. mies.), Iglowstein 2003 (2→1 ok. 13–18 mies., ok. połowa 3-latków bez drzemki).
+- **Okna czuwania** [E]: opinia ekspercka (Flynn-Evans, Canapari); żadne badanie ich nie walidowało. Arytmetycznie spójne z sumami snu i liczbą drzemek.
+- **Limity drzemek** [H]: miękka sugestia, nie twardy limit. Długość drzemek rośnie do 28. mies. (Mindell 2016), więc nie ma już limitu 90 min u 2–3-latka.
+- **Pobudki nocne** [B]: Galland 2012 (0–3,4 w 0–2 mies., 0–2,5 w 1–2 r.ż.), średnie z Paavonen 2020; wartości pośrednie interpolowane. Kontekst dla CAT1.
+- **τ (`homeostaticTauRiseMin`)** [H]: stała autorska Spanko.
+
+### 2.2. Liczba drzemek dopasowana do dziecka (`applyObservedNapsCount`)
+Gdy przedział dopuszcza zakres (`minNapsCount < targetNapsCount`) i w ≥5 z ostatnich 7 pełnych dób (`NAP_TRANSITION_MIN_DAYS`, `NAP_TRANSITION_SAMPLE_DAYS`) dziecko miało najwyżej `minNapsCount` drzemek, silnik planuje dzień na tę mniejszą liczbę [H, spec v2.0]. Obejmuje to 3→2 od 121. dnia (Mindell 2016), 2→1 od 391. dnia i dzień bez drzemki w 3. roku. W trybie bez drzemki `maxDaytimeSleepMin` = 0. Bez danych matryca zostaje bez zmian.
+
+### 2.3. Wiek skorygowany (`calculateEffectiveAgeDays`, `threeDrives.ts`)
+- Korekta, gdy poród był **ponad 21 dni** przed terminem (`PREMATURITY_THRESHOLD_DAYS = 21`, warunek `>`), czyli przed 37+0 tc., i dziecko ma mniej niż 730 dni [W: NICE NG72, AAP]. Dziecko z 37+0 jest donoszone i nie ma korekty.
   $$\text{effectiveAgeDays} = \text{chronologicalDays} - \text{prematurityDays}$$
-* Zapobiega to błędnemu diagnozowaniu opóźnień w wydłużaniu okien czuwania u wcześniaków.
+- Wiek skorygowany obowiązuje w całym silniku: matryca, drzewa, bramki celów i metod, bezpieczny sen.
 
 ---
 
-## 3. Model 3 Napędów Snu (3-Drive Sleep Model)
+## 3. Model trzech napędów (`threeDrives.ts`)
 
-Silnik łączy trzy fizjologiczne wektory decydujące o gotowości dziecka do snu:
+Model dwuprocesowy (presja homeostatyczna + zegar dobowy) ma oparcie w badaniach [B: Jenni 2004, Fattinger 2014, Joseph 2015]. Konkretne liczby niżej to głównie [H].
 
-### 3.1. Napęd 1: Ostre Ciśnienie Snu (Acute Homeostatic Pressure)
-- Wyznacza bazowe okno czuwania (Wake Window) interpolowane liniowo w ciągu dnia:
-  $$\text{wwMin} = \text{wwMinMorning} + \text{ratio} \times (\text{wwMaxEvening} - \text{wwMinMorning})$$
-- Kary i bonusy po poprzedniej drzemce:
-  - `< 20 min` (mikro-drzemka, np. w samochodzie): kara $-35\%$ długości okna (`MICRO_NAP_PENALTY_35PCT`).
-  - `< 45 min` (jeden cykl snu, częściowa regeneracja): kara $-20$ minut (`SHORT_CYCLE_NAP_PENALTY_20M`).
-  - `> 95 min` (głęboki sen regeneracyjny): bonus $+12$ minut (`RESTORATIVE_NAP_BONUS`).
+### 3.1. Napęd 1: presja homeostatyczna (okno czuwania)
+- Bazowe okno interpolowane liniowo w ciągu dnia: $\text{base} = \text{wwMinMorning} + \text{ratio} \times (\text{wwMaxEvening} - \text{wwMinMorning})$, gdzie `ratio = napIndexToday / targetNapsCount` [E: gradient „krótsze rano” z praktyki].
+- Korekty po poprzedniej drzemce — kierunek zgodny z Lassonde 2016 [B], wartości [H]:
+  - `< 20 min`: okno × 0,65 (`MICRO_NAP_PENALTY_35PCT`),
+  - `< 45 min`: −20 min, nie mniej niż `wwMinMorning` (`SHORT_CYCLE_NAP_PENALTY_20M`),
+  - `> 95 min`: +12 min (`RESTORATIVE_NAP_BONUS`).
+- Dług > 75 min: okno −15 min (`CHRONIC_SLEEP_DEBT_COMPENSATION`) [H].
+- Tryb choroby: okno × 0,8 (`ILLNESS_PROTECTIVE_MODE`) [H].
+- Przesunięcie z wniosku (`insightWwOffsetMin`) dodawane na końcu, ograniczone do ±30 min (`MAX_INSIGHT_WW_OFFSET_MINUTES`).
+- Dzień bez drzemki (`targetNapsCount = 0`): okno od pobudki do przewidywanej pory snu, nie krótsze niż `wwMaxEvening` (`NO_NAP_DAY_BEDTIME`).
 
-### 3.2. Napęd 2: Chroniczny Dług Senny i Bateria Snu (Chronic Sleep Debt)
-- **Kalibracja Indywidualnej Normy:** Na podstawie ostatnich 14 dób fizjologicznych.
-- **Filtr Homeostatic Rebound:** Noce o czasie snu $> \text{mediana} + 100 \text{ min}$ są traktowane jako jednorazowe odsypianie i odrzucane z obliczania normy, by nie zawyżać zapotrzebowania.
-- **Profil Potrzeb Snu:**
-  - `low_sleep_needs`: odchylenie $\le -45$ min od normy populacyjnej.
-  - `high_sleep_needs`: odchylenie $\ge +45$ min od normy populacyjnej.
-  - `average`: w normie.
-- **7-dniowy Dług Ważony Wykładniczo:** Wagi: `[0.28, 0.22, 0.16, 0.12, 0.09, 0.07, 0.06]`.
-- **Wskaźnik Baterii Snu:** Od 15% do 100%, informujący rodzica o zapasie energii i ryzyku wyrzutu kortyzolu.
-- **Stan wyspania (`resolveSleepRestedness`):** dług $\le 75$ min → `rested`, $76$–$149$ min → `slightly_tired` (aktywna kompensacja okna), $\ge 150$ min → `very_tired` (wyłączone omijanie WMZ). Dashboard pokazuje słowo zamiast procentu.
-- Jeśli dług $> 75$ min $\rightarrow$ przyspieszenie okna o 15 minut (`CHRONIC_SLEEP_DEBT_COMPENSATION`).
+### 3.2. Napęd 2: dług snu i wyspanie (`calculateChronicDrive`)
+- **Norma indywidualna**: mediana sumy doby z ≥7 pełnych dób (`MIN_CALIBRATION_DAYS`; 7 nocy jak w badaniach aktygraficznych, Sadeh 1995 [B]). Przy mniejszej liczbie dób — mediana populacyjna z matrycy. Doby chorobowe i oznaczone jako pominięte (`isIllOrIgnored`) nie wchodzą do obliczeń.
+- **Filtr odsypiania** [H, spec v2.0]: doba nie wchodzi do normy, gdy dług przed nią > 120 min i noc była dłuższa od wstępnej normy nocy o > 90 min albo drzemka trwała > 150 min. Jeśli po filtrze zostanie < 5 dób, norma to wstępna mediana.
+- **Profil potrzeb snu**: `low_sleep_needs` / `high_sleep_needs`, gdy norma odbiega od mediany populacyjnej o ≥1 SD: 90 min u niemowląt, 60 min od 365. dnia [B: Galland 2012]. W pozostałych przypadkach `average`.
+- **Dług** [H]: ważona średnia niedoboru względem własnej normy z 3 ostatnich pełnych dób, wagi `[0.5, 0.3, 0.2]` (`CHRONIC_DEBT_WEIGHTS`). Krótki horyzont, bo kompensacja następuje w ok. 24 h [B: Lassonde 2016]. Ujemny dług oznacza nadwyżkę. Mnożnik ×3,5 został usunięty w etapie B.
+- **Wyspanie** (`resolveSleepRestedness`) [H]: dług ≤ 75 min → `rested`, 76–149 min → `slightly_tired` (okna −15 min), ≥ 150 min → `very_tired` (wyłączone omijanie WMZ). UI pokazuje to jako „wyspanie względem zwykłego rytmu”, orientacyjny wskaźnik (decyzja 3 Gosi). Pole `sleepBatteryPercent` (15–100%, dług / 2,5) zostaje dla zgodności, ale UI nie pokazuje procentu.
 
-### 3.3. Napęd 3: Zegar Okołodobowy i Strefa Zakazana (Circadian Drive & WMZ)
-- **Kotwica Poranna:** Średnia godzina pobudki z ostatnich 5 dób fizjologicznych.
-- **Biologiczna Pora Snu Nocnego (`biologicalBedtime`):** Kotwica poranna $+$ czas czuwania dobowego.
-- **Strefa Zakazana (Wake Maintenance Zone - WMZ):** Okno od **90 min do 30 min przed biologicznym snem nocnym**. W tym czasie szyszynka jeszcze nie produkuje melatoniny, a organizm ma najwyższą dobową czujność. Próba uśpienia dziecka w WMZ kończy się 45-minutowym oporem i płaczem.
-- **Unikanie WMZ (`CIRCADIAN_WMZ_AVOIDANCE_SHIFT`):** Jeśli SweetSpot wypada w WMZ (u dzieci $\ge 16$ tyg.), silnik przesuwa porę zasypiania za koniec strefy WMZ na porę biologiczną.
-- **Backwards Nap Capping:** Ostatnia drzemka dnia **musi** zakończyć się najpóźniej na:
-  $$\text{latestLastNapEndAt} = \text{biologicalBedtime} - \text{wwMaxEvening}$$
-  aby ciśnienie homeostatyczne zdążyło narosnąć przed nocą.
+### 3.3. Napęd 3: rytm dobowy i WMZ (`calculateCircadianParameters`)
+- **Kotwica poranna**: średnia pora pobudki z 5 ostatnich nocy w strefie dziecka (`child.timezone`, domyślnie `Europe/Warsaw`); bez danych 07:00.
+- **Przewidywana pora snu nocnego** (`biologicalBedtime`, w UI „przewidywana pora snu”) [H]:
+  - wzór: pobudka + (24 h − oczekiwany sen nocny), gdzie sen nocny = mediana doby − maks. sen dzienny + 60 min, w granicach 600–690 min,
+  - pół na pół z faktyczną porą zaśnięcia z 5 nocy (`OBSERVED_BEDTIME_WEIGHT = 0.5`, co najmniej 3 obserwacje, odchylenie do ±120 min), bo pora kładzenia najlepiej przewiduje fazę melatoniny [B: Akacem 2016, LeBourgeois 2013],
+  - plus przesunięcie z drzew (bedtime fading, wczesne pobudki) ograniczone do ±30 min.
+- **WMZ** [H; istnienie strefy: Giganti 2001 [B]]: od 90 do 30 min przed przewidywaną porą snu. Jeśli prognozowany sen nocny wypada w WMZ, silnik przesuwa go na przewidywaną porę snu (`CIRCADIAN_WMZ_AVOIDANCE_SHIFT`). Omijanie wyłączone przy długu ≥ 150 min.
+- **Rampa rytmu dobowego** [B: Joseph 2015, Kennaway 1996; start wg spec v2.0]: waga 0 do 70. dnia (10 tyg.), liniowo do 1 w 112. dniu (16 tyg.) (`resolveCircadianWeight`). Przesunięcie WMZ jest mnożone przez tę wagę.
+- **Górna granica pory snu** [H, spec v2.0]: od 16 tyg. sen nocny wypada najwyżej 30 min po przewidywanej porze (`CIRCADIAN_BEDTIME_LATE_CAP`), o ile okno nie spadnie poniżej porannego minimum.
+- **Koniec ostatniej drzemki** (`latestLastNapEndAt`) [H; kierunek: Nakagawa 2016 [B]]: przewidywana pora snu − `wwMaxEvening` + korekta limitu snu dziennego (do −60 min).
+- Korekty rytmu nie działają w trybie choroby, w dniu bez drzemki i przy prognozie drzemki dziennej.
 
----
+### 3.4. Prognoza (`predictNextSleepSlot`) i sugestia pobudki (`suggestNapWakeTime`)
+- SweetSpot = ostatnia pobudka + okno (3.1) + korekta dobowa (3.3). Compass Window = SweetSpot ±15 min [H].
+- `reasonCode` mówi, która reguła zadziałała ostatnia (np. `BASE_AGE_INTERPOLATION`, `MICRO_NAP_PENALTY_35PCT`, `CHRONIC_SLEEP_DEBT_COMPENSATION`, `ILLNESS_PROTECTIVE_MODE`, `CIRCADIAN_WMZ_AVOIDANCE_SHIFT`, `CIRCADIAN_BEDTIME_LATE_CAP`, `NO_NAP_DAY_BEDTIME`).
+- `suggestNapWakeTime`: tylko gdy aktywny wniosek zaleca skrócenie snu dziennego. Limit dnia = `maxDaytimeSleepMin` + korekta drzewa (do −60 min); pojedyncza drzemka 30 min – `maxSingleNapMin`. To miękka sugestia, nie alarm.
 
-## 4. Tryby Dnia (Day Modes)
-
-- **`home` (Standardowy):** Pełne egzekwowanie matrycy, strefy WMZ i Backwards Nap Capping.
-- **`on_the_go` (W drodze):** Złagodzone reguły dla podróży, spacerów i wyjazdów; brak kar za drzemki w wózku.
-- **`illness_regression` (Choroba / Kryzys):** Skrócenie okien czuwania o 20%, zawieszenie restrykcji WMZ i priorytet dla regeneracji organizmu dziecka.
-
----
-
-## 5. 7 Deterministycznych Drzew Diagnostycznych
-
-Wszystkie wpisy snu i parametry dobowe podlegają analizie przez 7 równoległych, w 100% deterministycznych drzew diagnostycznych. Moduł nie korzysta z LLM — generuje ustandaryzowane kody diagnoz (`diagnosisCode`), stopnie istotności (`severity`), wskaźniki pewności (`confidenceScore`) oraz nadpisania algorytmiczne (`algorithmOverride`), które OpenRouter ubiera w empatyczny język w bazie `child_insights`.
-
-### 5.0. Powtarzalność, okno i strefa czasowa (od poprawek z raportu `badania/reports/Ocena silnika snu Spanko.md`)
-- Drzewa analizują tylko logi z ostatnich 14 dni przed `nowIso` (`selectLogsInDiagnosticWindow`); nie czytają `Date.now()`.
-- Godziny (wczesne pobudki, WMZ, kotwica poranna) liczone w strefie dziecka (`child.timezone`, domyślnie `Europe/Warsaw`) przez `getMinutesFromMidnightInTimeZone`.
-- Wzorce wymagają powtórzeń z ostatnich 7 nocy: CAT1 ≥3 pobudki przez ≥5 nocy i wiek ≥112 dni; CAT3 Split Night i wczesna pobudka w ≥3 nocach; CAT7 ≥2 karmienia mlekiem w ≥3 nocach.
-- CAT2: brak zapisanego nastroju to brak danych (`LONG_LATENCY_MOOD_UNKNOWN`, nieaktywna), a nie „spokojnie”.
-- Kolejność diagnoz: istotność, pewność, kolejność kategorii; pierwsza jest główną. Nowa diagnoza problemu to `hypothesis`, powtórzona — `active`.
-
-### 5.1. Sygnatura Wejścia i Wyjścia Orkiestratora
-
-Ewaluacja wszystkich 7 kategorii odbywa się za pomocą czystej funkcji:
-```typescript
-export function evaluateAll7DiagnosticCategories(
-  input: DiagnosticEvaluationInput
-): readonly DiagnosticTreeResult[]
-```
-
-#### Wejście (`DiagnosticEvaluationInput`):
-- `child`: kontekst dziecka (`birthDateIso`, opcjonalna `dueDateIso`, `activeDayMode`, `currentPlanStartDateIso`).
-- `todayContext`: bieżący stan (`tags`: np. `ząbkowanie`, `gorączka`, `infekcja_ucha`, `dayMode`).
-- `recentSleepLogs`: tablica ostatnich rekordów snu (`SleepLog[]`).
-- `dailyTotalsLast14DaysMin`: sumaryczne czasy snu z ostatnich 14 dób fizjologicznych.
-- `currentMetrics`: wyliczone parametry 3 Napędów Snu (`effectiveAgeDays`, `chronicSleepDebtMin`, `sleepBatteryPercent`, `sleepNeedsProfile`, `biologicalBedtimeMinFromMidnight`).
-
-#### Wyjście (`readonly DiagnosticTreeResult[]`):
-Dla każdego z 7 drzew generowany jest obiekt:
-- `category`: identyfikator kategorii (`ProblemCategory`)
-- `diagnosisCode`: znormalizowany kod diagnozy (`string`)
-- `severity`: poziom istotności (`low` | `medium` | `high` | `info`)
-- `confidenceScore`: wskaźnik pewności (od `0.0` do `1.0`)
-- `isTriggered`: flaga aktywacji diagnozy (`true` = problem wymagający uwagi)
-- `title`: tytuł diagnozy w języku polskim
-- `explanation`: medyczne wyjaśnienie mechanizmu
-- `clinicalAction`: bezpośrednia rekomendacja behawioralna dla rodzica
-- `algorithmOverride`: opcjonalne nadpisanie parametrów (`wakeWindowOffsetMinutes`, `bedtimeFadingMinutes`, `recommendedDayMode`, `maxDaytimeSleepCapMinutes`)
+### 3.5. Skąd prognoza bierze korekty z drzew (`insightOverride.ts`)
+- `resolveInsightWwOffset`: `wakeWindowOffsetMinutes` z drzew; `wwOffsetMin` tylko z korekty rodzica (`corrected_by_parent`). Zakres ±30 min.
+- `resolveInsightDayAdjustments`: `bedtimeFadingMinutes` → przesunięcie pory snu (silnik ogranicza do ±30 min), `maxDaytimeSleepCapMinutes` → korekta limitu snu dziennego (do −60 min).
+- `shiftEveryDays` z drzew jest dziś informacją dla tekstu („co 3 dni”); silnik stosuje jeden krok przesunięcia, a kolejne kroki wynikają z nowej oceny drzew na kolejnych danych.
+- Tę samą ścieżkę odtwarza pomiar trafności w adminie (`src/lib/admin/calibration.ts`, kolekcja `sleep_predictions`).
 
 ---
 
-### 5.2. Szczegółowe Reguły i Deterministyczne Progi 7 Drzew
+## 4. Tryby dnia (`DayMode`)
 
-#### CAT1: `CAT1_ASSOCIATIONS_NIGHT_WAKINGS` (Skojarzenia ze snem i pobudki nocne)
-- **Cel:** Identyfikacja nieumiejętności samodzielnego łączenia cykli snu i zależności od wysokich poziomów drabiny interwencji.
-- **Progi liczbowe:**
-  - Wiek efektywny $\ge 112$ dni ($\ge 16$ tyg. życia).
-  - Średnia liczba wybudzeń nocnych $\ge 3$ na noc.
-  - $\ge 50\%$ nocnych interwencji stanowi poziom 4–5 (`breast`, `bottle`, `bouncing`, `carrying`).
-- **Kod diagnozy:** `HIGH_INTERVENTION_SLEEP_ASSOCIATION` (`severity: "high"`, `confidence: 0.85`, `isTriggered: true`).
-- **Stan normy:** `HEALTHY_SLEEP_CONSOLIDATION` (`severity: "info"`, `confidence: 0.90`, `isTriggered: false`).
+- **`home`**: pełne reguły (WMZ, górna granica pory snu, koniec ostatniej drzemki).
+- **`on_the_go`**: dziś liczony tak samo jak `home`; tryb służy do oznaczania dnia w dzienniku. Silnik nie ma jeszcze osobnych reguł dla podróży.
+- **`illness_regression`**: okna × 0,8, bez korekt rytmu dobowego. Włącza go rodzic albo zaleca CAT5 (`recommendedDayMode`). Doby chorobowe nie wchodzą do normy snu.
 
-#### CAT2: `CAT2_BEDTIME_RESISTANCE_LATENCY` (Opór przed snem i długa latencja)
-- **Cel:** Różnicowanie trudności z zasypianiem wieczornym między przemęczeniem (kortyzol) a niedomęczeniem / próbą uśpienia w Strefie Zakazanej (WMZ).
-- **Progi liczbowe:**
-  - Latencja zasypiania: $\text{latency} = \text{fellAsleepAt} - \text{putDownAt} > 30$ minut.
-- **Kody diagnoz:**
-  - `OVERTIRED_CORTISOL_SPIKE` (`severity: "medium"`, `confidence: 0.80`, `isTriggered: true`):
-    - Warunek: `latency > 30 min` ORAZ (`mood === 'crying'` LUB ostatnie okno czuwania $> \text{wwMaxEvening}$ LUB chroniczny dług senny $> 45$ min).
-    - Działanie: `algorithmOverride: { wakeWindowOffsetMinutes: -20 }` (przyspieszenie pory snu o 20 min).
-  - `UNDERTIRED_WMZ_CONFLICT` (`severity: "medium"`, `confidence: 0.85`, `isTriggered: true`):
-    - Warunek: `latency > 30 min` ORAZ (`mood === 'easy'` LUB pora odłożenia przypada w oknie WMZ: 90–30 min przed `biologicalBedtime`).
-    - Działanie: Technika *Bedtime Fading* (`algorithmOverride: { bedtimeFadingMinutes: 20 }` — opóźnienie pory położenia o 20 min do czasu skrócenia latencji $< 15$ min, a następnie stopniowe cofanie).
-  - `OPTIMAL_BEDTIME_LATENCY` (`severity: "info"`, `confidence: 0.90`, `isTriggered: false`): latencja $\le 30$ min.
+---
 
-#### CAT3: `CAT3_EARLY_WAKING_SPLIT_NIGHT` (Wczesne pobudki poranne i Split Nights)
-- **Cel:** Diagnoza wybudzeń o świcie wg drzewa Flynn-Evans oraz wielogodzinnych przerw w śnie nocnym (Split Nights).
-- **Progi liczbowe:**
-  - Wczesna pobudka poranna: ostateczna pobudka między `04:00` a `05:30`.
-  - Split Night: nocna przerwa w śnie $\ge 60$ minut z dobrym humorem (`mood === 'easy'`) przy nadmiarze snu dziennego ($> \text{maxDaytimeSleepMin}$).
-- **Kody diagnoz:**
-  - `SPLIT_NIGHT_EXCESS_DAY_SLEEP` (`severity: "high"`, `confidence: 0.90`, `isTriggered: true`):
-    - Działanie: `algorithmOverride: { maxDaytimeSleepCapMinutes: -30 }` (cięcie łącznego czasu drzemek w dzień o 30 min i wydłużenie ostatniego okna).
-  - `EARLY_MORNING_WAKING_PHASE_ADVANCE` (`severity: "medium"`, `confidence: 0.80`, `isTriggered: true`):
-    - Warunek: pobudka między `04:00` a `05:30` w drzewie Flynn-Evans (brak długu sennego, wyprzedzenie fazy rytmu okołodobowego).
-    - Działanie: Opóźnienie wieczornego snu o 15–20 min i montaż rolet zaciemniających (blackout).
-  - `NORMAL_CIRCADIAN_WAKE` (`severity: "info"`, `confidence: 0.90`, `isTriggered: false`): pobudka po godzinie `06:00`.
+## 5. Siedem drzew diagnostycznych (`diagnosticTrees.ts`)
 
-#### CAT4: `CAT4_SHORT_NAPS_TRANSITIONS` (Krótkie drzemki i przejścia drzemkowe)
-- **Cel:** Ocena konsolidacji drzemek oraz gotowości do redukcji liczby drzemek (np. 3->2 lub 2->1).
-- **Progi liczbowe:**
-  - Krótka drzemka (pojedynczy cykl): średnia długość drzemek $< 45$ minut przez $\ge 3$ kolejne doby.
-  - Okno redukcji drzemki: wiek w przedziale redukcji połączony z oporem przed ostatnią drzemką przez $\ge 5$ dni lub wydłużonymi oknami czuwania.
-- **Kody diagnoz:**
-  - `SINGLE_CYCLE_SHORT_NAPS` (`severity: "medium"`, `confidence: 0.80`, `isTriggered: true`):
-    - Warunek: wiek $\ge 180$ dni i średnia drzemek $< 45$ min przez $\ge 3$ dni (trudność z łączeniem cykli w dzień).
-    - Działanie: Technika Wake-to-Sleep lub delikatna asysta w 35. minucie drzemki; wydłużenie okna przed drzemką o 10 min.
-  - `NAP_TRANSITION_READY` (`severity: "medium"`, `confidence: 0.85`, `isTriggered: true`):
-    - Warunek: wiek w oknie redukcji drzemek + stały opór przed ostatnią drzemką lub opóźnianie nocy.
-    - Działanie: Eliminacja ostatniej drzemki i tymczasowe przyspieszenie snu nocnego o 30 minut.
-  - `DEVELOPMENTAL_SHORT_NAPS` (`severity: "info"`, `confidence: 0.85`, `isTriggered: true`): wiek $< 180$ dni i drzemki 30–45 min — w pełni fizjologiczna norma.
-  - `NAP_STRUCTURE_STABLE` (`severity: "info"`, `confidence: 0.90`, `isTriggered: false`): prawidłowa długość drzemek.
+### 5.0. Zasady wspólne
+- Orkiestrator `evaluateAll7DiagnosticCategories(input)` zwraca 7 wyników (po jednym na kategorię). Drzewa widzą tylko logi z 14 dni przed `nowIso` (`selectLogsInDiagnosticWindow`).
+- Godziny (wczesne pobudki, WMZ, kotwica) liczone w strefie dziecka (`getMinutesFromMidnightInTimeZone`).
+- Powtarzalność: wzorce nocne liczone z 7 ostatnich zakończonych nocy (`REPEAT_WINDOW_NIGHTS`); minimum to 3 noce (`REPEAT_MIN_NIGHTS`) albo 5 nocy dla CAT1.
+- Brak zapisanego nastroju to brak danych, nie „spokój”.
+- Wybór głównej diagnozy (`childEngine.ts`): istotność, potem pewność, potem kolejność kategorii. Nowa diagnoza problemu dostaje status `hypothesis`, powtórzona — `active`; wyniki `info` od razu `active`.
+- Teksty dla rodzica: „wzorzec, który często oznacza…”, bez słów „diagnoza” i „kliniczny” oraz bez „kortyzolu”.
 
-#### CAT5: `CAT5_REGRESSION_ILLNESS_CRISIS` (Regresje, kryzysy i skoki rozwojowe)
-- **Cel:** Wykrywanie ostrych zaburzeń snu: regresji 4. miesiąca, efektu Extinction Burst i dolegliwości chorobowych/ząbkowania.
-- **Progi liczbowe:**
-  - Regresja 4. miesiąca: wiek efektywny `105–135 dni` ORAZ nagły wzrost pobudek nocnych $\ge 3$/noc.
-  - Extinction Burst: nagły wzrost protestów w oknie `14–28 dni` po wdrożeniu planu naprawczego (`currentPlanStartDateIso`).
-  - Infekcja / Ból: tagi `gorączka`, `ząbkowanie`, `infekcja_ucha` lub `activeDayMode === 'illness_regression'`.
-- **Kody diagnoz:**
-  - `FOUR_MONTH_SLEEP_REGRESSION` (`severity: "high"`, `confidence: 0.85`, `isTriggered: true`):
-    - Mechanizm: Dojrzewanie 4-fazowej architektury snu NREM/REM.
-    - Działanie: Stała sekwencja wyciszenia, ochrona przed przemęczeniem, unikanie tworzenia nowych silnych asocjacji.
-  - `EXTINCTION_BURST` (`severity: "high"`, `confidence: 0.90`, `isTriggered: true`):
-    - Mechanizm: Fizjologiczny szczyt protestu układu nerwowego w 14–28 dniu wygaszania starych nawyków.
-    - Działanie: Żelazna konsekwencja — protest wygasa w ciągu 48–72 godzin.
-  - `ACUTE_ILLNESS_OR_TEETHING_DISRUPTION` (`severity: "medium"`, `confidence: 0.95`, `isTriggered: true`):
-    - Działanie: `algorithmOverride: { recommendedDayMode: 'illness_regression' }` — skrócenie okien czuwania o 20%, zawieszenie nauki samodzielności.
-  - `STABLE_DEVELOPMENT` (`severity: "info"`, `confidence: 0.90`, `isTriggered: false`): brak cech kryzysu.
+### 5.1. Wejście i wyjście
+- **Wejście (`DiagnosticEvaluationInput`)**: `nowIso`, `timeZone`, `child` (`birthDateIso`, `dueDateIso`, `activeDayMode`, `currentPlanStartDateIso`), `todayContext` (`tags`, `dayMode`), `recentSleepLogs`, `dailyTotalsLast14DaysMin`, `currentMetrics` (`effectiveAgeDays`, `chronicSleepDebtMin`, `sleepBatteryPercent`, `sleepNeedsProfile`, `biologicalBedtimeMinFromMidnight`). Buduje je `buildDiagnosticInput` w `src/lib/server/childEngine.ts`; przewidywana pora snu jest tam liczona tą samą funkcją co na pulpicie.
+- **Wyjście (`DiagnosticTreeResult`)**: `category`, `diagnosisCode`, `severity` (`high` | `medium` | `low` | `info`), `confidenceScore` (0–1), `isTriggered`, `title`, `explanation`, `clinicalAction` oraz opcjonalnie `algorithmOverride`: `wakeWindowOffsetMinutes`, `bedtimeFadingMinutes`, `maxDaytimeSleepCapMinutes`, `recommendedDayMode`, `shiftEveryDays`.
 
-#### CAT6: `CAT6_NEWBORN_DAY_NIGHT_ACTIVE_SLEEP` (Noworodek: Ochrona kliniczna, sen aktywny i odwrócenie nocy z dniem)
-- **Cel:** Ochrona noworodków, egzekwowanie reguły pauzy 60s w fazie REM oraz diagnoza odwrócenia rytmu dobowego.
-- **Progi liczbowe:**
-  - Wiek noworodkowy: wiek efektywny $< 112$ dni ($< 16$ tygodni życia).
-  - Odwrócenie nocy z dniem: suma snu dziennego $>$ suma snu nocnego w dobie fizjologicznej.
-- **Kody diagnoz:**
-  - `NEWBORN_ACTIVE_SLEEP_GUARDRAIL` (`severity: "high"`, `confidence: 1.0`, `isTriggered: true`):
-    - Bezwzględny guardrail kliniczny: zakaz jakichkolwiek treningów wypłakiwania (Cry-It-Out).
-    - Zalecenie: Reguła pauzy 60 sekund w fazie snu aktywnego REM przed interwencją.
-  - `DAY_NIGHT_CONFUSION` (`severity: "high"`, `confidence: 0.85`, `isTriggered: true`):
-    - Warunek: sen dzienny $>$ sen nocny.
-    - Działanie: Światło i odgłosy życia w dzień, ciemność i cisza w nocy, limit pojedynczej drzemki do 120 minut.
-  - `MATURE_CIRCADIAN_RHYTHM` (`severity: "info"`, `confidence: 0.95`, `isTriggered: false`): wiek $\ge 112$ dni.
+### 5.2. CAT1 — skojarzenia i częste pobudki (`CAT1_ASSOCIATIONS_NIGHT_WAKINGS`)
+- Częste pobudki: ≥3 pobudki (`HIGH_NIGHT_WAKINGS_THRESHOLD`) w ≥5 z 7 ostatnich nocy (`ASSOCIATION_MIN_NIGHTS`) [H, spec v2.0; próg 3 pobudek: fiński próg konsultacji, Paavonen 2020 [B, przez prasę]].
+- `HIGH_INTERVENTION_SLEEP_ASSOCIATION` (high, 0,85): wiek ≥ 180 dni (`CAT1_MIN_AGE_DAYS`, decyzja 1 Gosi) + częste pobudki + ≥50% nocnych interwencji to karmienie, butelka, bujanie lub noszenie [H].
+- `NIGHT_WAKINGS_NORMAL_FOR_AGE` (info, 0,8, `isTriggered: true`): 120–179 dni + częste pobudki → tylko informacja, że to jeszcze norma.
+- `HEALTHY_SLEEP_CONSOLIDATION` (info): w pozostałych przypadkach.
 
-#### CAT7: `CAT7_NIGHT_WEANING_FEEDING` (Ograniczanie karmień nocnych)
-- **Cel:** Różnicowanie fizjologicznego głodu kalorycznego od nawykowego ssania dla uspokojenia (Comfort Nursing) u dzieci powyżej 6. miesiąca życia.
-- **Progi liczbowe:**
-  - Wiek minimalny: wiek efektywny $\ge 180$ dni ($\ge 6$ miesięcy życia).
-  - Częstotliwość karmień nocnych: $\ge 2$ karmienia nocne mimo pełnych, sycących posiłków w dzień.
-- **Kody diagnoz:**
-  - `HABITUAL_NIGHT_FEEDING_ASSOCIATION` (`severity: "medium"`, `confidence: 0.85`, `isTriggered: true`):
-    - Warunek: wiek $\ge 180$ dni oraz $\ge 2$ wybudzenia na karmienie w nocy o charakterze uspokajającym (krótkie ssanie $< 5$ min lub butelka $< 30$ ml).
-    - Działanie: Stopniowe skracanie czasu karmień o 1–2 minuty co 2 noce, uspokajanie przez drugiego rodzica lub podanie smoczka/wody.
-  - `NUTRITIONAL_NIGHT_HUNGER` (`severity: "info"`, `confidence: 0.95`, `isTriggered: false`):
-    - Wiek $< 180$ dni lub realny głód kaloryczny — karmienie na żądanie.
-  - `BALANCED_NIGHT_NUTRITION` (`severity: "info"`, `confidence: 0.90`, `isTriggered: false`): zrównoważony rytm nocnego odżywiania.
+### 5.3. CAT2 — opór przed snem i długie zasypianie (`CAT2_BEDTIME_RESISTANCE_LATENCY`)
+Średnia latencja (odłożenie → zaśnięcie) ze wszystkich nocy w oknie 14 dni; nastrój = przewaga zapisów `crying` albo `easy`.
+- `OVERTIRED_BEDTIME_RESISTANCE` (medium, 0,8): latencja > 20 min + przewaga płaczu + dług > 60 min [H, spec v2.0]. Nadpisanie `wakeWindowOffsetMinutes: -20` (tekst: kładź 20–30 min wcześniej).
+- `UNDERTIRED_BEDTIME_FADING` (medium, 0,8): latencja ≥ 30 min + przewaga spokoju. Bedtime fading: `bedtimeFadingMinutes: 15`, `shiftEveryDays: 3`, aż zasypianie trwa ok. 15 min [metoda: Piazza i Fisher 1991, Gradisar 2016 [B]; kroki 15 min co 3 dni: H, spec v2.0].
+- `LONG_LATENCY_MOOD_UNKNOWN` (info, 0,5, nieaktywna): latencja ≥ 30 min bez przewagi nastroju → prośba o zapisywanie nastroju.
+- `OPTIMAL_BEDTIME_LATENCY` (info).
 
+### 5.4. CAT3 — wczesne pobudki i rozbite noce (`CAT3_EARLY_WAKING_SPLIT_NIGHT`)
+- `SPLIT_NIGHT_EXCESS_DAY_SLEEP` (high, 0,85): czuwanie ≥ 60 min w ≥3 z 7 nocy [H]. Nadpisanie `maxDaytimeSleepCapMinutes: -30` (kierunek: Thorpe 2015 [B], głównie po 2. roku).
+- Wczesne pobudki: pobudka 04:00–05:30 w ≥3 z 7 nocy. Rodzaj zależy od średniej długości tych nocy (bez czasu wybudzeń) [E: protokół Erin Flynn-Evans, blog Baby Sleep Science 2025; progi H, spec v2.0]:
+  - `EARLY_MORNING_WAKING_PHASE_ADVANCE` (medium, 0,75): noc ≥ 10,5 h → rytm przesunięty na wcześniej; `bedtimeFadingMinutes: 15`, `shiftEveryDays: 2`, światło wieczorem, ciemno rano,
+  - `EARLY_MORNING_WAKING_SHORT_NIGHT` (medium, 0,75): noc < 9,5 h → „lock-in”: do docelowej pobudki traktować czas jak noc, pierwszą drzemkę liczyć od docelowej pobudki,
+  - `EARLY_MORNING_WAKING` (low, 0,6): noc 9,5–10,5 h → zaciemnienie i niezbyt wczesna pierwsza drzemka.
+- `NORMAL_CIRCADIAN_WAKE` (info).
+
+### 5.5. CAT4 — krótkie drzemki i przejścia (`CAT4_SHORT_NAPS_TRANSITIONS`)
+- `NAP_TRANSITION_READY` (medium, 0,8): opór (latencja ostatniej drzemki ≥ 20 min albo latencja nocy ≥ 30 min) przez ≥5 kolejnych dni [H, spec v2.0], przy typowej liczbie drzemek:
+  - 3 drzemki i wiek 120–300 dni → 3→2 (od 4. mies., Mindell 2016 [B]): rezygnacja z trzeciej drzemki,
+  - 2 drzemki i wiek 365–548 dni → 2→1 (12–18 mies., Iglowstein 2003 [B]): drzemka +15 min co 3 dni do 12:00–12:30 [H, spec v2.0]; `wakeWindowOffsetMinutes: 15`, `shiftEveryDays: 3`.
+- Krótkie drzemki: ≥3 drzemki w oknie, ≥50% z nich ≤ 45 min [H]:
+  - wiek < 180 dni → `DEVELOPMENTAL_SHORT_NAPS` (info, `isTriggered: true`): norma wieku,
+  - wiek ≥ 180 dni → `SINGLE_CYCLE_SHORT_NAPS` (medium, 0,8): delikatna pomoc ok. 35. minuty drzemki.
+- `NAP_STRUCTURE_STABLE` (info).
+
+### 5.6. CAT5 — kryzysy, regresje, choroba (`CAT5_REGRESSION_ILLNESS_CRISIS`)
+Kolejność sprawdzania: choroba → wybuch wygaszania → spontaniczny nawrót → ząbkowanie → wzrost pobudek zależny od wieku.
+- `ACUTE_ILLNESS_DISRUPTION` (medium, 0,95): tag `gorączka`, `infekcja_ucha` lub `szczepienie` albo tryb choroby. `recommendedDayMode: illness_regression`; powrót do planu 3–5 dni po ustąpieniu objawów [E: Phoenix Children's].
+- `EXTINCTION_BURST` (medium, 0,8): noce 2–5 od startu planu (`currentPlanStartDateIso`) z oznakami protestu (pobudki, płacz albo latencja ≥ 20 min) [B: literatura behawioralna, France i in.; wybuch w nocach 2–3]. Bez obietnicy „minie w 48–72 h”.
+- `SPONTANEOUS_RELAPSE` (medium, 0,7): po ≥7 nocach planu 2 ostatnie noce mają średnio ≥2 pobudki i ≥1 więcej niż 5 poprzednich [H]. RACGP HANDI nazywa to zjawisko „extinction burst” i opisuje je 2–4 tyg. po wygaszeniu, u ok. 20% dzieci, z powrotem do dobrego snu po kilku nocach [W] — w Spanko to nawrót, nie wybuch (patrz `zrodla.md`, weryfikacja RACGP).
+- `TEETHING_DISCOMFORT` (low, 0,7): tag `ząbkowanie`. Nie włącza trybu choroby; wysoka gorączka nie jest objawem ząbkowania [B: Azevedo 2015].
+- Wzrost pobudek: 5 ostatnich nocy ma średnio ≥2 pobudki i ≥1 więcej niż wcześniejsze noce z okna (co najmniej 3) [H]:
+  - `FOUR_MONTH_SLEEP_REGRESSION` (medium, 0,7): 84–210 dni; opisany jako trwała zmiana architektury snu, bez okna 105–135 dni [B: Lenehan 2023, przegląd 93 badań],
+  - `TRANSIENT_DEVELOPMENTAL_REGRESSION` (medium, 0,65): 240–330 lub 540–730 dni; zwykle 2–4 tyg., ponad miesiąc → lekarz [E: Phoenix Children's].
+- `STABLE_DEVELOPMENT` (info).
+
+### 5.7. CAT6 — noworodek (`CAT6_NEWBORN_DAY_NIGHT_ACTIVE_SLEEP`)
+- `NEWBORN_ACTIVE_SLEEP_GUARDRAIL` (high, 1,0) dla wieku < 112 dni: bez nauki samodzielnego zasypiania, karmienie na żądanie, ok. 60 s odczekania przy kwileniu (sen aktywny) [B, pośrednio: PMC8692310]. „Rytm dobowy dopiero się kształtuje (zwykle 8.–16. tydz.)” zamiast „brak dojrzałej melatoniny”. Przy ≥2 drzemkach > 2 h w ostatnich 7 dobach dochodzi rada, by budzić z drzemki dziennej po 2 h [H, spec v2.0].
+- `MATURE_CIRCADIAN_RHYTHM` (info) od 112 dni.
+- Kod `DAY_NIGHT_CONFUSION` jest w `DIAGNOSIS_CODES`, ale drzewo go dziś nie zwraca; rada o długich drzemkach przejęła jego rolę.
+
+### 5.8. CAT7 — karmienia nocne (`CAT7_NIGHT_WEANING_FEEDING`)
+- Wiek < 180 dni → `NUTRITIONAL_NIGHT_HUNGER` (info): karmienia potrzebne.
+- `HABITUAL_NIGHT_FEEDING_ASSOCIATION`: w ≥3 z 7 nocy ≥2 karmienia mlekiem, z czego ≥2 krótkie (≤ 5 min) albo kolejne karmienia co ≤ 60 min [H, spec v2.0; spec mówi o ssaniu < 3 min, ale dziennik zapisuje czas całej pobudki z najkrótszą opcją 5 min].
+  - 180–269 dni: severity `low` i dopisek, że zmiana to wybór rodziny [H; brak wytycznej wyznaczającej wiek],
+  - od 270 dni: `medium`,
+  - przy przewadze karmień piersią: wolniejsze tempo (co 3–4 noce) i ostrzeżenie o laktacji [W: ABM #37, 2023]; przy butelce: mniejsza porcja co 2 noce [H].
+- `BALANCED_NIGHT_NUTRITION` (info).
+
+---
+
+## 6. Pozostałe moduły
+- `physiologicalDay.ts`: doba fizjologiczna od porannej pobudki do następnej (`resolvePhysiologicalDate`), czas w strefie dziecka.
+- `feedingSignals.ts`: sygnały karmienia przed snem i w nocy dla drzew i silnika celów (progi 15/30 min [H]).
+- `matrixOverride.ts`: walidacja Zod nadpisanej matrycy z panelu admina (`admin_settings`).
+- `insightOverride.ts`: patrz 3.5.
+
+Źródła i poziom dowodu dla każdej liczby: [`zrodla.md`](zrodla.md).

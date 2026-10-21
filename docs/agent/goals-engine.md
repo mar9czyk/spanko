@@ -31,7 +31,7 @@ Kroki `PlanStep { code, fromDay, toDay, params }` — bez tekstów UI (teksty i 
 `pause` (choroba) → `achieved` → `hold` (krok trwa) → po końcu kroku: `step_back` (średnia z 2 dób > 130% baseline), `advance`, albo `hold/CONSOLIDATING` na ostatnim kroku.
 
 ## 7. Źródła metod
-Ferber (graduated extinction/check-and-console), metoda krzesła (Kuhn & Weidinger), pick-up-put-down (Hogg), przegląd: AAP / Mindell i in. 2006 (behavioral interventions for infant sleep). Treści wymagają przeglądu przez konsultanta snu przed publicznym startem.
+Poziom dowodu każdej liczby (wiek, interwały, liczba nocy, progi sukcesu) jest w [`zrodla.md`](zrodla.md), sekcja 3.4. W skrócie: bramki wiekowe 16 tyg. / 120 / 180 dni mają oparcie w wytycznych i badaniach (AASM, Mindell 2006, Kempler 2016, Gradisar 2016, RACGP HANDI), interwały Ferbera i liczby nocy dla krzesła i weź–odłóż to praktyka konsultantów (Baboo), a tempo szczebli, kroki odstawiania mleka i kryterium sukcesu ≥5 z 7 nocy to heurystyki Spanko. Stanowisko ABM #37 (2023) pokazujemy obok AASM/AAP przy wyborze metody. Treści wymagają przeglądu przez konsultanta snu przed publicznym startem.
 
 ## 8. Bezpieczny sen i filtr AI (`src/lib/safe-sleep.ts`)
 - Stały blok zaleceń AAP 2022 (`SAFE_SLEEP_GUIDELINES`, komponent `SafeSleepNotice`) na stronie wniosków i w kreatorze celu dla dzieci < 12 mies. wieku korygowanego. Nigdy nie generowany przez AI.
