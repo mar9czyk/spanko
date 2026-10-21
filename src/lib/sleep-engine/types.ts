@@ -85,6 +85,15 @@ export interface AgeBracketConfig {
   readonly maxDaytimeSleepMin: number;
   readonly medianTotalSleepMin: number;
   readonly homeostaticTauRiseMin: number;
+  /**
+   * Najmniejsza liczba drzemek, która w tym wieku jest jeszcze normą (zakres minNapsCount–targetNapsCount).
+   * Brak = tylko targetNapsCount. Silnik schodzi do tej liczby, gdy dziecko samo tak śpi (≥5 z 7 dób).
+   */
+  readonly minNapsCount?: number;
+  /** Średnia liczba pobudek nocnych w tym wieku (kontekst dla CAT1, nie próg diagnozy). */
+  readonly nightWakingsMean?: number;
+  /** Górna granica normy pobudek nocnych w tym wieku. */
+  readonly nightWakingsUpperNorm?: number;
 }
 
 export interface DailySleepSummary {
@@ -93,6 +102,12 @@ export interface DailySleepSummary {
   readonly isIllOrIgnored: boolean;
   readonly daytimeSleepMin?: number;
   readonly nightSleepMin?: number;
+  /** Liczba zakończonych drzemek w dobie. */
+  readonly napCount?: number;
+  /** Najdłuższa drzemka doby w minutach. */
+  readonly longestNapMin?: number;
+  /** Rodzic oznaczył sen w tej dobie jako odsypianie (rebound). */
+  readonly isRebound?: boolean;
 }
 
 export interface ChronicDriveResult {
@@ -105,6 +120,12 @@ export interface ChronicDriveResult {
 export interface CircadianCalculationParams {
   readonly morningWakeTimesLast5DaysMinutesFromMidnight: readonly number[];
   readonly bracket: AgeBracketConfig;
+  /** Faktyczne pory zaśnięcia na noc z ostatnich 5 dób (minuty od północy, czas lokalny). */
+  readonly bedtimesLast5DaysMinutesFromMidnight?: readonly number[];
+  /** Przesunięcie pory nocnej z drzewa (bedtime fading), w minutach; + = później. */
+  readonly bedtimeShiftMin?: number;
+  /** Korekta limitu snu dziennego z drzewa (nap capping), w minutach; − = krócej. */
+  readonly daytimeSleepCapOffsetMin?: number;
 }
 
 export interface CircadianParametersResult {
@@ -113,6 +134,7 @@ export interface CircadianParametersResult {
   readonly forbiddenZoneStart: string;
   readonly forbiddenZoneEnd: string;
   readonly latestLastNapEndAt: string;
+  /** Przewidywana pora snu nocnego w minutach od północy (nazwa pola historyczna). */
   readonly biologicalBedtimeMinFromMidnight: number;
 }
 

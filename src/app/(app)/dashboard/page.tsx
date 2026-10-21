@@ -143,6 +143,7 @@ export default function DashboardPage() {
         sleepRestedness={state.sleepRestedness}
         sleepNeedsProfile={state.sleepNeedsProfile}
         latestLastNapEndAt={state.latestLastNapEndAt}
+        napWakeSuggestion={state.napWakeSuggestionDisplay}
       />
       {!state.isDemoData && state.currentSleepLog && (
         <WakeListenerCard

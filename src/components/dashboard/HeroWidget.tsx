@@ -19,6 +19,8 @@ interface HeroWidgetProps {
   readonly sleepRestedness: SleepRestednessLevel;
   readonly sleepNeedsProfile: "low_sleep_needs" | "average" | "high_sleep_needs";
   readonly latestLastNapEndAt: string;
+  /** Sugerowana pora wybudzenia z drzemki (HH:mm), gdy drzewo zaleca ograniczenie snu w dzień. */
+  readonly napWakeSuggestion?: string | null;
 }
 
 /**
@@ -39,6 +41,7 @@ function ClockOrStopwatch(props: HeroWidgetProps): ReactNode {
         status={currentSleepLog.status}
         sleepType={currentSleepLog.type}
         startTimeIso={currentSleepLog.fell_asleep_at || currentSleepLog.put_down_at}
+        wakeSuggestion={props.napWakeSuggestion}
       />
     );
   }

@@ -14,6 +14,7 @@ export const PREVIEW_PROFILES: readonly PreviewProfile[] = [
   { label: "10 tyg.", ageDays: 70 },
   { label: "6 mies.", ageDays: 180 },
   { label: "14 mies.", ageDays: 425 },
+  { label: "20 mies.", ageDays: 610 },
 ];
 
 const PREVIEW_WAKE_UP_ISO = "2026-01-01T07:00:00.000Z";
