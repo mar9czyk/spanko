@@ -14,6 +14,7 @@ import type {
   InterventionRung,
   ReadinessBlocker,
   ReadinessWarning,
+  SleepHabit,
 } from "@/lib/goals-engine/types";
 
 export type CopyLocale = "pl" | "en";
@@ -26,6 +27,7 @@ export const GOAL_TITLES: Readonly<Record<GoalType, Localized>> = {
   reduce_night_wakings: { pl: "Mniej pobudek nocnych", en: "Fewer night wakings" },
   night_weaning: { pl: "Noc bez mleka", en: "Night weaning" },
   independent_sleep_onset: { pl: "Samodzielne zasypianie", en: "Falling asleep independently" },
+  healthy_sleep_habits: { pl: "Lepsze nawyki snu", en: "Better sleep habits" },
 };
 
 export const GOAL_SUMMARIES: Readonly<Record<GoalType, Localized>> = {
@@ -41,6 +43,10 @@ export const GOAL_SUMMARIES: Readonly<Record<GoalType, Localized>> = {
     pl: "Uczymy zasypiania bez karmienia, bujania i noszenia.",
     en: "Teach falling asleep without feeding, rocking or carrying.",
   },
+  healthy_sleep_habits: {
+    pl: "Bez treningu snu: stała pobudka, rutyna i dobre warunki do snu. Od urodzenia.",
+    en: "No sleep training: steady wake-up, a routine and a good sleep space. From birth.",
+  },
 };
 
 export const METHOD_TITLES: Readonly<Record<GoalMethod, Localized>> = {
@@ -49,6 +55,7 @@ export const METHOD_TITLES: Readonly<Record<GoalMethod, Localized>> = {
   pick_up_put_down: { pl: "Weź–odłóż", en: "Pick up / put down" },
   check_and_console: { pl: "Sprawdzanie w odstępach (Ferber)", en: "Check & console (Ferber)" },
   extinction: { pl: "Bez interwencji (extinction)", en: "Extinction" },
+  habit_building: { pl: "Nawyk po nawyku", en: "One habit at a time" },
 };
 
 export const METHOD_DESCRIPTIONS: Readonly<Record<GoalMethod, Localized>> = {
@@ -71,6 +78,10 @@ export const METHOD_DESCRIPTIONS: Readonly<Record<GoalMethod, Localized>> = {
   extinction: {
     pl: "Najstarsza i najszybsza, ale najtrudniejsza: bez wchodzenia do pokoju, jeśli dziecko jest bezpieczne.",
     en: "Fastest but hardest: no entering the room while your baby is safe.",
+  },
+  habit_building: {
+    pl: "Co 3 noce dokładamy jeden nawyk, reagujesz na dziecko jak zawsze. Około 2 tygodni.",
+    en: "A new habit every 3 nights while you respond to your baby as usual. About 2 weeks.",
   },
 };
 
@@ -176,6 +187,25 @@ const RUNG_TEXT: Readonly<Record<InterventionRung, Localized>> = {
   independent: { pl: "samodzielnie, bez pomocy", en: "on their own, no help" },
 };
 
+const HABIT_TEXT: Readonly<Record<SleepHabit, Localized>> = {
+  WAKE_ANCHOR: {
+    pl: "Budź dziecko rano o stałej porze (± 30 min) i od razu odsłoń okna.",
+    en: "Wake your baby at a steady time each morning (± 30 min) and open the curtains right away.",
+  },
+  BEDTIME_ROUTINE: {
+    pl: "Wieczorem 20–30 min tej samej rutyny, np. kąpiel, piżama, karmienie, kołysanka.",
+    en: "In the evening, 20–30 min of the same routine, e.g. bath, pyjamas, feed, lullaby.",
+  },
+  SLEEP_ENVIRONMENT: {
+    pl: "Przygotuj pokój: ciemno, 16–20°C, lekki śpiworek; w nocy tylko przyciemnione światło.",
+    en: "Set up the room: dark, 16–20°C, a light sleep bag; only dim light at night.",
+  },
+  DROWSY_PUT_DOWN: {
+    pl: "Spróbuj raz dziennie odłożyć dziecko senne, ale jeszcze nie śpiące. Jeśli płacze, pomóż jak zwykle.",
+    en: "Once a day, try putting your baby down drowsy but awake. If they cry, help as usual.",
+  },
+};
+
 const CHAIR_TEXT: Readonly<Record<ChairDistance, Localized>> = {
   bedside: { pl: "przy łóżeczku", en: "next to the cot" },
   mid_room: { pl: "w połowie pokoju", en: "mid-room" },
@@ -228,6 +258,8 @@ export function describeTask(task: DailyTask, locale: CopyLocale = "pl"): string
       return isPl
         ? "Nie wchodź do pokoju, jeśli dziecko jest bezpieczne, zdrowe i nie ma powodu do niepokoju."
         : "Don't enter the room if baby is safe, healthy and not in distress.";
+    case "SLEEP_HABIT":
+      return pick(HABIT_TEXT[params.habit ?? "BEDTIME_ROUTINE"], locale);
     case "BEDTIME_ROUTINE":
       return isPl
         ? "Zachowaj stałą, krótką rutynę przed snem (ok. 20 min, te same kroki)."

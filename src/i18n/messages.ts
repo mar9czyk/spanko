@@ -239,6 +239,7 @@ export const pl = {
     "Według zapisów cel jest spełniony. Czy Ty też czujesz, że noce są już spokojniejsze? Jeśli nie, po prostu kontynuuj plan.",
   "goal.card.confirmAchieved": "Tak, cel osiągnięty",
   "safeSleep.title": "Bezpieczny sen",
+  "foundations.title": "Fundamenty dobrego snu",
   "safeSleep.source":
     "Zalecenia Amerykańskiej Akademii Pediatrii (AAP 2022) do 12. miesiąca życia.",
   "goal.error.load": "Nie udało się pobrać celu.",
@@ -573,6 +574,7 @@ export const en: Record<MessageKey, string> = {
     "Your logs show the goal is met. Do nights feel calmer to you too? If not, just keep following the plan.",
   "goal.card.confirmAchieved": "Yes, goal reached",
   "safeSleep.title": "Safe sleep",
+  "foundations.title": "Sleep foundations",
   "safeSleep.source":
     "American Academy of Pediatrics guidance (AAP 2022) for babies under 12 months.",
   "goal.error.load": "Could not load the goal.",

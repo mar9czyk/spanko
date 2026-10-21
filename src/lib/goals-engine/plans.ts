@@ -11,6 +11,7 @@ import type {
   GoalType,
   InterventionRung,
   PlanStep,
+  SleepHabit,
   StepParams,
 } from "./types";
 
@@ -43,6 +44,19 @@ const CHAIR_STAGES: readonly ChairDistance[] = ["bedside", "mid_room", "doorway"
 const CHAIR_STAGE_DAYS = 3;
 const PICK_UP_PUT_DOWN_DAYS = 14;
 const EXTINCTION_DAYS = 3;
+
+/**
+ * Nawyki po kolei, 3 noce każdy + 2 noce utrwalenia = 14 nocy (heurystyka Spanko).
+ * Kolejność: najpierw stała pobudka (kotwica rytmu), na końcu odkładanie sennego dziecka.
+ */
+const HABIT_SEQUENCE: readonly SleepHabit[] = [
+  "WAKE_ANCHOR",
+  "BEDTIME_ROUTINE",
+  "SLEEP_ENVIRONMENT",
+  "DROWSY_PUT_DOWN",
+];
+const HABIT_STEP_DAYS = 3;
+const HABIT_CONSOLIDATE_DAYS = 2;
 
 function appendStep(
   steps: PlanStep[],
@@ -132,6 +146,15 @@ function chairSteps(): PlanStep[] {
   return steps;
 }
 
+function habitSteps(): PlanStep[] {
+  const steps: PlanStep[] = [];
+  for (const habit of HABIT_SEQUENCE) {
+    appendStep(steps, "HABIT", HABIT_STEP_DAYS, { habit });
+  }
+  appendStep(steps, "CONSOLIDATE", HABIT_CONSOLIDATE_DAYS, {});
+  return steps;
+}
+
 /**
  * Generuje plan dla pary cel × metoda na podstawie punktu odniesienia dziecka.
  *
@@ -156,6 +179,7 @@ export function generatePlan(input: {
   if (method === "check_and_console") return finish(goal, method, ferberSteps(extra));
   if (method === "extinction") return finish(goal, method, extinctionSteps(extra));
   if (method === "chair_method") return finish(goal, method, chairSteps());
+  if (method === "habit_building") return finish(goal, method, habitSteps());
 
   const steps: PlanStep[] = [];
   appendStep(steps, "PICK_UP_PUT_DOWN", PICK_UP_PUT_DOWN_DAYS, {});

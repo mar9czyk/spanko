@@ -27,13 +27,19 @@ const MS_PER_DAY = 86_400_000;
 
 export const GoalSelectionSchema = z.object({
   childId: z.string().min(1),
-  goal: z.enum(["reduce_night_wakings", "night_weaning", "independent_sleep_onset"]),
+  goal: z.enum([
+    "reduce_night_wakings",
+    "night_weaning",
+    "independent_sleep_onset",
+    "healthy_sleep_habits",
+  ]),
   method: z.enum([
     "gentle_fading",
     "chair_method",
     "pick_up_put_down",
     "check_and_console",
     "extinction",
+    "habit_building",
   ]),
   redFlagsAcknowledged: z.boolean().default(false),
   locale: z.enum(["pl", "en"]).default("pl"),

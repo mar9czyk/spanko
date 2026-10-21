@@ -208,6 +208,46 @@ describe("generatePlan", () => {
   });
 });
 
+describe("cel „Lepsze nawyki snu”", () => {
+  it("jest dostępny od urodzenia bez czerwonych flag i bez „problemu”", () => {
+    const result = evaluateReadiness({
+      ...readyInput,
+      goal: "healthy_sleep_habits",
+      method: "habit_building",
+      effectiveAgeDays: 20,
+      baseline: { ...baseline, avgLatencyMin: 5, dominantRung: "independent" },
+      redFlagsAcknowledged: false,
+    });
+    expect(result).toEqual({ ready: true, blockers: [], warnings: [] });
+  });
+
+  it("nadal wymaga danych i braku choroby", () => {
+    const result = evaluateReadiness({
+      ...readyInput,
+      goal: "healthy_sleep_habits",
+      method: "habit_building",
+      baseline: { ...baseline, dayCount: 1 },
+      todayTags: ["gorączka"],
+    });
+    expect(result.blockers).toEqual(["INSUFFICIENT_DATA", "ILLNESS_ACTIVE"]);
+  });
+
+  it("plan: 4 nawyki po 3 noce + 2 noce utrwalenia, bez dodatkowej rutyny w zadaniach", () => {
+    const plan = generatePlan({ goal: "healthy_sleep_habits", method: "habit_building", baseline });
+    expect(plan.steps.map((s) => s.params.habit)).toEqual([
+      "WAKE_ANCHOR",
+      "BEDTIME_ROUTINE",
+      "SLEEP_ENVIRONMENT",
+      "DROWSY_PUT_DOWN",
+      undefined,
+    ]);
+    expect(plan.totalDays).toBe(14);
+    expect(buildDailyTasks(plan, 0)).toEqual([
+      { kind: "SLEEP_HABIT", params: { habit: "WAKE_ANCHOR" } },
+    ]);
+  });
+});
+
 describe("evaluateProgress", () => {
   const plan = generatePlan({ goal: "night_weaning", method: "gentle_fading", baseline });
   const run = (
