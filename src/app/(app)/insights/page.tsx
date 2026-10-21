@@ -35,6 +35,7 @@ export default function InsightsPage(): ReactNode {
     handleOpenCorrection,
     handleCloseCorrection,
     handleAcceptInsight,
+    handleUndoAcceptInsight,
     handleSubmitCorrection,
     handleTriggerAiEvaluation,
   } = useInsightsState();
@@ -62,6 +63,7 @@ export default function InsightsPage(): ReactNode {
       <ActiveInsightsSection
         insights={activeInsights}
         onAccept={handleAcceptInsight}
+        onUndoAccept={handleUndoAcceptInsight}
         onOpenCorrection={handleOpenCorrection}
       />
 

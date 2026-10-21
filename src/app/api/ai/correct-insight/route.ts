@@ -39,6 +39,10 @@ function resolveNewInsightStatus(feedback: ParentFeedback): ChildInsightRecord["
   if (feedback === "accepted") {
     return "validated";
   }
+  // „pending” cofa wcześniejsze „Działa” i przywraca wniosek do aktywnych
+  if (feedback === "pending") {
+    return "active";
+  }
   return "corrected_by_parent";
 }
 
@@ -119,7 +123,8 @@ async function handleAnomalyCalibrationExclusion(
  * Route Handler POST /api/ai/correct-insight (Human-in-the-Loop)
  *
  * @description
- * Wymaga tokena użytkownika. Umożliwia rodzicowi zatwierdzenie, odrzucenie lub modyfikację reguły AI.
+ * Wymaga tokena użytkownika. Umożliwia rodzicowi zatwierdzenie, odrzucenie lub modyfikację reguły AI
+ * oraz cofnięcie zatwierdzenia (feedback „pending” na wniosku validated).
  * Przy anomaliach wyklucza zniekształcony wpis z kalibracji algorytmu (ignore_in_calibration = true)
  * oraz zapisuje nadpisane parametry w algorithm_override_json.
  *
@@ -144,6 +149,12 @@ export async function POST(request: Request): Promise<NextResponse> {
         .getOne<ChildInsightRecord>(payload.insightId);
     } catch {
       return NextResponse.json({ error: "Nie znaleziono wniosku." }, { status: 404 });
+    }
+    if (payload.feedback === "pending" && existingInsight.status !== "validated") {
+      return NextResponse.json(
+        { error: "Cofnąć można tylko potwierdzony wniosek." },
+        { status: 409 },
+      );
     }
 
     const ignoredSleepLogId = await handleAnomalyCalibrationExclusion(

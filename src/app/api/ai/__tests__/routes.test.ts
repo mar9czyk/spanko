@@ -45,6 +45,7 @@ interface FakeStore {
   child: typeof CHILD | null;
   insightsCount: number;
   householdLimitOverride?: number;
+  insightStatus?: string;
   creates: Record<string, unknown>[];
   updates: { collection: string; id: string; data: Record<string, unknown> }[];
 }
@@ -55,7 +56,9 @@ function createFakePocketBase(store: FakeStore) {
     collection: (name: string) => ({
       getOne: async (id: string) => {
         if (name === "children" && store.child && store.child.id === id) return store.child;
-        if (name === "child_insights" && id === EXISTING_INSIGHT.id) return EXISTING_INSIGHT;
+        if (name === "child_insights" && id === EXISTING_INSIGHT.id) {
+          return { ...EXISTING_INSIGHT, status: store.insightStatus ?? EXISTING_INSIGHT.status };
+        }
         if (name === "households" && id === HOUSEHOLD_ID) {
           return { id, name: "Dom", ai_daily_limit_override: store.householdLimitOverride };
         }
@@ -202,6 +205,24 @@ describe("AI Route Handlers", () => {
       expect(json.success).toBe(true);
       expect(json.insight.status).toBe("validated");
       expect(json.insight.parent_feedback).toBe("accepted");
+    });
+
+    it("cofa zatwierdzenie i przywraca wniosek do aktywnych", async () => {
+      store.insightStatus = "validated";
+      const response = await correctInsightPost(
+        postRequest("/api/ai/correct-insight", { insightId: "insight_abc", feedback: "pending" }),
+      );
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.insight.status).toBe("active");
+      expect(json.insight.parent_feedback).toBe("pending");
+    });
+
+    it("odrzuca cofnięcie wniosku, który nie był potwierdzony", async () => {
+      const response = await correctInsightPost(
+        postRequest("/api/ai/correct-insight", { insightId: "insight_abc", feedback: "pending" }),
+      );
+      expect(response.status).toBe(409);
     });
 
     it("oznacza wniosek jako corrected_by_parent z notatką i nadpisaniem algorytmu", async () => {
