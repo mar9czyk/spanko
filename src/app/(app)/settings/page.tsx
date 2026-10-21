@@ -3,6 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ChooseGoalCard } from "@/components/goals/GoalPathCard";
 import { AccountSection } from "@/components/settings/AccountSection";
 import { PreferencesMenu } from "@/components/settings/PreferencesMenu";
 import { ProfileSection } from "@/components/settings/ProfileSection";
@@ -12,7 +13,7 @@ import { WakeAlertsSection } from "@/components/settings/WakeAlertsSection";
 import { useI18n } from "@/i18n/I18nProvider";
 
 /**
- * Panel użytkownika (/settings): profil, język i jednostki, wylogowanie i usunięcie konta.
+ * Panel użytkownika (/settings): profil, wybór celu snu, język i jednostki, wylogowanie i usunięcie konta.
  *
  * @returns {ReactNode} Strona ustawień konta
  */
@@ -38,6 +39,12 @@ export default function SettingsPage(): ReactNode {
 
       {session.status === "signedIn" && (
         <ProfileSection key={session.user.id} user={session.user} />
+      )}
+
+      {session.status === "signedIn" && (
+        <SettingsCard title={t("settings.goal")} hint={t("settings.goalHint")}>
+          <ChooseGoalCard />
+        </SettingsCard>
       )}
 
       <SettingsCard title={t("settings.preferences")} hint={t("settings.preferencesHint")}>
