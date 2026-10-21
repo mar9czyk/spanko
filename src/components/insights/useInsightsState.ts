@@ -5,6 +5,9 @@ import { pb } from "@/lib/pocketbase";
 import type { ChildInsightRecord, ChildRecord } from "@/lib/types/database";
 import type { InsightCorrectionFormValues } from "./types";
 
+/** Parametr adresu, którym karta z pulpitu otwiera korektę wybranego wniosku. */
+export const CORRECT_INSIGHT_QUERY_PARAM = "correct";
+
 export type InsightsLoadStatus = "loading" | "ready" | "empty" | "error";
 
 /**
@@ -47,14 +50,14 @@ export function useInsightsState() {
     useState<ChildInsightRecord | null>(null);
   const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
 
-  const loadInsights = useCallback(async () => {
+  const loadInsights = useCallback(async (): Promise<readonly ChildInsightRecord[]> => {
     try {
       const activeChild = await loadActiveChild();
       setChild(activeChild);
       if (!activeChild) {
         setAllInsights([]);
         setLoadStatus("empty");
-        return;
+        return [];
       }
       const records = await pb.collection("child_insights").getList<ChildInsightRecord>(1, 50, {
         filter: pb.filter("child_id = {:childId}", { childId: activeChild.id }),
@@ -62,14 +65,33 @@ export function useInsightsState() {
       });
       setAllInsights(records.items);
       setLoadStatus("ready");
+      return records.items;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : tRef.current("insights.errLoad"));
       setLoadStatus("error");
+      return [];
     }
   }, []);
 
   useEffect(() => {
-    loadInsights();
+    loadInsights().then((items) => {
+      const params = new URLSearchParams(window.location.search);
+      const insightId = params.get(CORRECT_INSIGHT_QUERY_PARAM);
+      if (!insightId) return;
+      // Usuwamy parametr, żeby odświeżenie strony nie otwierało formularza ponownie
+      params.delete(CORRECT_INSIGHT_QUERY_PARAM);
+      const query = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${query ? `?${query}` : ""}`,
+      );
+      const target = items.find((item) => item.id === insightId);
+      if (target) {
+        setSelectedCorrectionInsight(target);
+        setIsCorrectionModalOpen(true);
+      }
+    });
   }, [loadInsights]);
 
   /**
