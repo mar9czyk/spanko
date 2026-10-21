@@ -28,12 +28,15 @@ const COLUMNS: readonly { key: keyof AgeBracketConfig; label: string; editable: 
   { key: "minAgeDays", label: "Od (dni)", editable: false },
   { key: "maxAgeDays", label: "Do (dni)", editable: false },
   { key: "targetNapsCount", label: "Drzemek", editable: true },
+  { key: "minNapsCount", label: "Min drzemek", editable: true },
   { key: "wwMinMorning", label: "WW rano", editable: true },
   { key: "wwMaxEvening", label: "WW wiecz.", editable: true },
   { key: "maxSingleNapMin", label: "Max drzemka", editable: true },
   { key: "maxDaytimeSleepMin", label: "Max sen dzień", editable: true },
   { key: "medianTotalSleepMin", label: "Norma doby", editable: true },
   { key: "homeostaticTauRiseMin", label: "Tau", editable: true },
+  { key: "nightWakingsMean", label: "Pobudki śr.", editable: true },
+  { key: "nightWakingsUpperNorm", label: "Pobudki max", editable: true },
 ];
 
 /**
@@ -204,7 +207,9 @@ export function MatrixTab(): ReactNode {
     setPreview(null);
     setMatrix((current) =>
       current.map((bracket, index) =>
-        index === rowIndex ? { ...bracket, [field]: Number(raw) } : bracket,
+        index === rowIndex
+          ? { ...bracket, [field]: raw === "" ? undefined : Number(raw) }
+          : bracket,
       ),
     );
   };
@@ -283,7 +288,7 @@ export function MatrixTab(): ReactNode {
                         type="number"
                         aria-label={`${column.label} (${bracket.minAgeDays}–${bracket.maxAgeDays} dni)`}
                         className="w-20 rounded border border-slate-700 bg-[#0B0F17] px-1.5 py-1 text-slate-100"
-                        value={bracket[column.key]}
+                        value={bracket[column.key] ?? ""}
                         onChange={(event) =>
                           updateCell(rowIndex, column.key as EditableField, event.target.value)
                         }
