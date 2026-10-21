@@ -1666,7 +1666,12 @@
         "required": true,
         "system": false,
         "type": "select",
-        "values": ["reduce_night_wakings", "night_weaning", "independent_sleep_onset"]
+        "values": [
+          "reduce_night_wakings",
+          "night_weaning",
+          "independent_sleep_onset",
+          "healthy_sleep_habits"
+        ]
       },
       {
         "help": "",
@@ -1683,7 +1688,8 @@
           "chair_method",
           "pick_up_put_down",
           "check_and_console",
-          "extinction"
+          "extinction",
+          "habit_building"
         ]
       },
       {

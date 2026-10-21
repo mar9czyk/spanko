@@ -76,6 +76,7 @@ function nightLog(offset: number) {
 
 interface FakeStore {
   householdLimit?: number;
+  child?: Record<string, unknown>;
   nights: number;
   activeGoal: Record<string, unknown> | null;
   dailyTasks: Record<string, unknown>[];
@@ -88,7 +89,7 @@ function createFakePocketBase(store: FakeStore) {
     filter: (expression: string) => expression,
     collection: (name: string) => ({
       getOne: async (id: string) => {
-        if (name === "children" && id === CHILD.id) return CHILD;
+        if (name === "children" && id === CHILD.id) return store.child ?? CHILD;
         if (name === "households") {
           return { id, name: "Dom", ai_daily_limit_override: store.householdLimit };
         }
@@ -193,6 +194,21 @@ describe("Goals Route Handlers", () => {
     expect(json.readiness.blockers).toContain("RED_FLAGS_NOT_ACKNOWLEDGED");
   });
 
+  it("preview: bramki wiekowe metod liczą wiek korygowany wcześniaka", async () => {
+    // 200 dni życia, termin porodu 2 mies. po urodzeniu → ok. 140 dni wieku korygowanego
+    const birth = Date.now() - 200 * MS_PER_DAY;
+    store.child = {
+      ...CHILD,
+      birth_date: new Date(birth).toISOString(),
+      due_date: new Date(birth + 60 * MS_PER_DAY).toISOString(),
+    };
+    const response = await previewPost(
+      postRequest("/api/goals/preview", { ...selection, method: "check_and_console" }),
+    );
+    const json = await response.json();
+    expect(json.readiness.blockers).toContain("METHOD_AGE_TOO_YOUNG");
+  });
+
   it("preview: 400 dla niepoprawnego ciała i 401 bez uwierzytelnienia", async () => {
     const bad = await previewPost(postRequest("/api/goals/preview", { childId: "x" }));
     expect(bad.status).toBe(400);
@@ -249,6 +265,17 @@ describe("Goals Route Handlers", () => {
       postRequest("/api/goals/status", { goalId: "goal_1", status: "active" }),
     );
     expect(invalid.status).toBe(400);
+  });
+
+  it("status: rodzic potwierdza osiągnięcie celu", async () => {
+    store.activeGoal = activeGoal();
+    const response = await statusPost(
+      postRequest("/api/goals/status", { goalId: "goal_1", status: "achieved" }),
+    );
+    expect(response.status).toBe(200);
+    const update = store.updates.find((u) => u.collection === "child_goals");
+    expect(update?.data.status).toBe("achieved");
+    expect(update?.data.achieved_at).toEqual(expect.any(String));
   });
 
   it("goal-coach: zapisuje zadania dnia z tekstem awaryjnym bez klucza AI", async () => {
