@@ -17,6 +17,7 @@ const ctx: GoalCoachContext = {
   goal: "night_weaning",
   locale: "pl",
   ageMonths: 9,
+  effectiveAgeDays: 270,
   dayNumber: 3,
   totalDays: 13,
   decision: { action: "hold", reason: "STEP_IN_PROGRESS", nextStepIndex: 0 },

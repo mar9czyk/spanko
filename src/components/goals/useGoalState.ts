@@ -116,7 +116,7 @@ export function useGoalState({ childId, physiologicalDate, locale, enabled }: Us
   );
 
   const changeStatus = useCallback(
-    async (next: "active" | "paused" | "abandoned") => {
+    async (next: "active" | "paused" | "abandoned" | "achieved") => {
       if (!goal) return;
       try {
         const response = await authorizedFetch("/api/goals/status", {
@@ -126,8 +126,9 @@ export function useGoalState({ childId, physiologicalDate, locale, enabled }: Us
         });
         const json = await response.json();
         if (!response.ok || !json.success) throw new Error(json.error ?? `HTTP ${response.status}`);
-        setGoal(next === "abandoned" ? null : (json.goal as ChildGoalRecord));
-        if (next === "abandoned") setDaily(null);
+        const isClosed = next === "abandoned" || next === "achieved";
+        setGoal(isClosed ? null : (json.goal as ChildGoalRecord));
+        if (isClosed) setDaily(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : tRef.current("goal.error.status"));
       }

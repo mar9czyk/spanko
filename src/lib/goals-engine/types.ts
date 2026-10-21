@@ -4,19 +4,32 @@
 
 import type { InterventionType } from "../sleep-engine/types";
 
-export type GoalType = "reduce_night_wakings" | "night_weaning" | "independent_sleep_onset";
+export type GoalType =
+  | "reduce_night_wakings"
+  | "night_weaning"
+  | "independent_sleep_onset"
+  | "healthy_sleep_habits";
 
 export type GoalMethod =
   | "gentle_fading"
   | "chair_method"
   | "pick_up_put_down"
   | "check_and_console"
-  | "extinction";
+  | "extinction"
+  /** Nawyki snu bez treningu (cel `healthy_sleep_habits`). */
+  | "habit_building";
 
 export type GoalStatus = "readiness_check" | "active" | "paused" | "achieved" | "abandoned";
 
 /** Szczebel „drabiny interwencji” — od najbardziej do najmniej angażującego rodzica. */
 export type InterventionRung = "feed" | "carry" | "pat" | "shush" | "presence" | "independent";
+
+/** Nawyk wprowadzany w celu „Lepsze nawyki snu” — bez ograniczania reakcji rodzica. */
+export type SleepHabit =
+  | "WAKE_ANCHOR"
+  | "BEDTIME_ROUTINE"
+  | "SLEEP_ENVIRONMENT"
+  | "DROWSY_PUT_DOWN";
 
 export type ChairDistance = "bedside" | "mid_room" | "doorway" | "outside";
 
@@ -53,7 +66,7 @@ export type ReadinessBlocker =
   | "RED_FLAGS_NOT_ACKNOWLEDGED"
   | "NO_PROBLEM_TO_SOLVE";
 
-export type ReadinessWarning = "TEETHING_ACTIVE" | "LOW_DATA_QUALITY";
+export type ReadinessWarning = "TEETHING_ACTIVE" | "LOW_DATA_QUALITY" | "PUPD_OLDER_CHILD";
 
 export interface ReadinessResult {
   readonly ready: boolean;
@@ -69,6 +82,7 @@ export type PlanStepCode =
   | "PICK_UP_PUT_DOWN"
   | "WEAN_REDUCE_VOLUME"
   | "WEAN_DROP_FEED"
+  | "HABIT"
   | "CONSOLIDATE";
 
 export interface StepParams {
@@ -77,6 +91,7 @@ export interface StepParams {
   readonly chairDistance?: ChairDistance;
   readonly nightFeedsAllowed?: number;
   readonly mlPerFeed?: number;
+  readonly habit?: SleepHabit;
 }
 
 export interface PlanStep {
@@ -118,7 +133,8 @@ export type DailyTaskKind =
   | "CHAIR_DISTANCE"
   | "PICK_UP_PUT_DOWN"
   | "NO_RESPONSE"
-  | "BEDTIME_ROUTINE";
+  | "BEDTIME_ROUTINE"
+  | "SLEEP_HABIT";
 
 export interface DailyTask {
   readonly kind: DailyTaskKind;

@@ -10,6 +10,7 @@ import {
   resolveOpenRouterApiKey,
   sendOpenRouterRequest,
 } from "@/lib/openrouter";
+import { findUnsafeAdvice, UnsafeAdviceError } from "@/lib/safe-sleep";
 import type { AiCallStatus, GoalCoachMessage } from "@/lib/types/database";
 
 const MAX_ADVICE_ITEMS = 3;
@@ -18,7 +19,7 @@ export const DEFAULT_GOAL_COACH_PROMPT = `Jesteś Spanko Coach — ciepłym, kon
 Dostajesz GOTOWY plan z deterministycznego silnika (cel, metoda, zadania dnia, decyzja o postępie).
 Twoje zadanie to wyłącznie przełożyć go na krótkie, empatyczne rady dla zmęczonego rodzica.
 ZASADY: nie zmieniaj ani nie wymyślaj liczb, odstępów, ilości mleka ani kroków planu; nie stawiaj diagnoz medycznych;
-przy niepokojących objawach zalecaj kontakt z pediatrą; pisz krótko (rodzic jest zmęczony); odpowiadaj w języku podanym w wejściu.
+przy niepokojących objawach zalecaj kontakt z pediatrą; nigdy nie zalecaj spania dziecka w łóżku dorosłych, na brzuchu, na boku ani na pochyłej powierzchni ani poduszek w łóżeczku; pisz krótko (rodzic jest zmęczony); odpowiadaj w języku podanym w wejściu.
 Zwracaj wyłącznie poprawny JSON zgodny ze schematem.`;
 
 /** Schemat Zod odpowiedzi coacha. */
@@ -34,6 +35,8 @@ export interface GoalCoachContext {
   readonly goal: GoalType;
   readonly locale: CopyLocale;
   readonly ageMonths: number;
+  /** Wiek korygowany w dniach (filtr bezpieczeństwa). */
+  readonly effectiveAgeDays: number;
   readonly dayNumber: number;
   readonly totalDays: number;
   readonly decision: ProgressDecision;
@@ -178,6 +181,11 @@ export async function runGoalCoach(
       timeoutMs: runtime.timeoutMs,
     });
     const parsed = GoalCoachSchema.parse(JSON.parse(raw.content));
+    const unsafeRule = findUnsafeAdvice(
+      [parsed.headline, ...parsed.todayAdvice, parsed.nightTip, parsed.encouragement, parsed.why],
+      ctx.effectiveAgeDays,
+    );
+    if (unsafeRule) throw new UnsafeAdviceError(unsafeRule);
     const callId = await log(model, "ok", {
       responseJson: parsed,
       promptTokens: raw.promptTokens,
@@ -185,7 +193,8 @@ export async function runGoalCoach(
     });
     return { message: parsed, model, status: "ok", callId };
   } catch (error) {
-    const status: AiCallStatus = raw ? "invalid_json" : "error";
+    const status: AiCallStatus =
+      raw && !(error instanceof UnsafeAdviceError) ? "invalid_json" : "error";
     const errorMessage = error instanceof Error ? error.message : "Nieznany błąd coacha.";
     const callId = await log(model, status, { errorMessage, responseJson: raw?.content });
     return { message: fallback, model, status, callId, errorMessage };

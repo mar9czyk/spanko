@@ -5,7 +5,7 @@ import { buildDailyGoalMetrics, computeBaseline } from "../metrics";
 import { FERBER_INTERVALS_MIN, generatePlan, stepIndexForDay } from "../plans";
 import { evaluateProgress } from "../progress";
 import { evaluateReadiness } from "../readiness";
-import type { DailyGoalMetrics, GoalBaseline } from "../types";
+import type { DailyGoalMetrics, GoalBaseline, GoalMethod, GoalType } from "../types";
 
 const day = (overrides: Partial<DailyGoalMetrics> = {}): DailyGoalMetrics => ({
   date: "2026-10-01",
@@ -100,6 +100,20 @@ describe("evaluateReadiness", () => {
     expect(result.ready).toBe(true);
     expect(result.warnings).toEqual(["TEETHING_ACTIVE", "LOW_DATA_QUALITY"]);
   });
+
+  it("weź–odłóż po 6. mies. (wiek korygowany) ostrzega, ale nie blokuje", () => {
+    const pupd = {
+      ...readyInput,
+      goal: "independent_sleep_onset" as const,
+      method: "pick_up_put_down" as const,
+    };
+    const older = evaluateReadiness({ ...pupd, effectiveAgeDays: 270 });
+    expect(older.ready).toBe(true);
+    expect(older.warnings).toContain("PUPD_OLDER_CHILD");
+    expect(evaluateReadiness({ ...pupd, effectiveAgeDays: 150 }).warnings).not.toContain(
+      "PUPD_OLDER_CHILD",
+    );
+  });
 });
 
 describe("generatePlan", () => {
@@ -147,15 +161,33 @@ describe("generatePlan", () => {
     ]);
   });
 
-  it("Ferber: 7 dób z rosnącymi odstępami + utrwalenie", () => {
+  it("Ferber: doby 1–3 z rosnącymi odstępami, od doby 4 stałe 12/15/17 + utrwalenie", () => {
     const plan = generatePlan({
       goal: "reduce_night_wakings",
       method: "check_and_console",
       baseline,
     });
-    expect(plan.steps).toHaveLength(8);
-    expect(plan.steps[0]?.params.checkIntervalsMin).toEqual(FERBER_INTERVALS_MIN[0]);
-    expect(plan.steps[6]?.params.checkIntervalsMin).toEqual([20, 25, 30]);
+    expect(plan.steps).toHaveLength(5);
+    expect(plan.steps[0]?.params.checkIntervalsMin).toEqual([3, 5, 10]);
+    expect(plan.steps[1]?.params.checkIntervalsMin).toEqual([5, 10, 12]);
+    expect(plan.steps[3]).toMatchObject({ fromDay: 4, toDay: 7 });
+    expect(plan.steps[3]?.params.checkIntervalsMin).toEqual([12, 15, 17]);
+    expect(plan.steps[4]?.params.checkIntervalsMin).toEqual(FERBER_INTERVALS_MIN[3]);
+    expect(plan.totalDays).toBe(10);
+  });
+
+  it("czas trwania metod mieści się w zakresach spec v2.0", () => {
+    const total = (goal: GoalType, method: GoalMethod) =>
+      generatePlan({ goal, method, baseline }).totalDays;
+    const chair = total("independent_sleep_onset", "chair_method");
+    expect(chair - 3).toBeGreaterThanOrEqual(10);
+    expect(chair - 3).toBeLessThanOrEqual(14);
+    const pupd = total("independent_sleep_onset", "pick_up_put_down");
+    expect(pupd).toBeGreaterThanOrEqual(14);
+    expect(pupd).toBeLessThanOrEqual(21);
+    const fading = total("independent_sleep_onset", "gentle_fading");
+    expect(fading).toBeGreaterThanOrEqual(7);
+    expect(fading).toBeLessThanOrEqual(14);
   });
 
   it("extinction i pick-up-put-down generują krótkie plany", () => {
@@ -165,7 +197,7 @@ describe("generatePlan", () => {
     expect(
       generatePlan({ goal: "independent_sleep_onset", method: "pick_up_put_down", baseline })
         .totalDays,
-    ).toBe(10);
+    ).toBe(17);
   });
 
   it("stepIndexForDay mapuje dobę na krok, a po końcu zwraca ostatni", () => {
@@ -173,6 +205,46 @@ describe("generatePlan", () => {
     expect(stepIndexForDay(plan, 1)).toBe(0);
     expect(stepIndexForDay(plan, 4)).toBe(1);
     expect(stepIndexForDay(plan, 99)).toBe(1);
+  });
+});
+
+describe("cel „Lepsze nawyki snu”", () => {
+  it("jest dostępny od urodzenia bez czerwonych flag i bez „problemu”", () => {
+    const result = evaluateReadiness({
+      ...readyInput,
+      goal: "healthy_sleep_habits",
+      method: "habit_building",
+      effectiveAgeDays: 20,
+      baseline: { ...baseline, avgLatencyMin: 5, dominantRung: "independent" },
+      redFlagsAcknowledged: false,
+    });
+    expect(result).toEqual({ ready: true, blockers: [], warnings: [] });
+  });
+
+  it("nadal wymaga danych i braku choroby", () => {
+    const result = evaluateReadiness({
+      ...readyInput,
+      goal: "healthy_sleep_habits",
+      method: "habit_building",
+      baseline: { ...baseline, dayCount: 1 },
+      todayTags: ["gorączka"],
+    });
+    expect(result.blockers).toEqual(["INSUFFICIENT_DATA", "ILLNESS_ACTIVE"]);
+  });
+
+  it("plan: 4 nawyki po 3 noce + 2 noce utrwalenia, bez dodatkowej rutyny w zadaniach", () => {
+    const plan = generatePlan({ goal: "healthy_sleep_habits", method: "habit_building", baseline });
+    expect(plan.steps.map((s) => s.params.habit)).toEqual([
+      "WAKE_ANCHOR",
+      "BEDTIME_ROUTINE",
+      "SLEEP_ENVIRONMENT",
+      "DROWSY_PUT_DOWN",
+      undefined,
+    ]);
+    expect(plan.totalDays).toBe(14);
+    expect(buildDailyTasks(plan, 0)).toEqual([
+      { kind: "SLEEP_HABIT", params: { habit: "WAKE_ANCHOR" } },
+    ]);
   });
 });
 
@@ -217,19 +289,39 @@ describe("evaluateProgress", () => {
     expect(decision.reason).toBe("REGRESSION_DETECTED");
   });
 
-  it("uznaje cel za osiągnięty po 3 dobach spełniających cel", () => {
+  it("3 dobre doby z rzędu to jeszcze nie sukces", () => {
     const zero = day({ nightFeedCount: 0 });
-    expect(run([zero, zero, zero], 1, 0).action).toBe("achieved");
+    expect(run([zero, zero, zero], 1, 0).action).not.toBe("achieved");
   });
 
-  it("cel pobudek: ≤1 pobudka przez 3 doby", () => {
+  it("cel pobudek: ≤1 pobudka w 5 z 7 nocy, mimo dwóch gorszych nocy", () => {
     const calm = day({ nightWakings: 1 });
-    expect(run([calm, calm, calm], 0, 0, "reduce_night_wakings").action).toBe("achieved");
+    const rough = day({ nightWakings: 3 });
+    const week = [calm, rough, calm, calm, rough, calm, calm];
+    expect(run(week, 0, 0, "reduce_night_wakings").action).toBe("achieved");
+  });
+
+  it("4 dobre noce z 7 nie wystarczą", () => {
+    const calm = day({ nightWakings: 0 });
+    const rough = day({ nightWakings: 3 });
+    const week = [rough, calm, rough, calm, rough, calm, calm];
+    expect(run(week, 0, 0, "reduce_night_wakings").action).not.toBe("achieved");
+  });
+
+  it("liczy tylko ostatnie 7 zmierzonych nocy", () => {
+    const zero = day({ nightFeedCount: 0 });
+    const bad = day({ nightFeedCount: 3 });
+    const result = run([zero, zero, zero, zero, zero, bad, bad, bad], 1, 0);
+    expect(result.action).not.toBe("achieved");
   });
 
   it("doby bez danych lub chore nie liczą się do serii", () => {
     const zero = day({ nightFeedCount: 0 });
-    const result = run([zero, day({ hasData: false }), zero], 1, 0);
+    const result = run(
+      [zero, zero, day({ hasData: false }), zero, day({ illness: true }), zero],
+      1,
+      0,
+    );
     expect(result.action).not.toBe("achieved");
   });
 

@@ -5,7 +5,10 @@
 import { GOAL_TARGETS, goalMetricValue } from "./catalog";
 import type { DailyGoalMetrics, GoalBaseline, GoalPlan, GoalType, ProgressDecision } from "./types";
 
-const ACHIEVEMENT_STREAK_DAYS = 3;
+// heurystyka Spanko (plan etap D): cel spełniony w ≥5 z ostatnich 7 zmierzonych nocy,
+// co toleruje pojedyncze gorsze noce; ostateczne „osiągnięte” potwierdza rodzic.
+const ACHIEVEMENT_WINDOW_DAYS = 7;
+const ACHIEVEMENT_MIN_DAYS = 5;
 const REGRESSION_WINDOW_DAYS = 2;
 const REGRESSION_FACTOR = 1.3;
 
@@ -35,6 +38,7 @@ function metricSeries(goal: GoalType, days: readonly DailyGoalMetrics[]): number
 
 /**
  * Decyduje: advance / hold / step_back / pause / achieved.
+ * `achieved` oznacza spełnienie kryterium danych; status celu zmienia dopiero rodzic.
  *
  * @param {ProgressInput} input - Stan celu i dotychczasowe metryki
  * @returns {ProgressDecision} Decyzja i kod powodu
@@ -52,10 +56,8 @@ export function evaluateProgress(input: ProgressInput): ProgressDecision {
 
   const series = metricSeries(goal, recentDays);
   const target = GOAL_TARGETS[goal];
-  const streak = series.slice(-ACHIEVEMENT_STREAK_DAYS);
-  if (streak.length === ACHIEVEMENT_STREAK_DAYS && streak.every((v) => v <= target)) {
-    return decide("achieved", "TARGET_REACHED");
-  }
+  const metNights = series.slice(-ACHIEVEMENT_WINDOW_DAYS).filter((v) => v <= target).length;
+  if (metNights >= ACHIEVEMENT_MIN_DAYS) return decide("achieved", "TARGET_REACHED");
 
   const step = plan.steps[stepIndex];
   if (!step) return decide("hold", "INSUFFICIENT_DATA");

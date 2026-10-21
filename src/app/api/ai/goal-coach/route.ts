@@ -93,10 +93,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       patch.current_step = nextStep;
       patch.step_started_on = context.todayDate;
     }
-    if (decision.action === "achieved") {
-      patch.status = "achieved";
-      patch.achieved_at = new Date().toISOString();
-    }
+    // „achieved” = kryterium danych spełnione; status zmienia rodzic (POST /api/goals/status)
 
     const tasks = buildDailyTasks(goal.plan_json, nextStep);
     const nightTip = buildNightTip(goal.plan_json, nextStep);
@@ -107,6 +104,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         goal: goal.goal_type,
         locale: locale as CopyLocale,
         ageMonths: Math.round(context.effectiveAgeDays / DAYS_PER_MONTH),
+        effectiveAgeDays: context.effectiveAgeDays,
         dayNumber: daysBetween(goal.started_on, context.todayDate) + 1,
         totalDays: goal.plan_json.totalDays,
         decision,

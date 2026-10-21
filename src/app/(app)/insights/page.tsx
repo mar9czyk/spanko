@@ -6,6 +6,8 @@ import { HypothesesSection } from "@/components/insights/HypothesesSection";
 import { InsightCorrectionModal } from "@/components/insights/InsightCorrectionModal";
 import { InsightsHeader } from "@/components/insights/InsightsHeader";
 import { InsightsTimelineSection } from "@/components/insights/InsightsTimelineSection";
+import { SafeSleepNotice } from "@/components/insights/SafeSleepNotice";
+import { SleepFoundationsCard } from "@/components/insights/SleepFoundationsCard";
 import { useInsightsState } from "@/components/insights/useInsightsState";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -21,6 +23,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 export default function InsightsPage(): ReactNode {
   const { t } = useI18n();
   const {
+    child,
     loadStatus,
     errorMessage,
     activeInsights,
@@ -52,6 +55,9 @@ export default function InsightsPage(): ReactNode {
         <p className="text-sm text-slate-400">{t("insights.loading")}</p>
       )}
       {loadStatus === "empty" && <p className="text-sm text-slate-400">{t("dashboard.noChild")}</p>}
+
+      <SafeSleepNotice child={child} />
+      <SleepFoundationsCard child={child} />
 
       <ActiveInsightsSection
         insights={activeInsights}

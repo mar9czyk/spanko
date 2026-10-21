@@ -120,7 +120,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 ---
 
 #### 9. `child_goals` (Cele snu dziecka, Faza 8–9)
-- `child_id`, `goal_type` (`reduce_night_wakings` | `night_weaning` | `independent_sleep_onset`), `method` (`gentle_fading` | `chair_method` | `pick_up_put_down` | `check_and_console` | `extinction`), `status` (`readiness_check` | `active` | `paused` | `achieved` | `abandoned`)
+- `child_id`, `goal_type` (`reduce_night_wakings` | `night_weaning` | `independent_sleep_onset` | `healthy_sleep_habits`), `method` (`gentle_fading` | `chair_method` | `pick_up_put_down` | `check_and_console` | `extinction` | `habit_building`), `status` (`readiness_check` | `active` | `paused` | `achieved` | `abandoned`)
 - `started_on`, `step_started_on`, `last_evaluated_on` (doby fizjologiczne `YYYY-MM-DD`), `current_step` (number), `baseline_json`, `plan_json`, `red_flags_ack_at`, `achieved_at`
 - Reguły: dostęp przez `child_id.household_id`. Tworzenie wyłącznie przez `POST /api/goals` (walidacja gotowości).
 

@@ -5,8 +5,10 @@
 import {
   GOAL_CATALOG,
   ILLNESS_TAGS,
+  isSleepTrainingGoal,
   METHOD_CATALOG,
   MIN_BASELINE_DAYS,
+  PUPD_WARNING_AGE_DAYS,
   TEETHING_TAG,
 } from "./catalog";
 import type {
@@ -64,11 +66,17 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
   const hasEnoughData = input.baseline.dayCount >= MIN_BASELINE_DAYS;
   if (!hasEnoughData) blockers.push("INSUFFICIENT_DATA");
   if (input.todayTags.some((t) => ILLNESS_TAGS.includes(t))) blockers.push("ILLNESS_ACTIVE");
-  if (!input.redFlagsAcknowledged) blockers.push("RED_FLAGS_NOT_ACKNOWLEDGED");
-  if (hasEnoughData && !hasProblem(input.goal, input.baseline))
+  // Nawyki snu nie ograniczają reakcji rodzica, więc nie wymagają listy flag ani „problemu”
+  const isTraining = isSleepTrainingGoal(input.goal);
+  if (isTraining && !input.redFlagsAcknowledged) blockers.push("RED_FLAGS_NOT_ACKNOWLEDGED");
+  if (isTraining && hasEnoughData && !hasProblem(input.goal, input.baseline)) {
     blockers.push("NO_PROBLEM_TO_SOLVE");
+  }
 
   if (input.todayTags.includes(TEETHING_TAG)) warnings.push("TEETHING_ACTIVE");
+  if (input.method === "pick_up_put_down" && input.effectiveAgeDays > PUPD_WARNING_AGE_DAYS) {
+    warnings.push("PUPD_OLDER_CHILD");
+  }
   if (hasEnoughData && input.baseline.dayCount < LOW_DATA_QUALITY_DAYS) {
     warnings.push("LOW_DATA_QUALITY");
   }
