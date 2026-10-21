@@ -61,6 +61,7 @@ const MS_PER_SECOND = 1000;
 const PLACEHOLDER_TIME = "—";
 const RECENT_LOGS_LIMIT = 100;
 const MORNING_WAKE_SAMPLE_SIZE = 5;
+const INSIGHT_UNDO_WINDOW_MS = 10_000;
 
 /**
  * Zwraca czytelny ciąg wieku dziecka w tygodniach i miesiącach.
@@ -115,6 +116,8 @@ export function useDashboardState() {
   const [children, setChildren] = useState<readonly ChildRecord[]>([]);
   const [child, setChild] = useState<ChildRecord | null>(null);
   const [activeInsight, setActiveInsight] = useState<ChildInsightRecord | null>(null);
+  // Wniosek potwierdzony w tej sesji: przez chwilę karta pokazuje „Zapisane · Cofnij”
+  const [justAcceptedInsightId, setJustAcceptedInsightId] = useState<string | null>(null);
   const [recentLogs, setRecentLogs] = useState<readonly SleepLogRecord[]>([]);
   const [dayContext, setDayContext] = useState<readonly DayContextRecord[]>([]);
   const [localTimelineEvents, setLocalTimelineEvents] = useState<readonly TimelineEvent[]>([]);
@@ -390,22 +393,43 @@ export function useDashboardState() {
   const handleToggleAntiOrthosomnia = () =>
     persistChildPatch({ anti_orthosomnia_mode: !child?.anti_orthosomnia_mode });
 
-  const handleAcceptInsight = async (insightId: string) => {
-    setActiveInsight((prev) =>
-      prev?.id === insightId ? { ...prev, status: "validated", parent_feedback: "accepted" } : prev,
-    );
+  useEffect(() => {
+    if (!justAcceptedInsightId) return;
+    const timer = setTimeout(() => setJustAcceptedInsightId(null), INSIGHT_UNDO_WINDOW_MS);
+    return () => clearTimeout(timer);
+  }, [justAcceptedInsightId]);
+
+  /**
+   * Zapisuje opinię rodzica o wniosku; przy błędzie przywraca stan z serwera.
+   */
+  const sendInsightFeedback = async (
+    insightId: string,
+    patch: Pick<ChildInsightRecord, "status" | "parent_feedback">,
+  ) => {
+    setActiveInsight((prev) => (prev?.id === insightId ? { ...prev, ...patch } : prev));
     if (isDemoData) return;
     try {
       const response = await authorizedFetch("/api/ai/correct-insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ insightId, feedback: "accepted" }),
+        body: JSON.stringify({ insightId, feedback: patch.parent_feedback }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     } catch (error) {
+      setJustAcceptedInsightId(null);
       reportError(error, t("dashboard.saveInsightError"));
       await loadDashboardData();
     }
+  };
+
+  const handleAcceptInsight = async (insightId: string) => {
+    setJustAcceptedInsightId(insightId);
+    await sendInsightFeedback(insightId, { status: "validated", parent_feedback: "accepted" });
+  };
+
+  const handleUndoAcceptInsight = async (insightId: string) => {
+    setJustAcceptedInsightId(null);
+    await sendInsightFeedback(insightId, { status: "active", parent_feedback: "pending" });
   };
 
   const saveSleepLog = async (log: SleepLogRecord, patch: Partial<SleepLogRecord>) => {
@@ -626,6 +650,7 @@ export function useDashboardState() {
     effectiveAgeDays,
     ageDisplay: formatChildAge(effectiveAgeDays, t),
     activeInsight,
+    justAcceptedInsightId,
     currentSleepLog,
     timelineEvents,
     pendingMorningWakingReview,
@@ -653,6 +678,7 @@ export function useDashboardState() {
     handleSelectDayMode,
     handleToggleAntiOrthosomnia,
     handleAcceptInsight,
+    handleUndoAcceptInsight,
     handleCycleSleepStatus,
     handleQuickNightWake,
     handleDetectedNightWake,

@@ -132,6 +132,16 @@ export function useInsightsState() {
     await postCorrection({ insightId, feedback: "accepted" });
   };
 
+  const handleUndoAcceptInsight = async (insightId: string) => {
+    setAllInsights((prev) =>
+      prev.map((item) =>
+        item.id === insightId ? { ...item, status: "active", parent_feedback: "pending" } : item,
+      ),
+    );
+
+    await postCorrection({ insightId, feedback: "pending" });
+  };
+
   const handleSubmitCorrection = async (values: InsightCorrectionFormValues) => {
     if (!selectedCorrectionInsight) return;
     const targetId = selectedCorrectionInsight.id;
@@ -205,6 +215,7 @@ export function useInsightsState() {
     handleOpenCorrection,
     handleCloseCorrection: () => setIsCorrectionModalOpen(false),
     handleAcceptInsight,
+    handleUndoAcceptInsight,
     handleSubmitCorrection,
     handleTriggerAiEvaluation,
   };

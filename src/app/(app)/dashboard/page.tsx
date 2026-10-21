@@ -120,7 +120,12 @@ export default function DashboardPage() {
       {isNightSleepActive && goalState.daily?.night_tip_json && (
         <NightTipCard tip={goalState.daily.night_tip_json} locale={locale} />
       )}
-      <SmartInsightCard insight={state.activeInsight} onAccept={state.handleAcceptInsight} />
+      <SmartInsightCard
+        insight={state.activeInsight}
+        justAcceptedInsightId={state.justAcceptedInsightId}
+        onAccept={state.handleAcceptInsight}
+        onUndoAccept={state.handleUndoAcceptInsight}
+      />
       <MorningNightSummaryBanner
         wakingTimes={state.pendingMorningWakingReview}
         onSelectDuration={state.handleResolveMorningWaking}
