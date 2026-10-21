@@ -4,6 +4,8 @@ import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { SafeSleepNotice } from "@/components/insights/SafeSleepNotice";
+import { SleepFoundationsCard } from "@/components/insights/SleepFoundationsCard";
 import { useI18n } from "@/i18n/I18nProvider";
 import { authorizedFetch, loadActiveChild } from "@/lib/client-data";
 import {
@@ -13,11 +15,12 @@ import {
   GOAL_TITLES,
   localize,
   METHOD_DESCRIPTIONS,
+  METHOD_FEEDING_NOTE,
   METHOD_TITLES,
   RED_FLAGS,
   WARNING_TEXT,
 } from "@/lib/goal-copy";
-import { GOAL_CATALOG, METHOD_CATALOG } from "@/lib/goals-engine/catalog";
+import { GOAL_CATALOG, isSleepTrainingGoal, METHOD_CATALOG } from "@/lib/goals-engine/catalog";
 import { buildDailyTasks } from "@/lib/goals-engine/dailyTasks";
 import type { GoalMethod, GoalPlan, GoalType, ReadinessResult } from "@/lib/goals-engine/types";
 import type { ChildRecord } from "@/lib/types/database";
@@ -26,6 +29,7 @@ const GOALS: readonly GoalType[] = [
   "reduce_night_wakings",
   "night_weaning",
   "independent_sleep_onset",
+  "healthy_sleep_habits",
 ];
 const PLAN_PREVIEW_STEPS = 4;
 
@@ -163,14 +167,13 @@ export default function NewGoalPage() {
               </span>
             </button>
           ))}
+          <SleepFoundationsCard child={child} />
         </section>
       )}
 
       {step === "method" && goal && (
         <section className="flex flex-col gap-2.5">
-          <p className="text-sm text-slate-400">
-            Wybierz metodę — to Ty decydujesz, jak stanowczo.
-          </p>
+          <p className="text-sm text-slate-400">{t("goal.new.pickMethod")}</p>
           {GOAL_CATALOG[goal].methods.map((m) => (
             <button
               key={m}
@@ -194,29 +197,36 @@ export default function NewGoalPage() {
               </span>
             </button>
           ))}
+          {isSleepTrainingGoal(goal) && (
+            <p className="text-xs text-slate-400 px-1">{localize(METHOD_FEEDING_NOTE, LOCALE)}</p>
+          )}
         </section>
       )}
 
       {step === "check" && goal && method && (
         <section className="flex flex-col gap-3">
-          <div className="rounded-2xl bg-[#151B28] border border-[#263348] p-3.5 flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-slate-100">{t("goal.new.before")}</h2>
-            <p className="text-xs text-slate-400">{t("goal.new.disclaimer")}</p>
-            <ul className="list-disc pl-4 text-xs text-slate-300 flex flex-col gap-1">
-              {RED_FLAGS.map((flag) => (
-                <li key={flag.pl}>{localize(flag, LOCALE)}</li>
-              ))}
-            </ul>
-            <label className="flex items-start gap-2.5 pt-1 min-h-[44px] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={redFlagsAck}
-                onChange={(e) => setRedFlagsAck(e.target.checked)}
-                className="mt-0.5 w-5 h-5 accent-amber-500"
-              />
-              <span className="text-xs text-slate-200">{t("goal.new.ack")}</span>
-            </label>
-          </div>
+          {isSleepTrainingGoal(goal) && (
+            <div className="rounded-2xl bg-[#151B28] border border-[#263348] p-3.5 flex flex-col gap-2">
+              <h2 className="text-sm font-semibold text-slate-100">{t("goal.new.before")}</h2>
+              <p className="text-xs text-slate-400">{t("goal.new.disclaimer")}</p>
+              <ul className="list-disc pl-4 text-xs text-slate-300 flex flex-col gap-1">
+                {RED_FLAGS.map((flag) => (
+                  <li key={flag.pl}>{localize(flag, LOCALE)}</li>
+                ))}
+              </ul>
+              <label className="flex items-start gap-2.5 pt-1 min-h-[44px] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={redFlagsAck}
+                  onChange={(e) => setRedFlagsAck(e.target.checked)}
+                  className="mt-0.5 w-5 h-5 accent-amber-500"
+                />
+                <span className="text-xs text-slate-200">{t("goal.new.ack")}</span>
+              </label>
+            </div>
+          )}
+
+          <SafeSleepNotice child={child} />
 
           {preview && (
             <>

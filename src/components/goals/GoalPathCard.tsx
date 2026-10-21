@@ -8,6 +8,7 @@ import {
   GOAL_TITLES,
   localize,
   METHOD_TITLES,
+  methodProgressNote,
   REASON_TEXT,
 } from "@/lib/goal-copy";
 import type { ChildGoalRecord, GoalDailyTaskRecord } from "@/lib/types/database";
@@ -22,7 +23,7 @@ interface GoalPathCardProps {
   readonly error?: string | null;
   readonly locale: CopyLocale;
   readonly onToggleTask: (taskKey: string) => void;
-  readonly onChangeStatus: (status: "active" | "paused" | "abandoned") => void;
+  readonly onChangeStatus: (status: "active" | "paused" | "abandoned" | "achieved") => void;
 }
 
 function dayNumber(startedOn: string, today: string | null): number {
@@ -57,6 +58,8 @@ export function GoalPathCard({
   const isPaused = goal.status === "paused";
   const coach = daily?.coach_json;
   const reasonText = decision ? REASON_TEXT[decision.reason] : undefined;
+  const isTargetMet = decision?.action === "achieved";
+  const progressNote = methodProgressNote(goal.method, day, locale);
 
   return (
     <section className="rounded-2xl bg-[#151B28] border border-amber-500/20 p-3.5 flex flex-col gap-3">
@@ -135,6 +138,21 @@ export function GoalPathCard({
               ? ` ${localize(reasonText, locale)}`
               : ""}
           </p>
+          {progressNote && !isTargetMet && (
+            <p className="text-[11px] text-slate-400">{progressNote}</p>
+          )}
+          {isTargetMet && (
+            <div className="rounded-xl bg-emerald-950/30 border border-emerald-500/30 p-2.5 flex flex-col gap-2">
+              <p className="text-xs text-emerald-200">{t("goal.card.confirmQuestion")}</p>
+              <button
+                type="button"
+                onClick={() => onChangeStatus("achieved")}
+                className="self-start px-3 py-2 rounded-lg bg-emerald-500 text-slate-950 text-xs font-semibold min-h-[44px]"
+              >
+                {t("goal.card.confirmAchieved")}
+              </button>
+            </div>
+          )}
           {coach.why && (
             <details className="text-[11px] text-slate-400">
               <summary className="cursor-pointer flex items-center gap-1 list-none">

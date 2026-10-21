@@ -8,6 +8,7 @@ import {
   mergeAiTextIntoInsight,
   parseAndValidateAiResponse,
   resolveSystemPrompt,
+  runInsightEvaluation,
 } from "../openrouter";
 
 const mockContext: InsightEvaluationContext = {
@@ -175,6 +176,37 @@ describe("openrouter service", () => {
     expect(result.diagnosis_code).toBe("OVERTIRED_FUSS");
     expect(result.confidence_score).toBe(0.8);
     expect(result.algorithm_override_json).toEqual({ wakeWindowOffsetMinutes: -20 });
+
+    fetchSpy.mockRestore();
+  });
+
+  it("runInsightEvaluation: filtr bezpieczeństwa zastępuje niebezpieczną radę tekstem silnika", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("openrouter.ai")) {
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    title: "Spróbujcie spać razem",
+                    explanation: "Weź dziecko do łóżka rodziców, a pobudki znikną.",
+                  }),
+                },
+              },
+            ],
+          }),
+        } as Response;
+      }
+      throw new Error("PB offline in test");
+    });
+
+    const outcome = await runInsightEvaluation(mockContext, { apiKey: "test-fake-key" });
+    expect(outcome.insight.title).toBe("Przemęczenie wieczorne");
+    expect(outcome.status).toBe("error");
+    expect(outcome.errorMessage).toContain("BED_SHARING");
 
     fetchSpy.mockRestore();
   });

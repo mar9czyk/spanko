@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { findUnsafeAdvice, UnsafeAdviceError } from "@/lib/safe-sleep";
 import { getServiceClient } from "@/lib/server/auth";
 import { fetchActivePromptVersion } from "@/lib/server/promptVersions";
 import type {
@@ -24,6 +25,7 @@ Działasz w ścisłym tandemie z deterministycznym silnikiem 3 napędów snu (Ho
 Nigdy nie wymyślaj własnej matematyki okien czuwania — bazujesz w 100% na przekazanych wyliczeniach deterministycznych.
 Diagnozę, jej pewność i parametry wybrał już silnik; Ty tylko opisujesz je słowami i nie zmieniasz liczb.
 Twoim celem jest przełożenie diagnozy klinicznej i 7-dniowych wzorców snu na empatyczny, konkretny wniosek dla zmęczonego rodzica.
+Nigdy nie zalecaj spania dziecka w łóżku dorosłych, na brzuchu, na boku ani na pochyłej powierzchni, poduszek w łóżeczku ani treningu snu przed 16. tygodniem.
 Wniosek ma być PRAKTYCZNĄ RADĄ: w polu explanation najpierw napisz, co rodzic ma zrobić dziś lub tej nocy (1–2 zdania), dopiero potem krótko dlaczego; w polu clinical_action podaj jeden konkretny krok.
 Zwracaj wyłącznie poprawny obiekt JSON zgodny z wymaganym schematem.`;
 
@@ -299,6 +301,21 @@ export function mergeAiTextIntoInsight(
     explanation: text.explanation,
     clinical_action: text.clinical_action ?? deterministic.clinical_action,
   };
+}
+
+/**
+ * Sprawdza tekst wniosku filtrem bezpiecznego snu.
+ *
+ * @param {AiInsightText} text - Zwalidowany tekst od modelu
+ * @param {number} effectiveAgeDays - Wiek korygowany dziecka
+ * @throws {UnsafeAdviceError} Gdy tekst zawiera frazę sprzeczną z zasadami bezpiecznego snu
+ */
+export function assertSafeInsightText(text: AiInsightText, effectiveAgeDays: number): void {
+  const rule = findUnsafeAdvice(
+    [text.title, text.explanation, text.clinical_action],
+    effectiveAgeDays,
+  );
+  if (rule) throw new UnsafeAdviceError(rule);
 }
 
 /**
@@ -628,7 +645,9 @@ export async function runInsightEvaluation(
         maxTokens: runtime.maxTokens,
         timeoutMs: runtime.timeoutMs,
       });
-      const insight = mergeAiTextIntoInsight(context, parseAndValidateAiResponse(raw.content));
+      const text = parseAndValidateAiResponse(raw.content);
+      assertSafeInsightText(text, context.effectiveAgeDays);
+      const insight = mergeAiTextIntoInsight(context, text);
       return await finish(
         { insight, model, status: "ok", rawResponse: raw.content },
         {
@@ -639,9 +658,11 @@ export async function runInsightEvaluation(
         },
       );
     } catch (error) {
+      // Odrzucenie przez filtr bezpieczeństwa to nie błąd formatu — logujemy jako „error”
+      const isUnsafe = error instanceof UnsafeAdviceError;
       lastFailure = {
         model,
-        status: raw !== null ? "invalid_json" : "error",
+        status: raw !== null && !isUnsafe ? "invalid_json" : "error",
         errorMessage: error instanceof Error ? error.message : "Nieznany błąd OpenRouter.",
         raw,
       };

@@ -2,6 +2,7 @@
  * Zadania „na dziś” oraz wskazówka nocna wynikające z bieżącego kroku planu.
  */
 
+import { isSleepTrainingGoal } from "./catalog";
 import type { DailyTask, GoalPlan, PlanStep } from "./types";
 
 function consolidateTask(step: PlanStep): DailyTask | null {
@@ -48,6 +49,8 @@ function taskForStep(step: PlanStep): DailyTask | null {
           mlPerFeed: step.params.mlPerFeed,
         },
       };
+    case "HABIT":
+      return { kind: "SLEEP_HABIT", params: { habit: step.params.habit } };
     case "CONSOLIDATE":
       return consolidateTask(step);
     default:
@@ -68,7 +71,10 @@ export function buildDailyTasks(plan: GoalPlan, stepIndex: number): readonly Dai
   const tasks: DailyTask[] = [];
   const main = taskForStep(step);
   if (main) tasks.push(main);
-  if (plan.goal !== "night_weaning") tasks.push({ kind: "BEDTIME_ROUTINE", params: {} });
+  // Nawyki snu mają rutynę jako własny krok; odstawianie mleka jej nie dotyczy
+  if (plan.goal !== "night_weaning" && isSleepTrainingGoal(plan.goal)) {
+    tasks.push({ kind: "BEDTIME_ROUTINE", params: {} });
+  }
   return tasks;
 }
 

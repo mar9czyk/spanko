@@ -45,7 +45,18 @@ export const GOAL_CATALOG: Readonly<Record<GoalType, GoalDefinition>> = {
       "extinction",
     ],
   },
+  // Bez treningu snu — dostępny od urodzenia, nie wymaga „problemu do rozwiązania”
+  healthy_sleep_habits: {
+    type: "healthy_sleep_habits",
+    minAgeDays: 0,
+    methods: ["habit_building"],
+  },
 };
+
+/** Cele, które są treningiem snu (czerwone flagi, ABM, wymóg problemu do rozwiązania). */
+export function isSleepTrainingGoal(goal: GoalType): boolean {
+  return goal !== "healthy_sleep_habits";
+}
 
 export const METHOD_CATALOG: Readonly<Record<GoalMethod, MethodDefinition>> = {
   gentle_fading: { method: "gentle_fading", minAgeDays: 120, isFirm: false },
@@ -53,7 +64,14 @@ export const METHOD_CATALOG: Readonly<Record<GoalMethod, MethodDefinition>> = {
   pick_up_put_down: { method: "pick_up_put_down", minAgeDays: 120, isFirm: false },
   check_and_console: { method: "check_and_console", minAgeDays: 180, isFirm: true },
   extinction: { method: "extinction", minAgeDays: 180, isFirm: true },
+  habit_building: { method: "habit_building", minAgeDays: 0, isFirm: false },
 };
+
+/**
+ * Weź–odłóż po 6. mies. często bardziej pobudza niż uspokaja (opinia ekspercka, m.in. Baboo):
+ * ostrzeżenie, nie blokada (decyzja planu etap D).
+ */
+export const PUPD_WARNING_AGE_DAYS = 180;
 
 export const ILLNESS_TAGS: readonly string[] = ["gorączka", "infekcja_ucha", "szczepienie"];
 export const TEETHING_TAG = "ząbkowanie";
@@ -96,6 +114,7 @@ export const GOAL_TARGETS: Readonly<Record<GoalType, number>> = {
   reduce_night_wakings: 1,
   night_weaning: 0,
   independent_sleep_onset: 20,
+  healthy_sleep_habits: 20,
 };
 
 /**
