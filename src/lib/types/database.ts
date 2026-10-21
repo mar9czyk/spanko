@@ -207,6 +207,35 @@ export interface AiCallRecord {
   readonly updated: string;
 }
 
+/** Pomiar trafności prognozy SweetSpot dla jednego snu (kolekcja `sleep_predictions`). */
+export interface SleepPredictionRecord {
+  readonly id: string;
+  readonly child_id: string;
+  /** Unikalny — jeden pomiar na sen. */
+  readonly sleep_log_id: string;
+  readonly type: SleepType;
+  readonly physiological_date: string;
+  readonly effective_age_days: number;
+  readonly predicted_sweet_spot_at: string;
+  readonly compass_start_at: string;
+  readonly compass_end_at: string;
+  readonly target_ww_min: number;
+  readonly reason_code: string;
+  readonly insight_ww_offset_min: number;
+  readonly actual_put_down_at: string;
+  readonly actual_fell_asleep_at: string;
+  /** Odłożenie minus SweetSpot w minutach (dodatni = później niż prognoza). */
+  readonly put_down_error_min: number;
+  readonly fell_asleep_error_min: number;
+  readonly latency_min: number;
+  readonly duration_min: number;
+  readonly within_compass: boolean;
+  /** `replay` — odtworzone po fakcie z logów; `live` — zapis prognozy z pulpitu w chwili odłożenia. */
+  readonly source: "replay" | "live";
+  readonly created: string;
+  readonly updated: string;
+}
+
 export interface ChildGoalRecord {
   readonly id: string;
   readonly child_id: string;

@@ -119,6 +119,10 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 
 ---
 
+#### Trafność prognoz (etap E planu poprawy silnika)
+- `sleep_predictions` — jeden pomiar na sen (unikalny `sleep_log_id`, kaskadowe usuwanie z dzieckiem i logiem): `child_id`, `sleep_log_id`, `type`, `physiological_date`, `effective_age_days`, prognoza (`predicted_sweet_spot_at`, `compass_start_at`, `compass_end_at`, `target_ww_min`, `reason_code`, `insight_ww_offset_min`), fakty (`actual_put_down_at`, `actual_fell_asleep_at`), wyniki (`put_down_error_min` = odłożenie − SweetSpot, dodatni = później niż prognoza; `fell_asleep_error_min`, `latency_min`, `duration_min`, `within_compass`), `source` (`replay` | `live`).
+- Reguły: odczyt `@request.auth.is_admin = true`, zapis wyłącznie kontem serwisowym. Pomiary liczy `POST /api/admin/calibration` (`replayPredictionsForChild` w `src/lib/admin/calibration.ts` odtwarza prognozę tak jak pulpit w chwili odłożenia); raport: `GET /api/admin/calibration`, zakładka admina „Trafność prognoz”. `live` jest zarezerwowane na zapis prognozy z pulpitu.
+
 #### 9. `child_goals` (Cele snu dziecka, Faza 8–9)
 - `child_id`, `goal_type` (`reduce_night_wakings` | `night_weaning` | `independent_sleep_onset` | `healthy_sleep_habits`), `method` (`gentle_fading` | `chair_method` | `pick_up_put_down` | `check_and_console` | `extinction` | `habit_building`), `status` (`readiness_check` | `active` | `paused` | `achieved` | `abandoned`)
 - `started_on`, `step_started_on`, `last_evaluated_on` (doby fizjologiczne `YYYY-MM-DD`), `current_step` (number), `baseline_json`, `plan_json`, `red_flags_ack_at`, `achieved_at`
@@ -185,4 +189,5 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 - `pb_schema.json` ma `users.passwordAuth.enabled = false` (produkcja: wyłącznie Google OAuth). `pnpm dev:seed` włącza logowanie hasłem w lokalnym PocketBase i idempotentnie tworzy: `dev@spanko.test`, `dev-admin@spanko.test` (is_admin), gospodarstwo „Dom testowy (DEV)”, dziecko „Tymon (DEV)” oraz 5 dni `sleep_logs`/`day_context`.
 - Dane logowania (`DEV_USER_*`, `DEV_ADMIN_*`) generuje skrypt do `.env.development.local` (gitignored). Hasła nie trafiają do bundla — loguje je serwerowy `POST /api/dev/login`, który zwraca 404 poza `NODE_ENV=development` z lokalnym PocketBase.
 - Przycisk „Zaloguj jako testowy użytkownik (DEV)” na `/login` jest widoczny tylko gdy `IS_DEV_LOGIN_ENABLED` (`src/lib/dev-auth.ts`). Dane demo (`devFixtures.ts`) pokazują się tylko bez sesji.
+- `pnpm dev:seed:profiles` (po `pnpm dev:seed`) dodaje 4 dzieci-profile z 21 dobami logów (typowe, wczesny ptaszek, krótkie drzemki, częste pobudki) z `scripts/seed-profiles.mjs` — tego samego generatora używa test regresji silnika `seedProfilesRegression.test.ts`.
 - Na produkcyjnym PocketBase NIE importuj ręcznie włączonego passwordAuth; po imporcie schematu pozostaje wyłączone.

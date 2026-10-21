@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { AuditTab } from "@/components/admin/AuditTab";
+import { CalibrationTab } from "@/components/admin/CalibrationTab";
 import { ChildrenTab } from "@/components/admin/ChildrenTab";
 import { ContentTab } from "@/components/admin/ContentTab";
 import { DashboardTab } from "@/components/admin/DashboardTab";
@@ -30,6 +31,7 @@ const TAB_GROUPS = [
       { id: "settings", label: "OpenRouter & Prompty" },
       { id: "inspector", label: "Inspektor Wniosków" },
       { id: "matrix", label: "Matryca Snu" },
+      { id: "calibration", label: "Trafność prognoz" },
     ],
   },
   {
@@ -77,7 +79,7 @@ export default function AdminPage(): ReactNode {
   return (
     <main className="w-full flex flex-col gap-4 pb-8">
       <h1 className="text-lg font-semibold text-slate-100">Panel Admina</h1>
-      {/* 10 sekcji nie mieści się w pasku zakładek na telefonie — rozwijana lista jest czytelniejsza */}
+      {/* 11 sekcji nie mieści się w pasku zakładek na telefonie — rozwijana lista jest czytelniejsza */}
       <select
         aria-label="Sekcja panelu"
         className="min-h-11 w-full rounded-xl border border-amber-500/40 bg-[#151B28] px-3 text-sm font-medium text-amber-200"
@@ -102,6 +104,7 @@ export default function AdminPage(): ReactNode {
       {activeTab === "settings" && <SettingsTab />}
       {activeTab === "inspector" && <InspectorTab />}
       {activeTab === "matrix" && <MatrixTab />}
+      {activeTab === "calibration" && <CalibrationTab />}
       {activeTab === "content" && <ContentTab />}
       {activeTab === "system" && <SystemTab />}
       {activeTab === "audit" && <AuditTab />}
