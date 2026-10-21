@@ -17,7 +17,7 @@ export const HISTORY_DAYS = 14;
  * Bieżącą dobę wyznacza tak samo jak pulpit (ostatnia noc + strefa dziecka), a potem ładuje
  * {@link HISTORY_DAYS} wcześniejszych dób, najnowsza pierwsza.
  *
- * @returns {object} Dziecko, status i doby
+ * @returns {object} Dziecko, status, doby i przeładowanie po edycji
  */
 export function useHistoryState() {
   const [child, setChild] = useState<ChildRecord | null>(null);
@@ -63,11 +63,12 @@ export function useHistoryState() {
     };
   }, []);
 
-  const { status: daysStatus, days } = usePastDays(child?.id, lastDate, HISTORY_DAYS);
+  const { status: daysStatus, days, reload } = usePastDays(child?.id, lastDate, HISTORY_DAYS);
   const status = setupStatus === "ready" ? daysStatus : setupStatus;
   return {
     child,
     status: status === "idle" ? "loading" : status,
     days: days.filter((day) => day.events.length > 0),
+    reload,
   };
 }

@@ -1,4 +1,4 @@
-import { Apple, Droplets, Milk, Moon, Sparkles, Tag } from "lucide-react";
+import { Apple, Droplets, Milk, Moon, Pencil, Sparkles, Tag } from "lucide-react";
 import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatDuration, formatVolume } from "@/i18n/translate";
@@ -116,12 +116,40 @@ function DiaperEventCard({ event }: { event: TimelineDiaperEvent }) {
 }
 
 /**
- * Pojedyncza karta wpisu na osi czasu bieżącej doby fizjologicznej.
+ * Pojedyncza karta wpisu na osi czasu doby fizjologicznej; z `onEdit` karta otwiera edycję.
  *
- * @param {object} props - Zdarzenie osi czasu
+ * @param {object} props - Zdarzenie osi czasu i opcjonalna edycja
  * @returns {ReactNode} Wyrenderowana karta
  */
-export function TimelineEventCard({ event }: { event: TimelineEvent }): ReactNode {
+export function TimelineEventCard({
+  event,
+  onEdit,
+}: {
+  event: TimelineEvent;
+  onEdit?: (event: TimelineEvent) => void;
+}): ReactNode {
+  const { t } = useI18n();
+  if (!onEdit) return <EventCardBody event={event} />;
+  return (
+    <button
+      type="button"
+      onClick={() => onEdit(event)}
+      aria-label={t("entryEdit.editAria")}
+      className="relative w-full rounded-xl text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+    >
+      <EventCardBody event={event} />
+      <Pencil className="absolute right-1.5 top-1.5 w-3 h-3 text-slate-500" aria-hidden="true" />
+    </button>
+  );
+}
+
+/**
+ * Treść karty wpisu zależna od rodzaju zdarzenia.
+ *
+ * @param {object} props - Zdarzenie osi czasu
+ * @returns {ReactNode} Karta
+ */
+function EventCardBody({ event }: { event: TimelineEvent }): ReactNode {
   const { t, tDynamic } = useI18n();
   if (event.kind === "nap") {
     return <NapEventCard event={event} />;

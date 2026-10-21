@@ -31,6 +31,8 @@ export function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
     startTime: formatClock(startIso),
     endTime: log.woke_up_at ? formatClock(log.woke_up_at) : undefined,
     startIso: startIso || undefined,
+    startField: log.fell_asleep_at ? "fell_asleep_at" : log.put_down_at ? "put_down_at" : undefined,
+    putDownIso: log.put_down_at || undefined,
     endIso: log.woke_up_at || undefined,
     durationMinutes: calculateDurationInMinutes(startIso, log.woke_up_at),
     mood: log.mood,
@@ -58,6 +60,7 @@ export function mapDayContextToTimelineEvent(record: DayContextRecord): Timeline
       id: record.id,
       kind: "tag",
       time: formatClock(record.timestamp),
+      timeIso: record.timestamp,
       tags: record.tags ?? [],
       notes: record.notes,
     };

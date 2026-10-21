@@ -167,6 +167,7 @@ export default function DashboardPage() {
           nowIso={(pastDay && pastDayStripNowIso(pastDay)) ?? state.nowIso}
           currentSleepLog={null}
           navigation={navigation}
+          onEntryEdited={pastDays.reload}
           emptyText={
             pastDays.status === "error"
               ? t("timeline.loadPastError")
@@ -186,6 +187,7 @@ export default function DashboardPage() {
           nowIso={state.nowIso}
           currentSleepLog={state.currentSleepLog}
           navigation={navigation}
+          onEntryEdited={state.isDemoData ? undefined : state.handleEntryEdited}
         />
       )}
       <FloatingActionBar
