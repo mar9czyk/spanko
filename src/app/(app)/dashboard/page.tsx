@@ -14,7 +14,7 @@ import { formatClock } from "@/components/dashboard/timelineMapping";
 import { useDashboardState } from "@/components/dashboard/useDashboardState";
 import { usePastDays } from "@/components/dashboard/usePastDays";
 import { WakeListenerCard } from "@/components/dashboard/WakeListenerCard";
-import { ChooseGoalCard, GoalPathCard } from "@/components/goals/GoalPathCard";
+import { GoalPathCard } from "@/components/goals/GoalPathCard";
 import { NightTipCard } from "@/components/goals/NightTipCard";
 import { useGoalState } from "@/components/goals/useGoalState";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -105,7 +105,8 @@ export default function DashboardPage() {
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
         onChangeChildPhoto={state.isDemoData ? undefined : state.handleChangeChildPhoto}
       />
-      {goalState.goal ? (
+      {/* Wybór nowego celu jest w /settings, żeby nie zaśmiecać pulpitu */}
+      {goalState.goal && (
         <GoalPathCard
           goal={goalState.goal}
           daily={goalState.daily}
@@ -115,8 +116,6 @@ export default function DashboardPage() {
           onToggleTask={goalState.toggleTask}
           onChangeStatus={goalState.changeStatus}
         />
-      ) : (
-        goalState.status === "ready" && <ChooseGoalCard />
       )}
       {isNightSleepActive && goalState.daily?.night_tip_json && (
         <NightTipCard tip={goalState.daily.night_tip_json} locale={locale} />
