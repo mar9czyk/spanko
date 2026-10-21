@@ -100,7 +100,8 @@ describe("Strefa czasowa dziecka", () => {
   it("CAT3: pobudka 05:00 czasu polskiego przez 3 noce jest wczesną pobudką", () => {
     const early = nights(3, { wokeUpAt: "2026-07-15T03:00:00.000Z" });
     const result = evaluateCat3EarlyWakingAndSplitNight(input(early));
-    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT3_EARLY_WAKING);
+    // Noc 9 h 20 min (<9,5 h) → wariant krótkiej nocy
+    expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT3_EARLY_WAKING_SHORT_NIGHT);
   });
 
   it("WMZ: unikanie strefy liczone w czasie lokalnym dziecka", () => {
