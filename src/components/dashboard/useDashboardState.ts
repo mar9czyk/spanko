@@ -13,10 +13,10 @@ import {
   calculateChronicDrive,
   calculateCircadianParameters,
   calculateEffectiveAgeDays,
+  collectCircadianSamples,
   DEFAULT_TIME_ZONE,
   formatDateToCalendarString,
   getAgeBracket,
-  getMinutesFromMidnightInTimeZone,
   isIllnessDay,
   minutesSinceLastFeeding,
   needsWakeCheck,
@@ -25,9 +25,12 @@ import {
   resolveInsightDayAdjustments,
   resolveInsightWwOffset,
   resolvePhysiologicalDate,
+  resolveScheduleClock,
   resolveSleepRestedness,
   resolveUsualNapStats,
   suggestNapWakeTime,
+  type TravelPlan,
+  type TravelStrategy,
 } from "@/lib/sleep-engine";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
@@ -202,7 +205,11 @@ export function useDashboardState() {
     loadDashboardData();
   };
 
-  const timeZone = child?.timezone || DEFAULT_TIME_ZONE;
+  const scheduleClock = useMemo(
+    () => resolveScheduleClock(child?.timezone || DEFAULT_TIME_ZONE, child?.travel_json, nowIso),
+    [child?.timezone, child?.travel_json, nowIso],
+  );
+  const timeZone = scheduleClock.timeZone;
   const latestNightLog = recentLogs.find((log) => log.type === "night");
   const physiologicalDate = useMemo(
     () =>
@@ -289,14 +296,18 @@ export function useDashboardState() {
   const completedNightLogs = recentLogs.filter(
     (log) => log.type === "night" && log.status === "completed" && log.woke_up_at,
   );
-  const morningWakeTimes = completedNightLogs
-    .slice(0, MORNING_WAKE_SAMPLE_SIZE)
-    .map((log) => getMinutesFromMidnightInTimeZone(log.woke_up_at ?? nowIso, timeZone));
-  const nightBedtimes = completedNightLogs
-    .slice(0, MORNING_WAKE_SAMPLE_SIZE)
-    .map((log) =>
-      getMinutesFromMidnightInTimeZone(log.fell_asleep_at || log.put_down_at || nowIso, timeZone),
-    );
+  // Pobudki i zaśnięcia w zegarze harmonogramu (podróż: strefa wpisu albo przestawianie)
+  const circadianSamples = collectCircadianSamples(
+    completedNightLogs.map((log) => ({
+      wokeUpAt: log.woke_up_at ?? nowIso,
+      fellAsleepAt: log.fell_asleep_at || log.put_down_at || nowIso,
+      timeZone: log.timezone || undefined,
+    })),
+    scheduleClock,
+    MORNING_WAKE_SAMPLE_SIZE,
+  );
+  const morningWakeTimes = circadianSamples.wakeMinutes;
+  const nightBedtimes = circadianSamples.bedtimeMinutes;
 
   // Korekty z drzew diagnostycznych (bedtime fading, nap capping) z limitami silnika
   const dayAdjustments = resolveInsightDayAdjustments(activeInsight);
@@ -418,6 +429,29 @@ export function useDashboardState() {
 
   const handleSelectDayMode = (mode: ActiveDayMode) => persistChildPatch({ active_day_mode: mode });
 
+  /** Zapisuje strategię podróży: na czasie domowym strefa dziecka się nie zmienia. */
+  const handleApplyTravel = (toTimeZone: string, strategy: TravelStrategy) => {
+    if (!child) return;
+    const fromTimeZone = child.timezone || DEFAULT_TIME_ZONE;
+    const plan: TravelPlan = {
+      fromTimeZone,
+      toTimeZone,
+      startedAt: new Date().toISOString(),
+      strategy,
+    };
+    persistChildPatch({
+      timezone: strategy === "stay_home" ? fromTimeZone : toTimeZone,
+      travel_json: plan,
+    });
+  };
+
+  /** Kończy przestawianie od razu: dalej liczymy w strefie lokalnej. */
+  const handleFinishTravelAdaptation = () => {
+    const plan = child?.travel_json;
+    if (!plan) return;
+    persistChildPatch({ travel_json: { ...plan, strategy: "local_now" } });
+  };
+
   const handleToggleAntiOrthosomnia = () =>
     persistChildPatch({ anti_orthosomnia_mode: !child?.anti_orthosomnia_mode });
 
@@ -486,6 +520,8 @@ export function useDashboardState() {
       night_wakings: [],
       is_rebound_sleep: false,
       ignore_in_calibration: false,
+      // Strefa, w której powstał wpis: po podróży godziny starych nocy zostają poprawne
+      timezone: child.timezone || DEFAULT_TIME_ZONE,
     };
     if (isDemoData) {
       setCurrentSleepLog({
@@ -704,6 +740,9 @@ export function useDashboardState() {
       ? tDynamic(`reason.${sweetSpotPrediction.reasonCode}`, sweetSpotPrediction.reasonCode)
       : t("dashboard.noWakeYet"),
     handleSelectDayMode,
+    scheduleClock,
+    handleApplyTravel,
+    handleFinishTravelAdaptation,
     dayModeGuidance,
     isWakeCheckNeeded,
     handleToggleAntiOrthosomnia,

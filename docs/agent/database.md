@@ -35,6 +35,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `birth_date` (date/datetime, format ISO)
 - `due_date` (date/datetime, format ISO, opcjonalne — dla wcześniaków urodzonych $\ge 21$ dni przed terminem)
 - `active_day_mode` (select: `home` | `on_the_go` | `illness_regression`, default: `home`)
+- `travel_json` (json, opcjonalne — plan podróży `{ fromTimeZone, toTimeZone, startedAt, strategy: stay_home | gradual | local_now }`; czyta go `resolveScheduleClock`)
 - `anti_orthosomnia_mode` (bool, default: `false` — wyłącza dokładne minuty na korzyść elastycznego kompasu)
 - `photo` (file, opcjonalne, `protected`, max 5 MB, jpeg/png/webp, miniatura `96x96` — zdjęcie w przełączniku dzieci; klient zmniejsza je do 512 px przed wysłaniem, a URL buduje z tokenem `pb.files.getToken()`)
 - `created`, `updated` (autodate)
@@ -53,6 +54,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `night_wakings` (json array: `[{ wokeAt: string, fellAsleepAt?: string, estimatedDurationMin: number, fedMilk: boolean, interventions: string[] }]`)
 - `is_rebound_sleep` (bool, default: `false` — flaga odsypiania oznaczana przez filtr homeostatyczny)
 - `ignore_in_calibration` (bool, default: `false` — oznaczane przy anomaliach lub korekcie rodzica)
+- `timezone` (text IANA, opcjonalne — strefa, w której zapisano sen; po podróży godziny starych nocy liczone są w ich strefie. Brak w starych rekordach)
 - `created`, `updated` (autodate)
 
 #### 5. `day_context` (Zdarzenia Dnia: Karmienia i Tagi)

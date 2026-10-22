@@ -441,7 +441,7 @@ function detectSplitNight(logs: readonly SleepLog[]): boolean {
 function selectEarlyWakingNights(logs: readonly SleepLog[], timeZone: string): readonly SleepLog[] {
   return selectRecentNights(logs).filter((l) => {
     if (!l.wokeUpAt) return false;
-    const wakeMin = getMinutesFromMidnightInTimeZone(l.wokeUpAt, timeZone);
+    const wakeMin = getMinutesFromMidnightInTimeZone(l.wokeUpAt, l.timeZone ?? timeZone);
     return wakeMin >= EARLY_WAKE_START_MINUTES && wakeMin <= EARLY_WAKE_END_MINUTES;
   });
 }
@@ -525,7 +525,7 @@ function evaluateEarlyWakingTree(input: DiagnosticEvaluationInput): DiagnosticTr
       !hasUtcOffsetChangedWithinDays(
         l.wokeUpAt as string,
         CLOCK_CHANGE_ADJUSTMENT_DAYS,
-        input.timeZone,
+        l.timeZone ?? input.timeZone,
       ),
   );
 
@@ -1221,6 +1221,13 @@ const ON_THE_GO_PAUSED_CATEGORIES: readonly ProblemCategory[] = [
   "CAT4_SHORT_NAPS_TRANSITIONS",
 ];
 
+/** Po zmianie strefy godziny snu i pobudek przesuwają się celowo, więc nie są problemem. */
+const TRAVEL_PAUSED_CATEGORIES: readonly ProblemCategory[] = [
+  "CAT2_BEDTIME_RESISTANCE_LATENCY",
+  "CAT3_EARLY_WAKING_SPLIT_NIGHT",
+  "CAT4_SHORT_NAPS_TRANSITIONS",
+];
+
 /**
  * Kategorie wstrzymane przez tryb dnia (heurystyka Spanko na bazie raportu „Sen w chorobie i w drodze”).
  *
@@ -1231,5 +1238,6 @@ function resolvePausedCategories(input: DiagnosticEvaluationInput): readonly Pro
   if (isIllnessDay(input.child.activeDayMode, input.todayContext?.tags ?? [])) {
     return ILLNESS_PAUSED_CATEGORIES;
   }
+  if (input.todayContext?.pauseTimeDiagnostics) return TRAVEL_PAUSED_CATEGORIES;
   return input.child.activeDayMode === "on_the_go" ? ON_THE_GO_PAUSED_CATEGORIES : [];
 }
