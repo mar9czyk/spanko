@@ -131,6 +131,8 @@ export function findHouseholdsNearLimit(households: readonly HouseholdUsage[]): 
  */
 export function buildDashboardAlerts(input: {
   readonly hasOpenRouterKey: boolean;
+  /** Klucz z panelu nie daje się odszyfrować (używany jest zapas z env albo brak) */
+  readonly openRouterKeyProblem?: string;
   readonly hasServiceAccount: boolean;
   readonly stats24h: AiWindowStats;
   readonly householdsNearLimit: readonly HouseholdUsage[];
@@ -143,11 +145,18 @@ export function buildDashboardAlerts(input: {
       message: "Brak konta serwisowego PocketBase — audyt, limity i logi AI nie działają.",
     });
   }
+  if (input.openRouterKeyProblem) {
+    alerts.push({
+      level: "warning",
+      code: "OPENROUTER_KEY_UNREADABLE",
+      message: `Klucz OpenRouter z panelu jest nieczytelny: ${input.openRouterKeyProblem}`,
+    });
+  }
   if (!input.hasOpenRouterKey) {
     alerts.push({
       level: "warning",
       code: "NO_OPENROUTER_KEY",
-      message: "Brak OPENROUTER_API_KEY — wnioski działają wyłącznie na silniku deterministycznym.",
+      message: "Brak klucza OpenRouter — wnioski działają wyłącznie na silniku deterministycznym.",
     });
   }
   if (

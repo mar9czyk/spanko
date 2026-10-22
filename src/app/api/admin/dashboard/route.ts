@@ -11,6 +11,7 @@ import { fetchAdminSettings } from "@/lib/openrouter";
 import { resolveDailyAiLimit } from "@/lib/server/aiLimit";
 import { toErrorResponse } from "@/lib/server/apiResponse";
 import { getServiceClient, requireAdmin } from "@/lib/server/auth";
+import { resolveOpenRouterKey } from "@/lib/server/openrouterKey";
 import type { HouseholdRecord } from "@/lib/types/database";
 
 const CHART_DAYS = 14;
@@ -32,7 +33,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     const service = await getServiceClient();
     const nowMs = Date.now();
     const sinceIso = (days: number) => new Date(nowMs - days * MS_PER_DAY).toISOString();
-    const hasOpenRouterKey = Boolean(process.env.OPENROUTER_API_KEY?.trim());
+    const openRouterKey = await resolveOpenRouterKey();
+    const hasOpenRouterKey = openRouterKey.source !== "none";
 
     const activeUsers = async (days: number) =>
       (
@@ -57,6 +59,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         ai: { h24: empty, d7: empty, d30: empty, daily: [] },
         alerts: buildDashboardAlerts({
           hasOpenRouterKey,
+          openRouterKeyProblem: openRouterKey.panelError,
           hasServiceAccount: false,
           stats24h: empty,
           householdsNearLimit: [],
@@ -105,6 +108,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       },
       alerts: buildDashboardAlerts({
         hasOpenRouterKey,
+        openRouterKeyProblem: openRouterKey.panelError,
         hasServiceAccount: true,
         stats24h,
         householdsNearLimit: findHouseholdsNearLimit(usage),

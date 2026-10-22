@@ -37,6 +37,18 @@ export const OpenRouterTestSchema = z.object({
   model: z.string().trim().max(MAX_MODEL_NAME_LENGTH).optional(),
 });
 
+export const MIN_OPENROUTER_KEY_LENGTH = 20;
+export const MAX_OPENROUTER_KEY_LENGTH = 300;
+
+export const OpenRouterKeySchema = z.object({
+  apiKey: z
+    .string()
+    .trim()
+    .min(MIN_OPENROUTER_KEY_LENGTH)
+    .max(MAX_OPENROUTER_KEY_LENGTH)
+    .regex(/^sk-or-\S+$/, 'Klucz OpenRouter zaczyna się od "sk-or-".'),
+});
+
 export const ReplayRequestSchema = z.object({
   prompt: z.string().max(MAX_PROMPT_LENGTH).optional(),
   model: z.string().trim().max(MAX_MODEL_NAME_LENGTH).optional(),

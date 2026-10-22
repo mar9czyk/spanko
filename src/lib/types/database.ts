@@ -154,6 +154,18 @@ export interface ChildInsightRecord {
   readonly updated: string;
 }
 
+export interface AppSecretRecord {
+  readonly id: string;
+  readonly name: string;
+  /** Szyfrogram `v1:<iv>:<tag>:<dane>` — nigdy nie trafia do przeglądarki */
+  readonly ciphertext: string;
+  readonly key_suffix: string;
+  readonly key_version: number;
+  readonly updated_by?: string;
+  readonly created: string;
+  readonly updated: string;
+}
+
 export interface AdminSettingsRecord {
   readonly id: string;
   readonly openrouter_fast_model?: string;

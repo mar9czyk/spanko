@@ -154,17 +154,17 @@ export async function runGoalCoach(
       { model, status, latencyMs: Date.now() - startedAt, category: "GOAL", ...extra },
     );
 
-  const apiKey = resolveOpenRouterApiKey();
+  const apiKey = (await resolveOpenRouterApiKey()).key;
   if (!apiKey) {
     const callId = await log("deterministic-fallback", "error", {
-      errorMessage: "Brak OPENROUTER_API_KEY — użyto tekstu deterministycznego.",
+      errorMessage: "Brak klucza OpenRouter — użyto tekstu deterministycznego.",
     });
     return {
       message: fallback,
       model: "deterministic-fallback",
       status: "error",
       callId,
-      errorMessage: "Brak OPENROUTER_API_KEY",
+      errorMessage: "Brak klucza OpenRouter",
     };
   }
 

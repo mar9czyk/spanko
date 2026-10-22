@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { findUnsafeAdvice, UnsafeAdviceError } from "@/lib/safe-sleep";
 import { getServiceClient } from "@/lib/server/auth";
+import { type ResolvedOpenRouterKey, resolveOpenRouterKey } from "@/lib/server/openrouterKey";
 import { fetchActivePromptVersion } from "@/lib/server/promptVersions";
 import type {
   AdminSettingsRecord,
@@ -179,8 +180,8 @@ export function resolveAiRuntimeSettings(settings: AdminSettingsRecord | null): 
  *
  * @returns {string | undefined} Klucz API lub undefined
  */
-export function resolveOpenRouterApiKey(): string | undefined {
-  return process.env.OPENROUTER_API_KEY?.trim() || undefined;
+export function resolveOpenRouterApiKey(): Promise<ResolvedOpenRouterKey> {
+  return resolveOpenRouterKey();
 }
 
 let adminSettingsCache: { readonly value: AdminSettingsRecord; readonly expiresAt: number } | null =
@@ -551,7 +552,7 @@ export async function runInsightEvaluation(
 ): Promise<InsightEvaluationOutcome> {
   const startedAt = Date.now();
   const audit = configOverride?.audit;
-  const apiKey = configOverride?.apiKey ?? resolveOpenRouterApiKey();
+  const apiKey = configOverride?.apiKey ?? (await resolveOpenRouterApiKey()).key;
 
   const finish = async (
     result: Omit<
@@ -607,7 +608,7 @@ export async function runInsightEvaluation(
       insight: createDeterministicFallbackInsight(context),
       model: "deterministic-fallback",
       status: "error",
-      errorMessage: "Brak OPENROUTER_API_KEY — użyto wniosku deterministycznego.",
+      errorMessage: "Brak klucza OpenRouter — użyto wniosku deterministycznego.",
     });
   }
 
