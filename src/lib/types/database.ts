@@ -7,6 +7,7 @@ import type {
   GoalType,
   ProgressDecision,
 } from "@/lib/goals-engine/types";
+import type { TravelPlan } from "@/lib/sleep-engine/travel";
 import type {
   AgeBracketConfig,
   DayMode,
@@ -85,6 +86,8 @@ export interface ChildRecord {
   readonly anti_orthosomnia_mode: boolean;
   /** Strefa IANA dziecka (granica doby fizjologicznej); domyślnie Europe/Warsaw */
   readonly timezone?: string;
+  /** Plan podróży ze zmianą strefy (strategia przestawiania snu); brak = bez podróży */
+  readonly travel_json?: TravelPlan | null;
   /** Nazwa pliku zdjęcia w PocketBase (chronione, URL wymaga tokenu plików); pusta, gdy brak */
   readonly photo?: string;
   readonly created: string;
@@ -105,6 +108,8 @@ export interface SleepLogRecord {
   readonly night_wakings?: readonly NightWakingDetail[];
   readonly is_rebound_sleep: boolean;
   readonly ignore_in_calibration: boolean;
+  /** Strefa IANA, w której zapisano sen (podróż); brak w starych rekordach */
+  readonly timezone?: string;
   readonly created: string;
   readonly updated: string;
 }

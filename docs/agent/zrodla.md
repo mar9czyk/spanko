@@ -148,6 +148,7 @@ WHO 2024, *Ethics and governance of AI for health: guidance on large multi-modal
 | Powrót do planu po chorobie | ok. 2 doby bez objawów, krok wstecz | [E] | praktyka doradców snu |
 | W drodze: sen w ruchu bez rabatu | 100% minut | [H] (brak dowodów na rabat) | Bayer 2011 (dorośli) |
 | W drodze: wcześniejszy sen | niedobór > 45 min → połowa, maks. 60 min | [H] | praktyka doradców |
+| Podróż: przestawianie strefy | 30 min/dobę na wschód, 60 min/dobę na zachód; czas domowy przy ≤ 4 dniach i ≤ 3 h | [E], liczby [H] | S. Axelrod (chronobiolożka), raport „Sen w chorobie i w drodze” |
 | Fotelik: kontrola co 30 min u najmłodszych | <4 mies., wcześniaki | [B] | Arya 2017, Batra 2015, AAP 2022 |
 | Przewidywana pora snu | wzór z pobudki, sen nocny 600–690 min | [H] | wzór autorski |
 | Domieszka faktycznej pory zaśnięcia | 50%, ≥3 noce, ±120 min | kierunek [B], wartości [H] | Akacem 2016, LeBourgeois 2013 |

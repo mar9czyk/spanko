@@ -69,6 +69,31 @@ export const pl = {
   "dayMode.illness_regression.label": "Choroba",
   "dayMode.illness_regression.desc": "Skrócone okna i ochrona snu",
 
+  "travel.title": "Zmiana strefy czasowej",
+  "travel.prompt":
+    "Telefon pokazuje inną strefę: {zone} ({diff} względem strefy dziecka). Jesteście w podróży?",
+  "travel.zoneLabel": "Strefa, w której jesteście",
+  "travel.diff": "Różnica względem strefy dziecka: {diff}",
+  "travel.sameZone": "Ta strefa ma teraz tę samą godzinę co strefa dziecka.",
+  "travel.tripShort": "Wyjazd do 4 dni",
+  "travel.tripLong": "Dłuższy wyjazd",
+  "travel.recommended": "Polecane",
+  "travel.stay_home.title": "Zostańcie na czasie domowym",
+  "travel.stay_home.desc":
+    "Drzemki i sen o tych samych godzinach co w domu. Przy krótkim wyjeździe nie trzeba przestawiać rytmu.",
+  "travel.gradual.title": "Przestawiaj stopniowo",
+  "travel.gradual.desc": "Codziennie o {step} min bliżej czasu lokalnego, razem ok. {days} dni.",
+  "travel.local_now.title": "Od razu czas lokalny",
+  "travel.local_now.desc":
+    "Od dziś drzemki i sen według lokalnego zegara. Pierwsze 1–2 dni mogą być trudniejsze.",
+  "travel.tip":
+    "Pomaga światło dzienne rano i ciemność wieczorem. To opinia ekspertów, badań u niemowląt brak.",
+  "travel.dismiss": "To tylko mój telefon",
+  "travel.adapting": "Przestawiamy sen na czas lokalny: dzień {day} z {days}.",
+  "travel.adaptingHint":
+    "Prognozy uwzględniają dzisiejsze przesunięcie, a ocena pór snu i pobudek jest wstrzymana.",
+  "travel.finish": "Przejdź od razu na czas lokalny",
+
   "anti.title": "Przełącz między precyzyjnym zegarem a miękkim kompasem snu (Anti-Orthosomnia)",
   "anti.compass": "Miękki kompas",
   "anti.clock": "Zegar",
@@ -427,6 +452,31 @@ export const en: Record<MessageKey, string> = {
   "dayMode.on_the_go.desc": "Naps in a stroller or car seat",
   "dayMode.illness_regression.label": "Sick",
   "dayMode.illness_regression.desc": "Shorter windows and sleep protection",
+
+  "travel.title": "Time zone change",
+  "travel.prompt":
+    "Your phone shows a different time zone: {zone} ({diff} vs your child's zone). Are you travelling?",
+  "travel.zoneLabel": "Time zone you're in",
+  "travel.diff": "Difference from your child's zone: {diff}",
+  "travel.sameZone": "This zone currently has the same time as your child's zone.",
+  "travel.tripShort": "Trip up to 4 days",
+  "travel.tripLong": "Longer trip",
+  "travel.recommended": "Recommended",
+  "travel.stay_home.title": "Stay on home time",
+  "travel.stay_home.desc":
+    "Naps and sleep at the same times as at home. On a short trip there's no need to shift the rhythm.",
+  "travel.gradual.title": "Shift gradually",
+  "travel.gradual.desc": "Each day {step} min closer to local time, about {days} days in total.",
+  "travel.local_now.title": "Switch to local time now",
+  "travel.local_now.desc":
+    "From today naps and sleep follow the local clock. The first 1–2 days may be harder.",
+  "travel.tip":
+    "Daylight in the morning and darkness in the evening help. This is expert opinion; there's no research in babies.",
+  "travel.dismiss": "It's just my phone",
+  "travel.adapting": "Shifting sleep to local time: day {day} of {days}.",
+  "travel.adaptingHint":
+    "Predictions include today's shift, and bedtime and early-waking checks are paused.",
+  "travel.finish": "Switch to local time now",
 
   "anti.title": "Switch between a precise clock and a soft sleep compass (Anti-Orthosomnia)",
   "anti.compass": "Soft compass",

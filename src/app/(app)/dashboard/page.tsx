@@ -11,6 +11,7 @@ import { MorningNightSummaryBanner } from "@/components/dashboard/MorningNightSu
 import { PhysiologicalTimeline } from "@/components/dashboard/PhysiologicalTimeline";
 import { QuickEntryBottomSheet } from "@/components/dashboard/QuickEntryBottomSheet";
 import { SmartInsightCard } from "@/components/dashboard/SmartInsightCard";
+import { TravelTimeZoneCard } from "@/components/dashboard/TravelTimeZoneCard";
 import { formatClock } from "@/components/dashboard/timelineMapping";
 import { useDashboardState } from "@/components/dashboard/useDashboardState";
 import { usePastDays } from "@/components/dashboard/usePastDays";
@@ -19,6 +20,7 @@ import { GoalPathCard } from "@/components/goals/GoalPathCard";
 import { NightTipCard } from "@/components/goals/NightTipCard";
 import { useGoalState } from "@/components/goals/useGoalState";
 import { useI18n } from "@/i18n/I18nProvider";
+import { DEFAULT_TIME_ZONE } from "@/lib/sleep-engine";
 
 /**
  * Główny widok aplikacji Spanko w stylistyce 3 AM One-Thumb Dark UX.
@@ -110,6 +112,15 @@ export default function DashboardPage() {
         guidance={state.dayModeGuidance}
         isWakeCheckNeeded={state.isWakeCheckNeeded}
         locale={locale}
+      />
+      <TravelTimeZoneCard
+        childTimeZone={child.timezone || DEFAULT_TIME_ZONE}
+        plan={child.travel_json}
+        clock={state.scheduleClock}
+        isOnTheGo={child.active_day_mode === "on_the_go"}
+        nowIso={state.nowIso}
+        onApply={state.handleApplyTravel}
+        onFinishAdaptation={state.handleFinishTravelAdaptation}
       />
       {/* Wybór nowego celu jest w /settings, żeby nie zaśmiecać pulpitu */}
       {goalState.goal && (
