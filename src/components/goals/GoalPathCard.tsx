@@ -1,10 +1,11 @@
-import { Check, ChevronDown, Pause, Play, Target } from "lucide-react";
+import { Check, ChevronDown, Info, Pause, Play, Target } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
   type CopyLocale,
   describeTask,
+  describeTaskShort,
   GOAL_TITLES,
   localize,
   METHOD_TITLES,
@@ -36,7 +37,25 @@ function dayNumber(startedOn: string, today: string | null): number {
 }
 
 /**
- * Karta „Ścieżka Celu”: postęp planu, zadania na dziś i rady coacha.
+ * Zlicza dziś odhaczone zadania celu (do bąbelka na pulpicie).
+ *
+ * @param {GoalDailyTaskRecord | null} daily - Zadania dnia
+ * @returns {{ done: number; total: number }} Liczba odhaczonych i wszystkich zadań
+ */
+export function countGoalTasks(daily: GoalDailyTaskRecord | null): {
+  done: number;
+  total: number;
+} {
+  const tasks = daily?.tasks_json ?? [];
+  const done = tasks.filter((task, index) =>
+    daily?.done_json?.includes(`${task.kind}:${index}`),
+  ).length;
+  return { done, total: tasks.length };
+}
+
+/**
+ * Zawartość zakładki „Cel” w arkuszu szczegółów: postęp planu, zadania do odhaczenia,
+ * zwinięte rady coacha oraz wstrzymanie i zakończenie celu.
  *
  * @param {GoalPathCardProps} props - Cel, zadania dnia i akcje
  * @returns {ReactNode} Karta aktywnego celu
@@ -60,17 +79,19 @@ export function GoalPathCard({
   const reasonText = decision ? REASON_TEXT[decision.reason] : undefined;
   const isTargetMet = decision?.action === "achieved";
   const progressNote = methodProgressNote(goal.method, day, locale);
+  const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const tasks = daily?.tasks_json ?? [];
 
   return (
-    <section className="rounded-2xl bg-[#151B28] border border-amber-500/20 p-3.5 flex flex-col gap-3">
-      <header className="flex items-start justify-between gap-2">
+    <section className="flex flex-col gap-3">
+      <header className="flex items-start gap-2">
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-amber-400 shrink-0" />
           <div>
-            <h2 className="text-sm font-semibold text-ink leading-tight">
+            <h2 className="text-base font-semibold text-ink leading-tight">
               {localize(GOAL_TITLES[goal.goal_type], locale)}
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-sm text-slate-400">
               {t("goal.card.day", {
                 method: localize(METHOD_TITLES[goal.method], locale),
                 day,
@@ -79,14 +100,6 @@ export function GoalPathCard({
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => onChangeStatus(isPaused ? "active" : "paused")}
-          className="p-1.5 rounded-lg bg-[#1E2738] border border-[#263348] text-slate-300"
-          title={isPaused ? t("goal.card.resume") : t("goal.card.pause")}
-        >
-          {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-        </button>
       </header>
 
       <div className="h-1.5 rounded-full bg-[#1E2738] overflow-hidden" aria-hidden>
@@ -96,85 +109,120 @@ export function GoalPathCard({
         />
       </div>
 
-      {isPaused && <p className="text-xs text-violet-300">{t("goal.card.paused")}</p>}
+      {isPaused && <p className="text-sm text-violet-300">{t("goal.card.paused")}</p>}
 
       {!isPaused && coach && (
         <>
           <p className="text-sm font-medium text-amber-200">{coach.headline}</p>
-          <ul className="flex flex-col gap-1.5">
-            {(daily?.tasks_json ?? []).map((task, index) => {
-              const key = `${task.kind}:${index}`;
-              const done = daily?.done_json?.includes(key) ?? false;
-              return (
-                <li key={key}>
-                  <button
-                    type="button"
-                    onClick={() => onToggleTask(key)}
-                    className={`w-full flex items-start gap-2.5 text-left p-2.5 rounded-xl border min-h-[44px] ${done ? "bg-emerald-950/30 border-emerald-500/30 text-slate-400" : "bg-[#1E2738] border-[#263348] text-ink"}`}
+          {tasks.length > 0 ? (
+            <ul className="flex flex-col gap-1.5">
+              {tasks.map((task, index) => {
+                const key = `${task.kind}:${index}`;
+                const done = daily?.done_json?.includes(key) ?? false;
+                const isExpanded = expandedTask === key;
+                return (
+                  <li
+                    key={key}
+                    className={`rounded-xl border ${done ? "bg-emerald-950/30 border-emerald-500/30" : "bg-[#1E2738] border-[#263348]"}`}
                   >
-                    <span
-                      className={`mt-0.5 w-5 h-5 shrink-0 rounded-md border flex items-center justify-center ${done ? "bg-emerald-500 border-emerald-500 text-slate-950" : "border-slate-500"}`}
-                    >
-                      {done && <Check className="w-3.5 h-3.5" />}
-                    </span>
-                    <span className={`text-xs leading-snug ${done ? "line-through" : ""}`}>
-                      {describeTask(task, locale)}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          {coach.todayAdvice.length > 0 && (
-            <ul className="list-disc pl-4 text-xs text-slate-300 flex flex-col gap-1">
-              {coach.todayAdvice.map((advice) => (
-                <li key={advice}>{advice}</li>
-              ))}
+                    <div className="flex items-stretch">
+                      <button
+                        type="button"
+                        onClick={() => onToggleTask(key)}
+                        aria-pressed={done}
+                        className={`flex-1 flex items-center gap-2.5 text-left p-2.5 min-h-[48px] ${done ? "text-slate-400" : "text-ink"}`}
+                      >
+                        <span
+                          className={`w-6 h-6 shrink-0 rounded-md border flex items-center justify-center ${done ? "bg-emerald-500 border-emerald-500 text-slate-950" : "border-slate-500"}`}
+                        >
+                          {done && <Check className="w-4 h-4" />}
+                        </span>
+                        <span className={`text-sm leading-snug ${done ? "line-through" : ""}`}>
+                          {describeTaskShort(task, locale)}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedTask(isExpanded ? null : key)}
+                        aria-expanded={isExpanded}
+                        aria-label={t("bubble.goal.how")}
+                        className="w-12 shrink-0 flex items-center justify-center text-slate-400"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <p className="px-3 pb-3 text-sm text-slate-300 leading-snug">
+                        {describeTask(task, locale)}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
+          ) : (
+            <p className="text-sm text-slate-400">{t("bubble.goal.noTasks")}</p>
           )}
-          <p className="text-xs text-violet-300">
-            {coach.encouragement}
-            {reasonText && localize(reasonText, locale) !== coach.encouragement
-              ? ` ${localize(reasonText, locale)}`
-              : ""}
-          </p>
-          {progressNote && !isTargetMet && <p className="text-xs text-slate-400">{progressNote}</p>}
+          <details className="text-sm text-slate-300">
+            <summary className="cursor-pointer flex items-center gap-1 list-none min-h-[44px] text-slate-400">
+              <ChevronDown className="w-4 h-4" /> {t("bubble.goal.advice")}
+            </summary>
+            <div className="flex flex-col gap-2 pb-1">
+              {coach.todayAdvice.length > 0 && (
+                <ul className="list-disc pl-5 flex flex-col gap-1">
+                  {coach.todayAdvice.map((advice) => (
+                    <li key={advice}>{advice}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-violet-300">
+                {coach.encouragement}
+                {reasonText && localize(reasonText, locale) !== coach.encouragement
+                  ? ` ${localize(reasonText, locale)}`
+                  : ""}
+              </p>
+              {progressNote && !isTargetMet && <p className="text-slate-400">{progressNote}</p>}
+              {coach.why && <p className="text-slate-400">{coach.why}</p>}
+            </div>
+          </details>
           {isTargetMet && (
             <div className="rounded-xl bg-emerald-950/30 border border-emerald-500/30 p-2.5 flex flex-col gap-2">
-              <p className="text-xs text-emerald-200">{t("goal.card.confirmQuestion")}</p>
+              <p className="text-sm text-emerald-200">{t("goal.card.confirmQuestion")}</p>
               <button
                 type="button"
                 onClick={() => onChangeStatus("achieved")}
-                className="self-start px-3 py-2 rounded-lg bg-emerald-500 text-slate-950 text-xs font-semibold min-h-[44px]"
+                className="self-start px-3 py-2 rounded-lg bg-emerald-500 text-slate-950 text-sm font-semibold min-h-[48px]"
               >
                 {t("goal.card.confirmAchieved")}
               </button>
             </div>
           )}
-          {coach.why && (
-            <details className="text-xs text-slate-400">
-              <summary className="cursor-pointer flex items-center gap-1 list-none">
-                <ChevronDown className="w-3 h-3" /> {t("goal.card.why")}
-              </summary>
-              <p className="pt-1">{coach.why}</p>
-            </details>
-          )}
         </>
       )}
 
       {!isPaused && !coach && (
-        <p className={`text-xs ${error ? "text-red-300" : "text-slate-400"}`}>
+        <p className={`text-sm ${error ? "text-red-300" : "text-slate-400"}`}>
           {error ?? t("goal.card.preparing")}
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={() => onChangeStatus("abandoned")}
-        className="self-end text-xs text-slate-400 underline"
-      >
-        {t("goal.card.end")}
-      </button>
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => onChangeStatus(isPaused ? "active" : "paused")}
+          className="min-h-[44px] px-3 rounded-xl bg-[#1E2738] border border-[#263348] text-sm text-slate-300 flex items-center gap-1.5"
+        >
+          {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+          {isPaused ? t("goal.card.resume") : t("goal.card.pause")}
+        </button>
+        <button
+          type="button"
+          onClick={() => onChangeStatus("abandoned")}
+          className="min-h-[44px] px-2 text-sm text-slate-400 underline"
+        >
+          {t("goal.card.end")}
+        </button>
+      </div>
     </section>
   );
 }

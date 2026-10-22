@@ -48,7 +48,7 @@ Ortosomnia to zaburzenie lękowe wywołane obsesyjnym śledzeniem wskaźników s
 
 ## 3. Struktura Ekranu Głównego („Tu i Teraz”)
 
-Widok `/dashboard` składa się z 5 zintegrowanych stref:
+Widok `/dashboard` składa się z zintegrowanych stref:
 
 ### 3.1. Nagłówek Stanu
 - Selektor dziecka (z awatarem i wiekiem w tygodniach/miesiącach).
@@ -58,15 +58,18 @@ Widok `/dashboard` składa się z 5 zintegrowanych stref:
   - `[🤒 Choroba / Regresja]`
 - Przełącznik `Anti-Orthosomnia Mode` (ikona kompasu).
 
-### 3.2. Karta Smart Insight (Wniosek Dnia)
-- Prezentuje najważniejszą regułę z `child_insights`.
-- Szybkie akcje: `[👍 Działa]` oraz `[✏️ Skoryguj]`.
+### 3.2. Bąbelki skrótów dnia i wspólny arkusz
+- Wokół pierścienia stoją 4 okrągłe bąbelki (64 px): **wyspanie** (np. `3/5`, kolor stanu), **cel** (`odhaczone/wszystkie` zadania dnia), **wniosek** (żarówka z bursztynową kropką, dopóki rodzic nie dał opinii) i **ostatnia drzemka** (`HH:mm`). Bąbelek bez danych (brak celu lub wniosku) się nie pojawia.
+- Każdy bąbelek otwiera **jeden wspólny arkusz** od dołu (połowa ekranu) na własnej zakładce. Przesunięcie w bok zmienia zakładkę, w dół lub stuknięcie obok zamyka, w górę rozciąga do pełnej wysokości. Nigdy arkusz na arkuszu.
+- Zakładki: *Wyspanie* (słowo stanu, 5 segmentów, zdanie o skutku, profil potrzeb), *Cel* (tytuł, metoda · dzień, postęp, zadania z krótkimi tytułami odhaczane w miejscu, (i) z pełnym opisem, zwinięte „Rady na dziś i dlaczego tak”, wstrzymaj i zakończ na dole), *Wniosek* (kategoria, tytuł, wyjaśnienie, Działa / Skoryguj, link do historii), *Ostatnia drzemka* (duża godzina + jedno zdanie po co).
+- Stuknięcie w pierścień pokazuje na ok. 4 s dymek z powodem tej pory (zastępuje etykietę pod pierścieniem).
+- W trakcie snu (w tym w nocy) bąbelków nie ma, a karty celu i wniosku nie wiszą na ekranie.
 
 ### 3.3. Centralny Hero Widget (SweetSpot & Bateria Snu)
 - **W trakcie czuwania:** Animowany pierścień odliczający czas do kolejnego SweetSpot z informacją o powodzie przesunięcia (np. "Krótka poprzednia drzemka").
 - **W trakcie snu:** Zsynchronizowany na żywo stoper trwającego snu (`pb.collection('sleep_logs').subscribe('*')`) — zmiana na telefonie jednego rodzica natychmiast aktualizuje ekran drugiego rodzica.
 - **Dla noworodków (<16 tyg.):** W nocy dostępny przycisk `[⏱️ Odczekaj 60s (Active Sleep REM)]` z zegarem odliczającym 60 sekund, przypominający rodzicowi o powstrzymaniu się przed przedwczesnym wyjęciem dziecka z łóżeczka.
-- **Stan wyspania (7 dni):** Bez nagłówka „Bateria Snu”. Słowo w kolorze stanu (`Wyspane` zielony / `Lekko niewyspane` bursztynowy / `Mocno niewyspane` różowy, z `resolveSleepRestedness`), 5 segmentów wg baterii 15–100% i jedno zdanie, co silnik z tym robi. Pod spodem etykieta profilu (`Low / Average / High Sleep Needs`) i limit ostatniej drzemki.
+- **Stan wyspania (7 dni):** Teraz w bąbelku i zakładce „Wyspanie” (3.2), bez nagłówka „Bateria Snu”. Słowo w kolorze stanu (`Wyspane` zielony / `Lekko niewyspane` bursztynowy / `Mocno niewyspane` różowy, z `resolveSleepRestedness`), 5 segmentów wg baterii 15–100% i jedno zdanie, co silnik z tym robi. Pod spodem etykieta profilu (`Low / Average / High Sleep Needs`) i limit ostatniej drzemki.
 - **Backwards Nap Capping:** Wyraźny wskaźnik "Koniec ostatniej drzemki maks. o HH:mm", aby nie zakłócić snu nocnego.
 
 ### 3.4. Oś Czasu Doby Fizjologicznej

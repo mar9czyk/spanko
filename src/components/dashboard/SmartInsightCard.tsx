@@ -30,7 +30,7 @@ function InsightHeader({ category, title }: { category: string; title: string })
         <span className="text-xs font-semibold uppercase tracking-wider text-amber-400/90 block">
           {tDynamic(`insights.cat.${category}`, t("insights.default"))}
         </span>
-        <h2 className="text-sm font-semibold text-ink leading-snug line-clamp-1">{title}</h2>
+        <h2 className="text-base font-semibold text-ink leading-snug">{title}</h2>
       </div>
     </div>
   );
@@ -52,18 +52,18 @@ function InsightActions({
 }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-center gap-2 pt-1 border-t border-[#263348]/40">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         onClick={() => onAccept(insightId)}
-        className="flex-1 py-1 px-2.5 rounded-lg text-sm font-medium bg-[#1E2738] text-slate-300 hover:text-emerald-300 hover:bg-emerald-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[32px]"
+        className="flex-1 py-1 px-2.5 rounded-lg text-sm font-medium bg-[#1E2738] text-slate-300 hover:text-emerald-300 hover:bg-emerald-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[48px]"
       >
         <Check className="w-3.5 h-3.5 text-emerald-400" />
         <span>{t("insightCard.works")}</span>
       </button>
       <Link
         href={`/insights?${CORRECT_INSIGHT_QUERY_PARAM}=${encodeURIComponent(insightId)}`}
-        className="flex-1 py-1 px-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-amber-300 bg-[#1E2738] hover:bg-amber-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[32px]"
+        className="flex-1 py-1 px-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-amber-300 bg-[#1E2738] hover:bg-amber-950/30 border border-transparent flex items-center justify-center gap-1.5 transition-all min-h-[48px]"
       >
         <Edit3 className="w-3.5 h-3.5 text-amber-400" />
         <span>{t("insightCard.adjust")}</span>
@@ -96,7 +96,7 @@ function AcceptedNotice({
       <button
         type="button"
         onClick={() => onUndoAccept(insightId)}
-        className="py-1 px-3 rounded-lg text-sm font-medium text-slate-200 bg-[#1E2738] hover:text-amber-300 flex items-center gap-1.5 min-h-[32px]"
+        className="py-1 px-3 rounded-lg text-sm font-medium text-slate-200 bg-[#1E2738] hover:text-amber-300 flex items-center gap-1.5 min-h-[48px]"
       >
         <Undo2 className="w-3.5 h-3.5" />
         <span>{t("insightCard.undo")}</span>
@@ -106,15 +106,29 @@ function AcceptedNotice({
 }
 
 /**
- * Karta Smart Insight pod nagłówkiem prezentująca kluczowy aktywny wniosek z child_insights.
+ * Czy wniosek ma być widoczny na pulpicie (bąbelek i zakładka): jeszcze bez opinii rodzica
+ * albo właśnie potwierdzony w tej sesji (wtedy z możliwością cofnięcia).
  *
- * @description
- * Oferuje rodzicowi natychmiastową informację o adaptacji okna czuwania lub rytmu
- * wraz z możliwością zatwierdzenia lub korekty jednym dotknięciem kciuka. Wniosek, któremu
- * rodzic już dał opinię, nie wraca na pulpit (pełna lista i cofanie są na /insights).
+ * @param {ChildInsightRecord | null} insight - Aktywny wniosek
+ * @param {string | null} justAcceptedInsightId - Wniosek potwierdzony przed chwilą
+ * @returns {boolean} Czy pokazać wniosek
+ */
+export function isInsightShown(
+  insight: ChildInsightRecord | null,
+  justAcceptedInsightId: string | null,
+): insight is ChildInsightRecord {
+  if (!insight) return false;
+  if (insight.id === justAcceptedInsightId) return true;
+  const hasParentFeedback = insight.parent_feedback && insight.parent_feedback !== "pending";
+  return !hasParentFeedback && insight.status !== "validated";
+}
+
+/**
+ * Zawartość zakładki „Wniosek”: kategoria, tytuł, pełne wyjaśnienie oraz akcje
+ * [Działa] / [Skoryguj] i link do historii wniosków.
  *
  * @param {SmartInsightCardProps} props - Dane wniosku oraz akcje rodzica
- * @returns {ReactNode} Wyrenderowana karta wniosku
+ * @returns {ReactNode} Wyrenderowana zawartość
  */
 export function SmartInsightCard({
   insight,
@@ -123,22 +137,20 @@ export function SmartInsightCard({
   onUndoAccept,
 }: SmartInsightCardProps): ReactNode {
   const { t } = useI18n();
-  if (!insight) return null;
+  if (!isInsightShown(insight, justAcceptedInsightId)) return null;
   if (insight.id === justAcceptedInsightId) {
     return <AcceptedNotice insightId={insight.id} onUndoAccept={onUndoAccept} />;
   }
-  const hasParentFeedback = insight.parent_feedback && insight.parent_feedback !== "pending";
-  if (hasParentFeedback || insight.status === "validated") return null;
 
   return (
-    <div className="w-full bg-[#151B28] border border-[#263348] rounded-2xl p-3 flex flex-col gap-2 shadow-lg shadow-black/40">
+    <div className="flex flex-col gap-3">
       <InsightHeader category={insight.category} title={insight.title} />
-      <p className="text-sm text-slate-300 leading-relaxed pl-8 pr-1">{insight.explanation}</p>
+      <p className="text-base text-slate-300 leading-relaxed">{insight.explanation}</p>
       <InsightActions insightId={insight.id} onAccept={onAccept} />
-      <div className="flex justify-end pt-0.5">
+      <div className="flex justify-end">
         <Link
           href="/insights"
-          className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors"
+          className="min-h-[44px] flex items-center text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors"
         >
           {t("insightCard.history")} &rarr;
         </Link>
