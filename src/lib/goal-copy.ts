@@ -269,6 +269,61 @@ export function describeTask(task: DailyTask, locale: CopyLocale = "pl"): string
   }
 }
 
+const HABIT_SHORT: Readonly<Record<SleepHabit, Localized>> = {
+  WAKE_ANCHOR: { pl: "Stała pobudka rano", en: "Steady morning wake-up" },
+  BEDTIME_ROUTINE: { pl: "Wieczorna rutyna", en: "Bedtime routine" },
+  SLEEP_ENVIRONMENT: { pl: "Ciemny, chłodny pokój", en: "Dark, cool room" },
+  DROWSY_PUT_DOWN: { pl: "Odłóż senne, nie śpiące", en: "Put down drowsy, not asleep" },
+};
+
+const RUNG_SHORT: Readonly<Record<InterventionRung, Localized>> = {
+  feed: { pl: "Pobudka: karmienie", en: "Waking: feeding" },
+  carry: { pl: "Pobudka: noszenie lub bujanie", en: "Waking: carrying or rocking" },
+  pat: { pl: "Pobudka: głaskanie lub smoczek", en: "Waking: patting or pacifier" },
+  shush: { pl: "Pobudka: tylko dotyk i głos", en: "Waking: just touch and voice" },
+  presence: { pl: "Pobudka: sama obecność", en: "Waking: just presence" },
+  independent: { pl: "Pobudka: bez pomocy", en: "Waking: no help" },
+};
+
+/**
+ * Krótki tytuł zadania dnia (do listy z odhaczaniem); pełny opis zwraca `describeTask`.
+ *
+ * @param {DailyTask} task - Zadanie z Silnika Celów
+ * @param {CopyLocale} locale - Język
+ * @returns {string} Kilkuwyrazowy tytuł
+ */
+export function describeTaskShort(task: DailyTask, locale: CopyLocale = "pl"): string {
+  const { params } = task;
+  const isPl = locale === "pl";
+  switch (task.kind) {
+    case "NIGHT_FEED_LIMIT": {
+      const feeds = params.nightFeedsAllowed ?? 0;
+      if (feeds === 0) return isPl ? "Noc bez mleka" : "No milk at night";
+      return isPl ? `W nocy maks. ${feeds} karm.` : `Max ${feeds} night feeds`;
+    }
+    case "CHECK_INTERVALS": {
+      const list = (params.checkIntervalsMin ?? []).join(" → ");
+      return isPl ? `Sprawdzaj po ${list} min` : `Check after ${list} min`;
+    }
+    case "RESPONSE_RUNG":
+      return pick(RUNG_SHORT[params.rung ?? "independent"], locale);
+    case "CHAIR_DISTANCE":
+      return isPl
+        ? `Krzesło: ${pick(CHAIR_TEXT[params.chairDistance ?? "outside"], locale)}`
+        : `Chair: ${pick(CHAIR_TEXT[params.chairDistance ?? "outside"], locale)}`;
+    case "PICK_UP_PUT_DOWN":
+      return isPl ? "Weź na ręce i odłóż" : "Pick up, put down";
+    case "NO_RESPONSE":
+      return isPl ? "Bez wchodzenia do pokoju" : "Don't enter the room";
+    case "SLEEP_HABIT":
+      return pick(HABIT_SHORT[params.habit ?? "BEDTIME_ROUTINE"], locale);
+    case "BEDTIME_ROUTINE":
+      return isPl ? "Wieczorna rutyna" : "Bedtime routine";
+    default:
+      return "";
+  }
+}
+
 export const REASON_TEXT: Readonly<Record<string, Localized>> = {
   ILLNESS_PAUSE: {
     pl: "Dziecko chore — plan wstrzymany, wracamy po wyzdrowieniu.",

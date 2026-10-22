@@ -3,20 +3,28 @@
 import { useState } from "react";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import {
+  DAY_DETAIL_TAB_ORDER,
+  DayBubbles,
+  type DayDetailTab,
+} from "@/components/dashboard/DayBubbles";
+import { DayDetailSheet } from "@/components/dashboard/DayDetailSheet";
 import { DayModeGuidanceCard } from "@/components/dashboard/DayModeGuidanceCard";
 import { pastDayStripNowIso, shiftPhysiologicalDate } from "@/components/dashboard/dayHistory";
 import { FloatingActionBar } from "@/components/dashboard/FloatingActionBar";
 import { HeroWidget } from "@/components/dashboard/HeroWidget";
+import { LastNapPanel } from "@/components/dashboard/LastNapPanel";
 import { MorningNightSummaryBanner } from "@/components/dashboard/MorningNightSummaryBanner";
 import { PhysiologicalTimeline } from "@/components/dashboard/PhysiologicalTimeline";
 import { QuickEntryBottomSheet } from "@/components/dashboard/QuickEntryBottomSheet";
-import { SmartInsightCard } from "@/components/dashboard/SmartInsightCard";
+import { SleepBatteryIndicator } from "@/components/dashboard/SleepBatteryIndicator";
+import { isInsightShown, SmartInsightCard } from "@/components/dashboard/SmartInsightCard";
 import { TravelTimeZoneCard } from "@/components/dashboard/TravelTimeZoneCard";
 import { formatClock } from "@/components/dashboard/timelineMapping";
 import { useDashboardState } from "@/components/dashboard/useDashboardState";
 import { usePastDays } from "@/components/dashboard/usePastDays";
 import { WakeListenerCard } from "@/components/dashboard/WakeListenerCard";
-import { GoalPathCard } from "@/components/goals/GoalPathCard";
+import { countGoalTasks, GoalPathCard } from "@/components/goals/GoalPathCard";
 import { NightTipCard } from "@/components/goals/NightTipCard";
 import { useGoalState } from "@/components/goals/useGoalState";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -64,8 +72,21 @@ export default function DashboardPage() {
     setViewedDate(null);
     state.handleSelectChild(childId);
   };
+  const [detailTab, setDetailTab] = useState<DayDetailTab | null>(null);
   const isNightSleepActive =
     state.currentSleepLog?.type === "night" && state.currentSleepLog.status !== "completed";
+
+  const isSleepInProgress =
+    state.currentSleepLog !== null && state.currentSleepLog.status !== "completed";
+  const insightShown = isInsightShown(state.activeInsight, state.justAcceptedInsightId);
+  const availableTabs = DAY_DETAIL_TAB_ORDER.filter((tab) => {
+    if (tab === "goal") return Boolean(goalState.goal);
+    if (tab === "insight") return insightShown;
+    return true;
+  });
+  // Arkusz zamyka się sam, gdy jego zakładka znika (np. wniosek po „Działa”) lub zaczyna się sen
+  const openTab =
+    detailTab && !isSleepInProgress && availableTabs.includes(detailTab) ? detailTab : null;
 
   if (!child) {
     const message =
@@ -122,27 +143,9 @@ export default function DashboardPage() {
         onApply={state.handleApplyTravel}
         onFinishAdaptation={state.handleFinishTravelAdaptation}
       />
-      {/* Wybór nowego celu jest w /settings, żeby nie zaśmiecać pulpitu */}
-      {goalState.goal && (
-        <GoalPathCard
-          goal={goalState.goal}
-          daily={goalState.daily}
-          physiologicalDate={state.physiologicalDate}
-          error={goalState.error}
-          locale={locale}
-          onToggleTask={goalState.toggleTask}
-          onChangeStatus={goalState.changeStatus}
-        />
-      )}
       {isNightSleepActive && goalState.daily?.night_tip_json && (
         <NightTipCard tip={goalState.daily.night_tip_json} locale={locale} />
       )}
-      <SmartInsightCard
-        insight={state.activeInsight}
-        justAcceptedInsightId={state.justAcceptedInsightId}
-        onAccept={state.handleAcceptInsight}
-        onUndoAccept={state.handleUndoAcceptInsight}
-      />
       <MorningNightSummaryBanner
         wakingTimes={state.pendingMorningWakingReview}
         onSelectDuration={state.handleResolveMorningWaking}
@@ -156,11 +159,21 @@ export default function DashboardPage() {
         compassRangeDisplay={state.compassRangeDisplay}
         reasonDescription={state.reasonDescription}
         effectiveAgeDays={state.effectiveAgeDays}
-        batteryPercent={state.sleepBatteryPercent}
-        sleepRestedness={state.sleepRestedness}
-        sleepNeedsProfile={state.sleepNeedsProfile}
-        latestLastNapEndAt={state.latestLastNapEndAt}
         napWakeSuggestion={state.napWakeSuggestionDisplay}
+        bubbles={
+          <DayBubbles
+            data={{
+              restedness: state.sleepRestedness,
+              batteryPercent: state.sleepBatteryPercent,
+              goalTasks: goalState.goal ? countGoalTasks(goalState.daily) : null,
+              insightPending: insightShown
+                ? state.activeInsight?.id !== state.justAcceptedInsightId
+                : null,
+              lastNapEnd: state.latestLastNapEndAt,
+            }}
+            onOpen={setDetailTab}
+          />
+        }
       />
       {!state.isDemoData && state.currentSleepLog && (
         <WakeListenerCard
@@ -214,6 +227,41 @@ export default function DashboardPage() {
         onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
         onQuickBottle={state.handleQuickBottle}
         onQuickDiaper={state.handleQuickDiaper}
+      />
+      <DayDetailSheet
+        activeTab={openTab}
+        tabs={availableTabs}
+        onChangeTab={setDetailTab}
+        onClose={() => setDetailTab(null)}
+        panels={{
+          battery: (
+            <SleepBatteryIndicator
+              batteryPercent={state.sleepBatteryPercent}
+              sleepRestedness={state.sleepRestedness}
+              sleepNeedsProfile={state.sleepNeedsProfile}
+            />
+          ),
+          goal: goalState.goal ? (
+            <GoalPathCard
+              goal={goalState.goal}
+              daily={goalState.daily}
+              physiologicalDate={state.physiologicalDate}
+              error={goalState.error}
+              locale={locale}
+              onToggleTask={goalState.toggleTask}
+              onChangeStatus={goalState.changeStatus}
+            />
+          ) : null,
+          insight: (
+            <SmartInsightCard
+              insight={state.activeInsight}
+              justAcceptedInsightId={state.justAcceptedInsightId}
+              onAccept={state.handleAcceptInsight}
+              onUndoAccept={state.handleUndoAcceptInsight}
+            />
+          ),
+          nap: <LastNapPanel time={state.latestLastNapEndAt} />,
+        }}
       />
       <QuickEntryBottomSheet
         isOpen={isQuickEntryOpen}

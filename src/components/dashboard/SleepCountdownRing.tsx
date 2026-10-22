@@ -1,5 +1,5 @@
 import { Compass, Moon, Sparkles } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 
 interface SleepCountdownRingProps {
@@ -51,6 +51,8 @@ function SoftCompassContent({ compassRange }: { compassRange: string }) {
   );
 }
 
+const TOOLTIP_VISIBLE_MS = 4000;
+
 /**
  * Pierścień odliczający czas do kolejnego SweetSpot z obsługą trybu Anti-Orthosomnia.
  *
@@ -64,20 +66,39 @@ export function SleepCountdownRing({
   compassRangeDisplay,
   reasonDescription,
 }: SleepCountdownRingProps): ReactNode {
+  const { t } = useI18n();
+  const [isReasonVisible, setIsReasonVisible] = useState(false);
+  useEffect(() => {
+    if (!isReasonVisible) return;
+    const timer = setTimeout(() => setIsReasonVisible(false), TOOLTIP_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, [isReasonVisible]);
+
   return (
-    <div className="flex flex-col items-center justify-center my-2">
-      <div className="relative w-52 h-52 rounded-full border-2 border-amber-500/20 bg-gradient-to-b from-[#151B28] to-[#0E1420] flex items-center justify-center shadow-2xl shadow-amber-500/5 p-4">
+    <div className="relative flex flex-col items-center justify-center my-2">
+      <button
+        type="button"
+        onClick={() => setIsReasonVisible((visible) => !visible)}
+        aria-label={t("ring.reasonHint")}
+        aria-expanded={isReasonVisible}
+        className="relative w-52 h-52 rounded-full border-2 border-amber-500/20 bg-gradient-to-b from-[#151B28] to-[#0E1420] flex items-center justify-center shadow-2xl shadow-amber-500/5 p-4"
+      >
         <div className="absolute inset-1 rounded-full border border-dashed border-amber-400/20 animate-pulse pointer-events-none" />
         {isAntiOrthosomnia ? (
           <SoftCompassContent compassRange={compassRangeDisplay} />
         ) : (
           <ExactClockContent countdown={countdownDisplay} targetTime={sweetSpotTimeDisplay} />
         )}
-      </div>
-      <div className="mt-2.5 px-3 py-1 rounded-full bg-[#151B28] border border-[#263348] text-xs text-amber-300/90 flex items-center gap-1.5 shadow-sm">
-        <Moon className="w-3 h-3 text-amber-400" />
-        <span className="truncate max-w-[260px]">{reasonDescription}</span>
-      </div>
+      </button>
+      {isReasonVisible && (
+        <div
+          role="status"
+          className="absolute -bottom-3 z-10 px-3 py-1.5 rounded-xl bg-[#1E2738] border border-[#263348] text-sm text-amber-200 flex items-center gap-1.5 shadow-lg max-w-[280px]"
+        >
+          <Moon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>{reasonDescription}</span>
+        </div>
+      )}
     </div>
   );
 }

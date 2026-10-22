@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
-import type { SleepRestednessLevel } from "@/lib/sleep-engine";
 import type { SleepLogRecord } from "@/lib/types/database";
 import { ActiveSleepRemTimer } from "./ActiveSleepRemTimer";
 import { ActiveSleepTimer } from "./ActiveSleepTimer";
 import { NEWBORN_THRESHOLD_DAYS } from "./constants";
-import { SleepBatteryIndicator } from "./SleepBatteryIndicator";
 import { SleepCountdownRing } from "./SleepCountdownRing";
 
 interface HeroWidgetProps {
@@ -15,12 +13,10 @@ interface HeroWidgetProps {
   readonly compassRangeDisplay: string;
   readonly reasonDescription: string;
   readonly effectiveAgeDays: number;
-  readonly batteryPercent: number;
-  readonly sleepRestedness: SleepRestednessLevel;
-  readonly sleepNeedsProfile: "low_sleep_needs" | "average" | "high_sleep_needs";
-  readonly latestLastNapEndAt: string;
   /** Sugerowana pora wybudzenia z drzemki (HH:mm), gdy drzewo zaleca ograniczenie snu w dzień. */
   readonly napWakeSuggestion?: string | null;
+  /** Bąbelki skrótów dnia wokół pierścienia; nie pokazujemy ich podczas trwającego snu. */
+  readonly bubbles?: ReactNode;
 }
 
 /**
@@ -66,17 +62,22 @@ function ClockOrStopwatch(props: HeroWidgetProps): ReactNode {
 export function HeroWidget(props: HeroWidgetProps): ReactNode {
   const isNewborn = props.effectiveAgeDays < NEWBORN_THRESHOLD_DAYS;
   const isNightSleep = props.currentSleepLog?.type === "night";
+  const isAsleepOrFalling =
+    props.currentSleepLog !== null && props.currentSleepLog.status !== "completed";
 
   return (
     <section className="flex flex-col items-center gap-3 w-full my-2">
-      <ClockOrStopwatch {...props} />
-      {isNewborn && isNightSleep && <ActiveSleepRemTimer />}
-      <SleepBatteryIndicator
-        batteryPercent={props.batteryPercent}
-        sleepRestedness={props.sleepRestedness}
-        sleepNeedsProfile={props.sleepNeedsProfile}
-        latestLastNapEndAt={props.latestLastNapEndAt}
-      />
+      {isAsleepOrFalling ? (
+        <>
+          <ClockOrStopwatch {...props} />
+          {isNewborn && isNightSleep && <ActiveSleepRemTimer />}
+        </>
+      ) : (
+        <div className="relative w-full max-w-sm h-[17rem] flex items-center justify-center">
+          <ClockOrStopwatch {...props} />
+          {props.bubbles}
+        </div>
+      )}
     </section>
   );
 }
