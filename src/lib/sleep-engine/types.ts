@@ -73,6 +73,8 @@ export interface SleepLog {
   readonly nightWakings: readonly NightWakingEntry[];
   readonly isReboundSleep?: boolean;
   readonly ignoreInCalibration?: boolean;
+  /** Strefa IANA, w której powstał wpis (podróż); brak = stary wpis. */
+  readonly timeZone?: string;
 }
 
 export interface AgeBracketConfig {
@@ -209,6 +211,8 @@ export interface ChildEvaluationContext {
 export interface DayEvaluationContext {
   readonly tags?: readonly string[];
   readonly dayMode?: DayMode;
+  /** Zmiana strefy w podróży: wstrzymać drzewa zależne od godzin (CAT2–4). */
+  readonly pauseTimeDiagnostics?: boolean;
 }
 
 export interface CurrentMetricsContext {

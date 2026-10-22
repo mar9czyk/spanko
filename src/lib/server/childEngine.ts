@@ -5,12 +5,14 @@ import {
   calculateChronicDrive,
   calculateCircadianParameters,
   calculateEffectiveAgeDays,
+  collectCircadianSamples,
   DEFAULT_TIME_ZONE,
   evaluateAll7DiagnosticCategories,
   getAgeBracket,
-  getMinutesFromMidnightInTimeZone,
   resolvePhysiologicalDate,
+  resolveScheduleClock,
   resolveSleepMatrix,
+  type ScheduleClock,
 } from "@/lib/sleep-engine";
 import type {
   AgeBracketConfig,
@@ -41,30 +43,42 @@ export interface DiagnosticExtras {
 }
 
 /**
- * Wylicza przewidywaną porę snu nocnego (minuty od północy w strefie dziecka) z ostatnich
+ * Zegar harmonogramu dziecka (strefa do obliczeń i przestawianie po podróży).
+ *
+ * @param {ChildRecord} child - Dziecko
+ * @param {string} nowIso - Czas odniesienia
+ * @returns {ScheduleClock} Zegar harmonogramu
+ */
+export function resolveChildClock(child: ChildRecord, nowIso: string): ScheduleClock {
+  return resolveScheduleClock(child.timezone || DEFAULT_TIME_ZONE, child.travel_json, nowIso);
+}
+
+/**
+ * Wylicza przewidywaną porę snu nocnego (minuty od północy w zegarze harmonogramu) z ostatnich
  * porannych pobudek i faktycznych pór zaśnięcia.
  *
  * @param {readonly SleepLog[]} logs - Logi snu (dowolna kolejność)
  * @param {AgeBracketConfig} bracket - Przedział wiekowy
- * @param {string} timeZone - Strefa IANA dziecka
+ * @param {ScheduleClock} clock - Zegar harmonogramu
  * @returns {number} Przewidywana pora snu w minutach od północy
  */
 export function resolveBiologicalBedtimeMin(
   logs: readonly SleepLog[],
   bracket: AgeBracketConfig,
-  timeZone: string,
+  clock: ScheduleClock,
 ): number {
-  const recentNights = logs
+  const nights = logs
     .filter((l) => l.type === "night" && l.status === "completed" && l.wokeUpAt)
     .toSorted((a, b) => new Date(b.putDownAt).getTime() - new Date(a.putDownAt).getTime())
-    .slice(0, MORNING_WAKE_SAMPLE_SIZE);
+    .map((l) => ({
+      wokeUpAt: l.wokeUpAt ?? l.putDownAt,
+      fellAsleepAt: l.fellAsleepAt || l.putDownAt,
+      timeZone: l.timeZone,
+    }));
+  const samples = collectCircadianSamples(nights, clock, MORNING_WAKE_SAMPLE_SIZE);
   return calculateCircadianParameters({
-    morningWakeTimesLast5DaysMinutesFromMidnight: recentNights.map((l) =>
-      getMinutesFromMidnightInTimeZone(l.wokeUpAt ?? l.putDownAt, timeZone),
-    ),
-    bedtimesLast5DaysMinutesFromMidnight: recentNights.map((l) =>
-      getMinutesFromMidnightInTimeZone(l.fellAsleepAt || l.putDownAt, timeZone),
-    ),
+    morningWakeTimesLast5DaysMinutesFromMidnight: samples.wakeMinutes,
+    bedtimesLast5DaysMinutesFromMidnight: samples.bedtimeMinutes,
     bracket,
   }).biologicalBedtimeMinFromMidnight;
 }
@@ -87,10 +101,10 @@ export function buildDiagnosticInput(params: {
   sleepNeedsProfile: SleepNeedsProfile;
   extras?: DiagnosticExtras;
 }): DiagnosticEvaluationInput {
-  const timeZone = params.child.timezone || DEFAULT_TIME_ZONE;
+  const clock = resolveChildClock(params.child, params.nowIso);
   return {
     nowIso: params.nowIso,
-    timeZone,
+    timeZone: clock.timeZone,
     child: {
       birthDateIso: params.child.birth_date,
       dueDateIso: params.child.due_date,
@@ -100,6 +114,7 @@ export function buildDiagnosticInput(params: {
     todayContext: {
       dayMode: params.child.active_day_mode,
       tags: params.extras?.todayTags ?? [],
+      pauseTimeDiagnostics: clock.pauseTimeDiagnostics,
     },
     recentSleepLogs: params.recentSleepLogs,
     dailyTotalsLast14DaysMin: params.dailyTotals,
@@ -111,7 +126,7 @@ export function buildDiagnosticInput(params: {
       biologicalBedtimeMinFromMidnight: resolveBiologicalBedtimeMin(
         params.recentSleepLogs,
         params.bracket,
-        timeZone,
+        clock,
       ),
     },
   };
@@ -180,7 +195,7 @@ function resolveTodayPhysiologicalDate(
   const latestNight = sleepRecords.find((l) => l.type === "night");
   return resolvePhysiologicalDate({
     eventTimestamp: nowIso,
-    timeZone: child.timezone || DEFAULT_TIME_ZONE,
+    timeZone: resolveChildClock(child, nowIso).timeZone,
     activeOrRecentNightSleep: latestNight
       ? {
           physiologicalDate: latestNight.physiological_date,
