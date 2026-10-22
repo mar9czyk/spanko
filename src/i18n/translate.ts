@@ -44,7 +44,7 @@ export function translateDynamic(locale: Locale, key: string, fallback: string):
  * jest ignorowana i używany jest tekst z kodu.
  *
  * @param {Locale} locale - Język
- * @param {string} key - Klucz tłumaczenia (np. `tag.ząbkowanie`)
+ * @param {string} key - Klucz tłumaczenia (np. `tag.teething`)
  * @param {string} fallback - Tekst, gdy klucza brak
  * @param {Readonly<Record<string, string>>} overrides - Nadpisania z bazy (klucz → treść)
  * @returns {string} Tekst do wyświetlenia

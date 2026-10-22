@@ -78,3 +78,49 @@ export function evaluateProgress(input: ProgressInput): ProgressDecision {
     ? decide("hold", "CONSOLIDATING")
     : decide("advance", "STEP_COMPLETED", stepIndex + 1);
 }
+
+export interface GoalProgressPoint {
+  readonly date: string;
+  /** Wartość metryki celu; null, gdy doba bez pomiaru (brak danych lub choroba). */
+  readonly value: number | null;
+  readonly illness: boolean;
+}
+
+export interface GoalProgressSeries {
+  readonly goal: GoalType;
+  /** Punkt odniesienia sprzed startu celu; null, gdy nie dało się go policzyć. */
+  readonly baseline: number | null;
+  readonly target: number;
+  readonly points: readonly GoalProgressPoint[];
+}
+
+/**
+ * Zamienia dobowe metryki od startu celu na serię do wykresu „metryka vs baseline”.
+ * Doby z chorobą lub bez danych dostają `value: null` (nie wchodzą do linii, jak w ocenie postępu).
+ *
+ * @param {GoalType} goal - Cel
+ * @param {GoalBaseline} baseline - Baseline zapisany przy starcie celu
+ * @param {readonly DailyGoalMetrics[]} days - Doby, rosnąco po dacie
+ * @param {string} startedOn - Doba startu celu (YYYY-MM-DD); wcześniejsze doby są pomijane
+ * @returns {GoalProgressSeries} Seria punktów z baseline i wartością docelową
+ */
+export function buildGoalProgressSeries(
+  goal: GoalType,
+  baseline: GoalBaseline,
+  days: readonly DailyGoalMetrics[],
+  startedOn: string,
+): GoalProgressSeries {
+  const points = days
+    .filter((day) => day.date >= startedOn)
+    .map((day) => ({
+      date: day.date,
+      value: day.hasData && !day.illness ? goalMetricValue(goal, day) : null,
+      illness: day.illness,
+    }));
+  return {
+    goal,
+    baseline: baselineMetricValue(goal, baseline),
+    target: GOAL_TARGETS[goal],
+    points,
+  };
+}

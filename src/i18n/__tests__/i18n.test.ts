@@ -43,7 +43,7 @@ describe("translate", () => {
   });
 
   it("translateDynamic zwraca fallback dla nieznanego klucza (np. własny tag)", () => {
-    expect(translateDynamic("en", "tag.ząbkowanie", "x")).toBe("teething");
+    expect(translateDynamic("en", "tag.teething", "x")).toBe("teething");
     expect(translateDynamic("en", "tag.mój_tag", "mój_tag")).toBe("mój_tag");
   });
 });

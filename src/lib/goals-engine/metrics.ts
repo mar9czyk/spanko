@@ -2,6 +2,7 @@
  * Budowanie dobowych metryk celów z logów snu i karmień oraz wyliczanie punktu odniesienia.
  */
 
+import { hasDayTag } from "../sleep-engine/dayTags";
 import { type FeedingEvent, summarizeNightFeedings } from "../sleep-engine/feedingSignals";
 import { parseTimestampToMilliseconds } from "../sleep-engine/physiologicalDay";
 import type { InterventionType, SleepLog } from "../sleep-engine/types";
@@ -39,7 +40,7 @@ function mode<T>(values: readonly T[]): T | null {
  */
 export function buildDailyGoalMetrics(input: DailyMetricsInput): DailyGoalMetrics {
   const { date, nightLog, feedings, tags } = input;
-  const illness = tags.some((t) => ILLNESS_TAGS.includes(t));
+  const illness = ILLNESS_TAGS.some((key) => hasDayTag(tags, key));
   if (nightLog?.status !== "completed" || !nightLog.wokeUpAt) {
     return {
       date,

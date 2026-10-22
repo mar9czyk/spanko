@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DEFAULT_GOAL_COACH_PROMPT } from "@/lib/goal-coach";
 import {
   DEFAULT_OPENROUTER_FAST_MODEL,
   DEFAULT_OPENROUTER_REASONING_MODEL,
@@ -30,6 +31,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         fastModel: DEFAULT_OPENROUTER_FAST_MODEL,
         reasoningModel: DEFAULT_OPENROUTER_REASONING_MODEL,
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        goalCoachPrompt: DEFAULT_GOAL_COACH_PROMPT,
         matrix: DEFAULT_SLEEP_MATRIX,
       },
     });

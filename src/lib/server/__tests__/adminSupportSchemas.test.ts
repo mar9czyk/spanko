@@ -34,7 +34,7 @@ describe("InviteActionSchema", () => {
 describe("AppContentUpsertSchema", () => {
   it("dopuszcza polskie znaki w kluczu i odrzuca spacje oraz znaki specjalne", () => {
     expect(
-      AppContentUpsertSchema.safeParse({ key: "tag.ząbkowanie", value_pl: "ząbki" }).success,
+      AppContentUpsertSchema.safeParse({ key: "tag.teething", value_pl: "ząbki" }).success,
     ).toBe(true);
     expect(AppContentUpsertSchema.safeParse({ key: "tag z spacją", value_pl: "x" }).success).toBe(
       false,
@@ -93,10 +93,10 @@ describe("schematy flag funkcji", () => {
 
 describe("translateDynamicWithOverrides", () => {
   it("używa nadpisania z bazy tylko dla polskiego i ignoruje puste wartości", () => {
-    const overrides = { "tag.ząbkowanie": "ząbki!", "tag.spacer": "   " };
-    expect(translateDynamicWithOverrides("pl", "tag.ząbkowanie", "x", overrides)).toBe("ząbki!");
-    expect(translateDynamicWithOverrides("en", "tag.ząbkowanie", "x", overrides)).toBe("teething");
-    expect(translateDynamicWithOverrides("pl", "tag.spacer", "x", overrides)).toBe("spacer");
+    const overrides = { "tag.teething": "ząbki!", "tag.walk": "   " };
+    expect(translateDynamicWithOverrides("pl", "tag.teething", "x", overrides)).toBe("ząbki!");
+    expect(translateDynamicWithOverrides("en", "tag.teething", "x", overrides)).toBe("teething");
+    expect(translateDynamicWithOverrides("pl", "tag.walk", "x", overrides)).toBe("spacer");
   });
 
   it("zwraca fallback, gdy nie ma ani nadpisania, ani tłumaczenia", () => {

@@ -15,6 +15,7 @@ export const AdminSettingsUpdateSchema = z
     openrouter_fast_model: z.string().trim().max(MAX_MODEL_NAME_LENGTH).optional(),
     openrouter_reasoning_model: z.string().trim().max(MAX_MODEL_NAME_LENGTH).optional(),
     system_prompt_insights: z.string().max(MAX_PROMPT_LENGTH).optional(),
+    system_prompt_goal_coach: z.string().max(MAX_PROMPT_LENGTH).optional(),
     sleep_matrix_override_json: z.unknown().nullable().optional(),
     /** Notatka do wersji matrycy (nie jest zapisywana w admin_settings) */
     sleep_matrix_note: z.string().trim().max(300).optional(),

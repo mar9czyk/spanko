@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { SANDBOX_SAMPLES } from "@/lib/sandboxSamples";
 import { adminRequest, jsonBody } from "./adminApi";
+import { GoalCoachPromptSection } from "./GoalCoachPromptSection";
 import { PromptHistory } from "./PromptHistory";
 import { Field, inputClass, PrimaryButton, StatusMessage } from "./ui";
 import { useAdminSettings } from "./useAdminSettings";
@@ -346,6 +347,13 @@ export function SettingsTab(): ReactNode {
       </PrimaryButton>
       {promptMessage && <p className="text-xs text-slate-300">{promptMessage}</p>}
       <PromptHistory refreshKey={promptRefresh} />
+
+      <GoalCoachPromptSection
+        savedPrompt={data.settings?.system_prompt_goal_coach ?? ""}
+        defaultPrompt={data.defaults.goalCoachPrompt}
+        isSaving={isSaving}
+        onSave={(value) => save({ system_prompt_goal_coach: value })}
+      />
 
       <section className="rounded-xl border border-violet-500/20 bg-[#151B28] p-3 flex flex-col gap-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-300">

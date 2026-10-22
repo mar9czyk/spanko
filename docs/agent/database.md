@@ -65,11 +65,11 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `feeding_type` (select: `breast` | `bottle` | `solid` | `none`, default: `none`)
 - `bottle_ml` (number, nullable)
 - `breast_side` (select: `left` | `right` | `both` | `none`, default: `none`)
-- `tags` (json array: `['ząbkowanie', 'gorączka', 'infekcja_ucha', 'katar', 'biegunka_wymioty', 'skok_rozwojowy', 'spacer', 'ekran_przed_snem', 'goście']`)
+- `tags` (json array: `['teething', 'fever', 'ear_infection', 'runny_nose', 'gastro', 'growth_spurt', 'walk', 'vaccination', 'travel', 'daylight', 'visitors']`)
 - `event_type` (select: `feeding` | `diaper` | `tag`, opcjonalne — stare rekordy wnioskowane z `feeding_type`)
 - `bottle_content` (select: `breast_milk` | `formula`), `breast_left_min` / `breast_right_min` (number, minuty karmienia piersią)
 - `diaper_kind` (select: `wet` | `dirty` | `both`)
-- Tagi dnia pozostają kluczami PL (np. `ząbkowanie`, `szczepienie`, `podróż`, `światło_dzienne`) — silnik od nich zależy; etykiety UI tłumaczy Faza 10.
+- Tagi dnia zapisujemy kluczami neutralnymi (EN, `src/lib/sleep-engine/dayTags.ts`); stare wpisy z kluczami PL (`ząbkowanie`, `gorączka`…) silnik i UI mapują przez `normalizeDayTag`, więc migracja danych nie jest potrzebna. Etykiety w UI: `tag.<klucz>`.
 - `notes` (string, max 500 znaków)
 
 #### 6. `child_insights` (Ewolucyjna Baza Wniosków i Reguł Dziecka)

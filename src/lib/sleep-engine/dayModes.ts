@@ -8,15 +8,16 @@
  * Progi czerwonych flag (NICE NG143, NHS, AAP) są wytyczną; reszta liczb to heurystyka Spanko.
  */
 
+import { hasDayTag } from "./dayTags";
 import type { DailySleepSummary, DayMode } from "./types";
 
 /** Tagi doby, które same włączają logikę choroby (ząbkowanie nie, Azevedo 2015, Macknin 2000). */
 export const ILLNESS_DAY_TAGS: readonly string[] = [
-  "gorączka",
-  "infekcja_ucha",
-  "szczepienie",
-  "katar",
-  "biegunka_wymioty",
+  "fever",
+  "ear_infection",
+  "vaccination",
+  "runny_nose",
+  "gastro",
 ];
 
 /** Poniżej 3 mies. każda gorączka ≥38°C to stan czerwony (NICE NG143). */
@@ -70,7 +71,7 @@ export interface DayModeGuidance {
  * @returns {boolean} Czy stosować logikę choroby
  */
 export function isIllnessDay(dayMode: DayMode | undefined, tags: readonly string[]): boolean {
-  return dayMode === "illness_regression" || tags.some((t) => ILLNESS_DAY_TAGS.includes(t));
+  return dayMode === "illness_regression" || ILLNESS_DAY_TAGS.some((key) => hasDayTag(tags, key));
 }
 
 /**
@@ -92,11 +93,11 @@ export function resolveDayModeGuidance(params: {
 
   if (isIllnessDay(dayMode, tags)) {
     const specific: GuidanceTopic[] = [];
-    if (tags.includes("gorączka")) specific.push("fever");
-    if (tags.includes("infekcja_ucha")) specific.push("ear");
-    if (tags.includes("katar")) specific.push("cold");
-    if (tags.includes("biegunka_wymioty")) specific.push("gastro");
-    if (tags.includes("szczepienie")) specific.push("vaccination");
+    if (hasDayTag(tags, "fever")) specific.push("fever");
+    if (hasDayTag(tags, "ear_infection")) specific.push("ear");
+    if (hasDayTag(tags, "runny_nose")) specific.push("cold");
+    if (hasDayTag(tags, "gastro")) specific.push("gastro");
+    if (hasDayTag(tags, "vaccination")) specific.push("vaccination");
     return {
       mode: "illness",
       topics: ["illness_general", ...specific, "medicines", "unsafe", "back_to_plan"],

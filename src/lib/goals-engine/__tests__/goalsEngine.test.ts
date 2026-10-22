@@ -3,7 +3,7 @@ import type { SleepLog } from "../../sleep-engine/types";
 import { buildDailyTasks, buildNightTip } from "../dailyTasks";
 import { buildDailyGoalMetrics, computeBaseline } from "../metrics";
 import { FERBER_INTERVALS_MIN, generatePlan, stepIndexForDay } from "../plans";
-import { evaluateProgress } from "../progress";
+import { buildGoalProgressSeries, evaluateProgress } from "../progress";
 import { evaluateReadiness } from "../readiness";
 import type { DailyGoalMetrics, GoalBaseline, GoalMethod, GoalType } from "../types";
 
@@ -435,5 +435,48 @@ describe("buildDailyGoalMetrics / computeBaseline", () => {
     expect(result.dayCount).toBe(7);
     expect(result.avgNightWakings).toBe(2);
     expect(result.dominantRung).toBe("feed");
+  });
+});
+
+describe("buildGoalProgressSeries", () => {
+  const day = (date: string, nightWakings: number, extra: Partial<DailyGoalMetrics> = {}) =>
+    ({
+      date,
+      hasData: true,
+      nightWakings,
+      nightFeedCount: 0,
+      nightMilkMl: 0,
+      sleepOnsetLatencyMin: null,
+      independentOnset: null,
+      dominantIntervention: null,
+      illness: false,
+      ...extra,
+    }) satisfies DailyGoalMetrics;
+  const baseline = {
+    dayCount: 7,
+    avgNightWakings: 3.5,
+    avgNightFeedCount: 2,
+    avgNightMilkMl: 0,
+    avgLatencyMin: null,
+    dominantRung: null,
+  } as const;
+
+  it("pomija doby sprzed startu, a choroba i brak danych dają null", () => {
+    const series = buildGoalProgressSeries(
+      "reduce_night_wakings",
+      baseline,
+      [
+        day("2026-04-01", 5),
+        day("2026-04-02", 3),
+        day("2026-04-03", 4, { illness: true }),
+        day("2026-04-04", 0, { hasData: false }),
+        day("2026-04-05", 2),
+      ],
+      "2026-04-02",
+    );
+    expect(series.baseline).toBe(3.5);
+    expect(series.target).toBe(1);
+    expect(series.points.map((p) => p.value)).toEqual([3, null, null, 2]);
+    expect(series.points[1]?.illness).toBe(true);
   });
 });

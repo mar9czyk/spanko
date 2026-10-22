@@ -1,4 +1,5 @@
 import { isIllnessDay } from "./dayModes";
+import { hasDayTag } from "./dayTags";
 import {
   getMinutesFromMidnightInTimeZone,
   hasUtcOffsetChangedWithinDays,
@@ -103,7 +104,7 @@ export const REGRESSION_8_10_MAX_DAYS = 330;
 export const REGRESSION_18_24_MIN_DAYS = 540;
 export const REGRESSION_18_24_MAX_DAYS = 730;
 /** CAT5: tagi doby włączające tryb choroby. Ząbkowanie ≠ choroba (Azevedo 2015). */
-export const TEETHING_DAY_TAG = "ząbkowanie";
+export const TEETHING_DAY_TAG = "teething";
 /** CAT6: budzenie z drzemki dziennej noworodka po 2 h. */
 export const NEWBORN_MAX_NAP_MINUTES = 120; // heurystyka
 export const NEWBORN_LONG_NAP_MIN_COUNT = 2;
@@ -995,7 +996,7 @@ export function evaluateCat5RegressionsAndCrisis(
     };
   }
 
-  if ((input.todayContext?.tags ?? []).includes(TEETHING_DAY_TAG)) return buildTeethingResult();
+  if (hasDayTag(input.todayContext?.tags ?? [], TEETHING_DAY_TAG)) return buildTeethingResult();
 
   const regressionResult = checkDevelopmentalRegression(input);
   if (regressionResult) return regressionResult;

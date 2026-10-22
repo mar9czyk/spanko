@@ -3,6 +3,8 @@
  */
 
 export * from "./dayModes";
+export * from "./dayTags";
+export * from "./diagnosisTextsEn";
 export * from "./diagnosticTrees";
 export * from "./feedingSignals";
 export * from "./insightOverride";

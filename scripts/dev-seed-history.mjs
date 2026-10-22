@@ -80,10 +80,10 @@ const WAKING_TIMES = [
   [1, 0],
 ];
 const TAG_BY_DAYS_AGO = {
-  17: "ząbkowanie",
-  16: "ząbkowanie",
-  12: "szczepienie",
-  9: "skok_rozwojowy",
+  17: "teething",
+  16: "teething",
+  12: "vaccination",
+  9: "growth_spurt",
 };
 
 const created = { logs: 0, context: 0 };

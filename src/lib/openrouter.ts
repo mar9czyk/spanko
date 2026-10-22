@@ -409,16 +409,20 @@ export function createDeterministicFallbackInsight(
     };
   }
 
+  const isEnglish = context.locale === "en";
   return {
     category: "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
     diagnosis_code: "HEALTHY_SLEEP_MAINTENANCE",
     status: "active",
-    title: "Stabilny rytm snu dziecka",
-    explanation:
-      "Bateria snu i okna czuwania mieszczą się w normie rozwojowej. Kontynuuj obecną rutynę wyciszania.",
+    title: isEnglish ? "Stable sleep rhythm" : "Stabilny rytm snu dziecka",
+    explanation: isEnglish
+      ? "The sleep battery and wake windows are within the developmental norm. Keep up your current wind-down routine."
+      : "Bateria snu i okna czuwania mieszczą się w normie rozwojowej. Kontynuuj obecną rutynę wyciszania.",
     algorithm_override_json: {},
     confidence_score: DEFAULT_CONFIDENCE_SCORE,
-    clinical_action: "Utrzymuj stałą porę pobudki porannej.",
+    clinical_action: isEnglish
+      ? "Keep a consistent morning wake-up time."
+      : "Utrzymuj stałą porę pobudki porannej.",
   };
 }
 

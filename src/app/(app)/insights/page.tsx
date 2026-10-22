@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ActiveInsightsSection } from "@/components/insights/ActiveInsightsSection";
+import { GoalProgressSection } from "@/components/insights/GoalProgressSection";
 import { HypothesesSection } from "@/components/insights/HypothesesSection";
 import { InsightCorrectionModal } from "@/components/insights/InsightCorrectionModal";
 import { InsightsHeader } from "@/components/insights/InsightsHeader";
@@ -58,6 +59,7 @@ export default function InsightsPage(): ReactNode {
       {loadStatus === "empty" && <p className="text-sm text-slate-400">{t("dashboard.noChild")}</p>}
 
       <SafeSleepNotice child={child} />
+      <GoalProgressSection child={child} />
       <SleepFoundationsCard child={child} />
 
       <ActiveInsightsSection

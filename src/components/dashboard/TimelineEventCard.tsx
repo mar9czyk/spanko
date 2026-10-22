@@ -2,6 +2,7 @@ import { Apple, Droplets, Milk, Moon, Pencil, Sparkles, Tag } from "lucide-react
 import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatDuration, formatVolume } from "@/i18n/translate";
+import { normalizeDayTag } from "@/lib/sleep-engine/dayTags";
 import type {
   TimelineDiaperEvent,
   TimelineEvent,
@@ -168,7 +169,7 @@ function EventCardBody({ event }: { event: TimelineEvent }): ReactNode {
       <div>
         <span className="text-sm font-semibold text-slate-200 block">
           {t("timeline.tags", {
-            tags: event.tags.map((tag) => tDynamic(`tag.${tag}`, tag)).join(", "),
+            tags: event.tags.map((tag) => tDynamic(`tag.${normalizeDayTag(tag)}`, tag)).join(", "),
           })}
         </span>
         <span className="text-sm text-slate-400 tabular-nums">{event.time}</span>

@@ -14,6 +14,7 @@ import {
   resolveInsightStatus,
   runDeterministicEngine,
 } from "@/lib/server/childEngine";
+import { localizeDiagnosticTexts } from "@/lib/sleep-engine";
 import type { ChildInsightRecord, ChildRecord, SleepLogRecord } from "@/lib/types/database";
 
 export const MINUTES_PER_HOUR = 60;
@@ -178,24 +179,28 @@ export async function POST(request: Request): Promise<NextResponse> {
       extras,
     });
 
+    const locale = body.locale === "en" ? "en" : "pl";
     const evaluationContext: InsightEvaluationContext = {
-      locale: body.locale === "en" ? "en" : "pl",
+      locale,
       childAgeDisplay: `${Math.round(effectiveAgeDays / 30)} msc`,
       effectiveAgeDays,
       activeDayMode: child.active_day_mode,
       chronicSleepDebtMin: chronicDrive.chronicSleepDebtMin,
       sleepBatteryPercent: chronicDrive.sleepBatteryPercent,
       sleepNeedsProfile: chronicDrive.sleepNeedsProfile,
-      triggeredDiagnostics: significantDiagnostics.map((diag) => ({
-        category: diag.category,
-        diagnosisCode: diag.diagnosisCode,
-        severity: diag.severity,
-        title: diag.title,
-        explanation: diag.explanation,
-        clinicalAction: diag.clinicalAction,
-        confidenceScore: diag.confidenceScore,
-        algorithmOverride: diag.algorithmOverride ? { ...diag.algorithmOverride } : undefined,
-      })),
+      triggeredDiagnostics: significantDiagnostics.map((rawDiag) => {
+        const diag = localizeDiagnosticTexts(rawDiag, locale);
+        return {
+          category: diag.category,
+          diagnosisCode: diag.diagnosisCode,
+          severity: diag.severity,
+          title: diag.title,
+          explanation: diag.explanation,
+          clinicalAction: diag.clinicalAction,
+          confidenceScore: diag.confidenceScore,
+          algorithmOverride: diag.algorithmOverride ? { ...diag.algorithmOverride } : undefined,
+        };
+      }),
       insightStatus: resolveInsightStatus(
         significantDiagnostics[0],
         existingActiveInsight?.diagnosis_code,
