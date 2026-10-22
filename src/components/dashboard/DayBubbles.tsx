@@ -24,12 +24,28 @@ interface DayBubblesProps {
   readonly onOpen: (tab: DayDetailTab) => void;
 }
 
-/** Pozycje bąbelków wokół pierścienia (rogi kontenera). */
-const ORBIT_SLOT: Record<DayDetailTab, string> = {
-  battery: "left-0 top-2",
-  goal: "right-0 top-2",
-  insight: "left-0 bottom-2",
-  nap: "right-0 bottom-2",
+/**
+ * Pozycje bąbelków na przekątnych pierścienia (45°, tuż za jego krawędzią); środek kontenera
+ * to środek pierścienia (r = 104 px, bąbelek 64 px, odstęp 8 px).
+ */
+const ORBIT_DIAGONAL_PX = Math.round((104 + 8) * Math.SQRT1_2) + 32;
+const ORBIT_SLOT: Record<DayDetailTab, { left: string; top: string }> = {
+  battery: {
+    left: `calc(50% - ${ORBIT_DIAGONAL_PX}px)`,
+    top: `calc(50% - ${ORBIT_DIAGONAL_PX}px)`,
+  },
+  goal: {
+    left: `calc(50% + ${ORBIT_DIAGONAL_PX - 64}px)`,
+    top: `calc(50% - ${ORBIT_DIAGONAL_PX}px)`,
+  },
+  insight: {
+    left: `calc(50% - ${ORBIT_DIAGONAL_PX}px)`,
+    top: `calc(50% + ${ORBIT_DIAGONAL_PX - 64}px)`,
+  },
+  nap: {
+    left: `calc(50% + ${ORBIT_DIAGONAL_PX - 64}px)`,
+    top: `calc(50% + ${ORBIT_DIAGONAL_PX - 64}px)`,
+  },
 };
 
 interface BubbleProps {
@@ -40,7 +56,7 @@ interface BubbleProps {
   readonly valueClass: string;
   readonly hasDot?: boolean;
   readonly dotLabel?: string;
-  readonly className: string;
+  readonly style: { left: string; top: string };
   readonly onOpen: (tab: DayDetailTab) => void;
 }
 
@@ -58,7 +74,7 @@ function Bubble({
   valueClass,
   hasDot,
   dotLabel,
-  className,
+  style,
   onOpen,
 }: BubbleProps): ReactNode {
   return (
@@ -66,7 +82,8 @@ function Bubble({
       type="button"
       onClick={() => onOpen(tab)}
       aria-label={hasDot && dotLabel ? `${label}, ${dotLabel}` : label}
-      className={`relative w-16 h-16 rounded-full bg-[#151B28] border border-[#263348] flex flex-col items-center justify-center gap-0.5 shadow-md active:scale-95 transition-transform ${className}`}
+      style={style}
+      className={`absolute w-16 h-16 rounded-full bg-[#151B28] border border-[#263348] flex flex-col items-center justify-center gap-0.5 shadow-md active:scale-95 transition-transform`}
     >
       {icon}
       <span className={`text-sm font-semibold tabular-nums leading-none ${valueClass}`}>
@@ -91,7 +108,6 @@ function Bubble({
  */
 export function DayBubbles({ data, onOpen }: DayBubblesProps): ReactNode {
   const { t } = useI18n();
-  const slot = (tab: DayDetailTab): string => `absolute ${ORBIT_SLOT[tab]}`;
   return (
     <>
       <Bubble
@@ -100,7 +116,7 @@ export function DayBubbles({ data, onOpen }: DayBubblesProps): ReactNode {
         icon={<Battery className="w-5 h-5 text-violet-400" />}
         value={`${restednessSegmentCount(data.batteryPercent)}/5`}
         valueClass={RESTEDNESS_TEXT_CLASS[data.restedness]}
-        className={slot("battery")}
+        style={ORBIT_SLOT.battery}
         onOpen={onOpen}
       />
       {data.goalTasks && (
@@ -110,7 +126,7 @@ export function DayBubbles({ data, onOpen }: DayBubblesProps): ReactNode {
           icon={<Target className="w-5 h-5 text-amber-400" />}
           value={data.goalTasks.total > 0 ? `${data.goalTasks.done}/${data.goalTasks.total}` : "–"}
           valueClass="text-ink"
-          className={slot("goal")}
+          style={ORBIT_SLOT.goal}
           onOpen={onOpen}
         />
       )}
@@ -123,7 +139,7 @@ export function DayBubbles({ data, onOpen }: DayBubblesProps): ReactNode {
           valueClass="text-ink"
           hasDot={data.insightPending}
           dotLabel={t("bubble.insightNew")}
-          className={slot("insight")}
+          style={ORBIT_SLOT.insight}
           onOpen={onOpen}
         />
       )}
@@ -133,7 +149,7 @@ export function DayBubbles({ data, onOpen }: DayBubblesProps): ReactNode {
         icon={<Moon className="w-5 h-5 text-amber-400" />}
         value={data.lastNapEnd}
         valueClass="text-ink"
-        className={slot("nap")}
+        style={ORBIT_SLOT.nap}
         onOpen={onOpen}
       />
     </>
