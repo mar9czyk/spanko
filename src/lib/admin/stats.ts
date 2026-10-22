@@ -7,8 +7,22 @@ export interface AiCallStat {
   readonly kind: string;
   readonly prompt_tokens?: number;
   readonly completion_tokens?: number;
+  readonly cost_usd?: number;
+  readonly user_id?: string;
   readonly latency_ms?: number;
   readonly household_id?: string;
+}
+
+/**
+ * Koszt wywołania w USD: wartość z odpowiedzi OpenRouter (`cost_usd`), a gdy jej brak — szacunek z tabeli cen.
+ *
+ * @param {AiCallStat} call - Wpis z ai_calls
+ * @returns {number} Koszt w USD
+ */
+export function callCostUsd(call: AiCallStat): number {
+  return typeof call.cost_usd === "number"
+    ? call.cost_usd
+    : estimateCallCostUsd(call.model, call.prompt_tokens, call.completion_tokens);
 }
 
 export interface AiWindowStats {
@@ -64,11 +78,7 @@ export function aggregateAiWindow(
   const invalidJson = inWindow.filter((call) => call.status === "invalid_json").length;
   const withLatency = inWindow.filter((call) => (call.latency_ms ?? 0) > 0);
   const totalLatency = withLatency.reduce((sum, call) => sum + (call.latency_ms ?? 0), 0);
-  const costUsd = inWindow.reduce(
-    (sum, call) =>
-      sum + estimateCallCostUsd(call.model, call.prompt_tokens, call.completion_tokens),
-    0,
-  );
+  const costUsd = inWindow.reduce((sum, call) => sum + callCostUsd(call), 0);
   return {
     calls: inWindow.length,
     errors,
@@ -98,11 +108,7 @@ export function buildDailySeries(
     const dayCalls = calls.filter(
       (call) => call.kind !== "sandbox" && call.created.slice(0, 10) === date,
     );
-    const costUsd = dayCalls.reduce(
-      (sum, call) =>
-        sum + estimateCallCostUsd(call.model, call.prompt_tokens, call.completion_tokens),
-      0,
-    );
+    const costUsd = dayCalls.reduce((sum, call) => sum + callCostUsd(call), 0);
     points.push({
       date,
       calls: dayCalls.length,

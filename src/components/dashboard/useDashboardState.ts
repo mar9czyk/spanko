@@ -522,6 +522,8 @@ export function useDashboardState() {
       ignore_in_calibration: false,
       // Strefa, w której powstał wpis: po podróży godziny starych nocy zostają poprawne
       timezone: child.timezone || DEFAULT_TIME_ZONE,
+      // Autor wpisu — do telemetrii per użytkownik w panelu admina
+      created_by: pb.authStore.record?.id,
     };
     if (isDemoData) {
       setCurrentSleepLog({

@@ -537,8 +537,8 @@
     "id": "pbc_sleeplogs00",
     "listRule": "@request.auth.is_blocked = false && @request.auth.household_id = child_id.household_id",
     "viewRule": "@request.auth.is_blocked = false && @request.auth.household_id = child_id.household_id",
-    "createRule": "@request.auth.is_blocked = false && @request.auth.household_id = child_id.household_id",
-    "updateRule": "@request.auth.is_blocked = false && @request.auth.household_id = child_id.household_id",
+    "createRule": "@request.auth.is_blocked = false && @request.auth.household_id = child_id.household_id && @request.body.created_by = @request.auth.id",
+    "updateRule": "@request.auth.is_blocked = false && @request.auth.household_id = child_id.household_id && @request.body.created_by:isset = false",
     "deleteRule": "@request.auth.is_blocked = false && @request.auth.household_id = child_id.household_id",
     "name": "sleep_logs",
     "type": "base",
@@ -717,6 +717,20 @@
         "type": "text"
       },
       {
+        "cascadeDelete": false,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "sl_created_by_fld_",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "created_by",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      },
+      {
         "hidden": false,
         "id": "autodate_created_pbc_sleeplogs",
         "name": "created",
@@ -738,7 +752,8 @@
       }
     ],
     "indexes": [
-      "CREATE INDEX `idx_sleep_logs_child_phys_date` ON `sleep_logs` (`child_id`, `physiological_date`)"
+      "CREATE INDEX `idx_sleep_logs_child_phys_date` ON `sleep_logs` (`child_id`, `physiological_date`)",
+      "CREATE INDEX `idx_sleep_logs_created_by` ON `sleep_logs` (`created_by`, `created`)"
     ],
     "system": false
   },
@@ -1617,6 +1632,33 @@
         "required": false
       },
       {
+        "cascadeDelete": false,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "aic_user_id_field",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "user_id",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "aic_cost_usd_fld_",
+        "max": null,
+        "min": 0,
+        "name": "cost_usd",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
         "hidden": false,
         "id": "autodate_created_pbc_aicalls00",
         "name": "created",
@@ -1639,7 +1681,8 @@
     ],
     "indexes": [
       "CREATE INDEX `idx_ai_calls_category_created` ON `ai_calls` (`category`, `created`)",
-      "CREATE INDEX `idx_ai_calls_household_created` ON `ai_calls` (`household_id`, `created`)"
+      "CREATE INDEX `idx_ai_calls_household_created` ON `ai_calls` (`household_id`, `created`)",
+      "CREATE INDEX `idx_ai_calls_user_created` ON `ai_calls` (`user_id`, `created`)"
     ],
     "system": false
   },

@@ -59,6 +59,7 @@ export interface GoalCoachOutcome {
 export interface GoalCoachAudit {
   readonly childId: string;
   readonly householdId: string;
+  readonly userId?: string;
 }
 
 /**
@@ -149,6 +150,7 @@ export async function runGoalCoach(
         kind: "goal_coach",
         childId: audit.childId,
         householdId: audit.householdId,
+        userId: audit.userId,
         requestSnapshot: snapshot,
       },
       { model, status, latencyMs: Date.now() - startedAt, category: "GOAL", ...extra },
@@ -190,6 +192,7 @@ export async function runGoalCoach(
       responseJson: parsed,
       promptTokens: raw.promptTokens,
       completionTokens: raw.completionTokens,
+      costUsd: raw.costUsd,
     });
     return { message: parsed, model, status: "ok", callId };
   } catch (error) {

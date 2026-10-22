@@ -70,10 +70,18 @@ export const AiCallsQuerySchema = z.object({
   status: z.enum(["ok", "error", "invalid_json"]).optional(),
   household_id: z.string().trim().max(64).optional(),
   child_id: z.string().trim().max(64).optional(),
+  user_id: z.string().trim().max(64).optional(),
   category: z.string().trim().max(80).optional(),
   model: z.string().trim().max(MAX_MODEL_NAME_LENGTH).optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
+});
+
+export const UsageQuerySchema = z.object({
+  days: z.coerce
+    .number()
+    .refine((value) => [7, 30, 90].includes(value))
+    .default(7),
 });
 
 export const HouseholdLimitPatchSchema = z

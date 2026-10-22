@@ -86,6 +86,8 @@ export interface ChildRecord {
   readonly anti_orthosomnia_mode: boolean;
   /** Strefa IANA dziecka (granica doby fizjologicznej); domyślnie Europe/Warsaw */
   readonly timezone?: string;
+  /** Autor wpisu (telemetria); brak w starych wpisach */
+  readonly created_by?: string;
   /** Plan podróży ze zmianą strefy (strategia przestawiania snu); brak = bez podróży */
   readonly travel_json?: TravelPlan | null;
   /** Nazwa pliku zdjęcia w PocketBase (chronione, URL wymaga tokenu plików); pusta, gdy brak */
@@ -110,6 +112,8 @@ export interface SleepLogRecord {
   readonly ignore_in_calibration: boolean;
   /** Strefa IANA, w której zapisano sen (podróż); brak w starych rekordach */
   readonly timezone?: string;
+  /** Autor wpisu (telemetria); brak w starych wpisach */
+  readonly created_by?: string;
   readonly created: string;
   readonly updated: string;
 }
@@ -206,6 +210,8 @@ export interface AiCallRecord {
   readonly id: string;
   readonly child_id?: string;
   readonly household_id?: string;
+  /** Autor wywołania; brak w starych wpisach (sprzed telemetrii) */
+  readonly user_id?: string;
   readonly kind: AiCallKind;
   readonly model?: string;
   readonly request_snapshot_json?: Record<string, unknown>;
@@ -214,6 +220,8 @@ export interface AiCallRecord {
   readonly error_message?: string;
   readonly prompt_tokens?: number;
   readonly completion_tokens?: number;
+  /** Koszt z odpowiedzi OpenRouter (USD); brak = szacunek z tabeli cen */
+  readonly cost_usd?: number;
   readonly latency_ms?: number;
   readonly insight_id?: string;
   readonly fallback_used?: boolean;

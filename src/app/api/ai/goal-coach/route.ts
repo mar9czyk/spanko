@@ -115,7 +115,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         methodTitle: localize(METHOD_TITLES[goal.method], locale),
         goalTitle: localize(GOAL_TITLES[goal.goal_type], locale),
       },
-      { childId: goal.child_id, householdId: user.household_id },
+      { childId: goal.child_id, householdId: user.household_id, userId: user.id },
       { skipAi: !aiAllowed },
     );
 
