@@ -148,6 +148,12 @@ export async function loadChildGoalContext(
     );
   }
 
+  // Tryb „Choroba” nie ma historii dób, więc oznaczamy chorobą ostatnią dobę: cel się wstrzymuje
+  const lastDay = days[days.length - 1];
+  if (lastDay && child.active_day_mode === "illness_regression") {
+    days[days.length - 1] = { ...lastDay, illness: true };
+  }
+
   return {
     child,
     effectiveAgeDays: calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso),
@@ -174,6 +180,7 @@ export function buildGoalPreview(context: ChildGoalContext, selection: GoalSelec
     effectiveAgeDays: context.effectiveAgeDays,
     baseline,
     todayTags: context.todayTags,
+    illnessModeActive: context.child.active_day_mode === "illness_regression",
     redFlagsAcknowledged: selection.redFlagsAcknowledged,
   });
   const plan = generatePlan({ goal: selection.goal, method: selection.method, baseline });

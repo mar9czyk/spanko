@@ -150,6 +150,10 @@ export interface NextSleepSlotParams {
   readonly biologicalBedtimeMinFromMidnight: number;
   /** Strefa IANA dziecka, w której liczone są godziny (WMZ, kotwica poranna). */
   readonly timeZone: string;
+  /** Sen dzienny bieżącej doby w minutach (tryb „W drodze”: wcześniejszy sen po krótkich drzemkach). */
+  readonly todayDaytimeSleepMin?: number;
+  /** Zwykły sen dzienny dziecka (mediana z pełnych dób); brak = bez korekty. */
+  readonly usualDaytimeSleepMin?: number | null;
 }
 
 export interface NextSleepSlotPrediction {

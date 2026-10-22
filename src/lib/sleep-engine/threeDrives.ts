@@ -1,3 +1,4 @@
+import { resolveOnTheGoBedtimeAdvance } from "./dayModes";
 import { getMinutesFromMidnightInTimeZone } from "./physiologicalDay";
 import type {
   AgeBracketConfig,
@@ -648,12 +649,51 @@ function applyCircadianAdjustment(
 
   // Kotwica poranna i przewidywana pora snu są w czasie lokalnym dziecka, więc kandydat też
   const candidateMin = getMinutesFromMidnightInTimeZone(initialMs, params.timeZone);
+  const onTheGo = resolveOnTheGoEarlyBedtime(initialMs, candidateMin, targetMinutes, params);
+  if (onTheGo) return onTheGo;
   const { shift, reasonCode } = resolveCircadianShift(candidateMin, targetMinutes, params);
   if (shift === 0) return { adjustedMs: initialMs, finalMinutes: targetMinutes };
   return {
     adjustedMs: initialMs + shift * MILLISECONDS_PER_MINUTE,
     finalMinutes: targetMinutes + shift,
     reasonCode,
+  };
+}
+
+/**
+ * Wcześniejszy sen nocny po dniu „W drodze” z niedoborem drzemek (bez Strefy Zakazanej).
+ *
+ * @description
+ * Cel: przewidywana pora snu minus połowa niedoboru drzemek (maks. 60 min). Jak przy dużym długu
+ * pomijamy WMZ, bo przemęczone dziecko zasypia łatwiej wcześniej. Okno nie spada poniżej
+ * porannego minimum. Kandydat już wcześniejszy niż cel zostaje bez zmian.
+ *
+ * @param {number} initialMs - Kandydat na porę snu (timestamp)
+ * @param {number} candidateMin - Kandydat w minutach od północy (czas lokalny)
+ * @param {number} targetMinutes - Wyliczone okno czuwania
+ * @param {NextSleepSlotParams} params - Parametry wejściowe
+ * @returns {{ adjustedMs: number; finalMinutes: number; reasonCode?: string } | null} Wynik albo null
+ */
+function resolveOnTheGoEarlyBedtime(
+  initialMs: number,
+  candidateMin: number,
+  targetMinutes: number,
+  params: NextSleepSlotParams,
+): { adjustedMs: number; finalMinutes: number; reasonCode?: string } | null {
+  if (params.dayMode !== "on_the_go") return null;
+  const advance = resolveOnTheGoBedtimeAdvance(
+    params.todayDaytimeSleepMin ?? 0,
+    params.usualDaytimeSleepMin ?? null,
+  );
+  if (advance === 0) return null;
+  const earlyBedtime = params.biologicalBedtimeMinFromMidnight - advance;
+  const lateBy = signedMinutesDifference(candidateMin, earlyBedtime);
+  const maxPullBack = Math.max(0, targetMinutes - params.bracket.wwMinMorning);
+  const pullBack = Math.max(0, Math.min(lateBy, maxPullBack));
+  return {
+    adjustedMs: initialMs - pullBack * MILLISECONDS_PER_MINUTE,
+    finalMinutes: targetMinutes - pullBack,
+    reasonCode: pullBack > 0 ? "ON_THE_GO_EARLY_BEDTIME" : undefined,
   };
 }
 

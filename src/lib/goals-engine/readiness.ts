@@ -33,6 +33,8 @@ export interface ReadinessInput {
   readonly baseline: GoalBaseline;
   /** Tagi bieżącej doby (np. gorączka). */
   readonly todayTags: readonly string[];
+  /** Włączony tryb dnia „Choroba” (działa jak tag choroby). */
+  readonly illnessModeActive?: boolean;
   /** Rodzic potwierdził listę czerwonych flag (brak sygnałów do pediatry). */
   readonly redFlagsAcknowledged: boolean;
 }
@@ -65,7 +67,9 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
   }
   const hasEnoughData = input.baseline.dayCount >= MIN_BASELINE_DAYS;
   if (!hasEnoughData) blockers.push("INSUFFICIENT_DATA");
-  if (input.todayTags.some((t) => ILLNESS_TAGS.includes(t))) blockers.push("ILLNESS_ACTIVE");
+  if (input.illnessModeActive || input.todayTags.some((t) => ILLNESS_TAGS.includes(t))) {
+    blockers.push("ILLNESS_ACTIVE");
+  }
   // Nawyki snu nie ograniczają reakcji rodzica, więc nie wymagają listy flag ani „problemu”
   const isTraining = isSleepTrainingGoal(input.goal);
   if (isTraining && !input.redFlagsAcknowledged) blockers.push("RED_FLAGS_NOT_ACKNOWLEDGED");

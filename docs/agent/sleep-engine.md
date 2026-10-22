@@ -103,8 +103,9 @@ Model dwuprocesowy (presja homeostatyczna + zegar dobowy) ma oparcie w badaniach
 ## 4. Tryby dnia (`DayMode`)
 
 - **`home`**: pełne reguły (WMZ, górna granica pory snu, koniec ostatniej drzemki).
-- **`on_the_go`**: dziś liczony tak samo jak `home`; tryb służy do oznaczania dnia w dzienniku. Silnik nie ma jeszcze osobnych reguł dla podróży.
-- **`illness_regression`**: okna × 0,8, bez korekt rytmu dobowego. Włącza go rodzic albo zaleca CAT5 (`recommendedDayMode`). Doby chorobowe nie wchodzą do normy snu.
+- **`on_the_go`**: sen w ruchu (wózek, auto, nosidło) liczy się minuta w minutę, bez „rabatu jakości” (brak dowodów, że jest gorszy). CAT2 i CAT4 nie zgłaszają problemu. Po dniu z niedoborem drzemek > 45 min względem zwykłego snu dziennego (mediana z 7 pełnych dób, `resolveUsualNapStats`) sen nocny wypada wcześniej o połowę niedoboru, maks. 60 min, w krokach po 15 min, bez WMZ i z oknem ≥ porannego minimum (`ON_THE_GO_EARLY_BEDTIME`) [H, częsta praktyka]. Bardzo krótka drzemka < 20 min skraca kolejne okno jak w domu (×0,65).
+- **`illness_regression`**: okna × 0,8, bez korekt rytmu dobowego. Włącza go rodzic albo zaleca CAT5 (`recommendedDayMode`). Doby chorobowe nie wchodzą do normy snu. Tag choroby (`ILLNESS_DAY_TAGS`: `gorączka`, `infekcja_ucha`, `szczepienie`, `katar`, `biegunka_wymioty`) działa w drzewach jak tryb (`isIllnessDay`). W chorobie zgłasza się tylko CAT5 (choroba) i CAT6 (noworodek); CAT1–4 i CAT7 są wstrzymane, bo dzień jest nietypowy. Ząbkowanie nie włącza choroby.
+- **Podpowiedzi dla rodzica** (`dayModes.ts` → `resolveDayModeGuidance`, treści PL/EN w `src/lib/day-mode-guidance.ts`, karta `DayModeGuidanceCard`): w chorobie tematy wg tagów (gorączka, ucho, katar, wymioty/biegunka, szczepienie) + leki, czego nie robić, powrót do planu i zawsze czerwone flagi (112 / pilnie do lekarza, NICE NG143, NHS, AAP; poniżej 3 mies. ≥38°C od razu SOR lub NiŚOZ). Przy drzemce > 3 h albo > 1,5× zwykłej najdłuższej karta pyta, czy dziecko łatwo się wybudza (`needsWakeCheck`); „nie” pokazuje alarm 112. W drodze: drzemki w ruchu, fotelik (tylko w jeździe, bez „reguły 2 h” jako nauki), wózek, nosidło (TICKS), nowe miejsce. Źródła: raport `badania/reports/Sen w chorobie i w drodze.md`.
 
 ---
 
@@ -156,7 +157,7 @@ Model dwuprocesowy (presja homeostatyczna + zegar dobowy) ma oparcie w badaniach
 
 ### 5.6. CAT5 — kryzysy, regresje, choroba (`CAT5_REGRESSION_ILLNESS_CRISIS`)
 Kolejność sprawdzania: choroba → wybuch wygaszania → spontaniczny nawrót → ząbkowanie → wzrost pobudek zależny od wieku.
-- `ACUTE_ILLNESS_DISRUPTION` (medium, 0,95): tag `gorączka`, `infekcja_ucha` lub `szczepienie` albo tryb choroby. `recommendedDayMode: illness_regression`; powrót do planu 3–5 dni po ustąpieniu objawów [E: Phoenix Children's].
+- `ACUTE_ILLNESS_DISRUPTION` (medium, 0,95): tag choroby z `ILLNESS_DAY_TAGS` albo tryb choroby. `recommendedDayMode: illness_regression`; powrót do planu po ok. 2 dobach bez gorączki i ostrych objawów, o krok wstecz [E: praktyka doradców snu, bez badań; wcześniej „3–5 dni”, też bez źródła pierwotnego].
 - `EXTINCTION_BURST` (medium, 0,8): noce 2–5 od startu planu (`currentPlanStartDateIso`) z oznakami protestu (pobudki, płacz albo latencja ≥ 20 min) [B: literatura behawioralna, France i in.; wybuch w nocach 2–3]. Bez obietnicy „minie w 48–72 h”.
 - `SPONTANEOUS_RELAPSE` (medium, 0,7): po ≥7 nocach planu 2 ostatnie noce mają średnio ≥2 pobudki i ≥1 więcej niż 5 poprzednich [H]. RACGP HANDI nazywa to zjawisko „extinction burst” i opisuje je 2–4 tyg. po wygaszeniu, u ok. 20% dzieci, z powrotem do dobrego snu po kilku nocach [W] — w Spanko to nawrót, nie wybuch (patrz `zrodla.md`, weryfikacja RACGP).
 - `TEETHING_DISCOMFORT` (low, 0,7): tag `ząbkowanie`. Nie włącza trybu choroby; wysoka gorączka nie jest objawem ząbkowania [B: Azevedo 2015].

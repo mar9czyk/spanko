@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DayModeGuidanceCard } from "@/components/dashboard/DayModeGuidanceCard";
 import { pastDayStripNowIso, shiftPhysiologicalDate } from "@/components/dashboard/dayHistory";
 import { FloatingActionBar } from "@/components/dashboard/FloatingActionBar";
 import { HeroWidget } from "@/components/dashboard/HeroWidget";
@@ -104,6 +105,11 @@ export default function DashboardPage() {
         onSelectDayMode={state.handleSelectDayMode}
         onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
         onChangeChildPhoto={state.isDemoData ? undefined : state.handleChangeChildPhoto}
+      />
+      <DayModeGuidanceCard
+        guidance={state.dayModeGuidance}
+        isWakeCheckNeeded={state.isWakeCheckNeeded}
+        locale={locale}
       />
       {/* Wybór nowego celu jest w /settings, żeby nie zaśmiecać pulpitu */}
       {goalState.goal && (

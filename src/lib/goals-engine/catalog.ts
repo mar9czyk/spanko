@@ -4,6 +4,7 @@
  * Wiek zawsze w dniach WIEKU KORYGOWANEGO (calculateEffectiveAgeDays).
  */
 
+import { ILLNESS_DAY_TAGS } from "../sleep-engine/dayModes";
 import type { InterventionType } from "../sleep-engine/types";
 import type { DailyGoalMetrics, GoalMethod, GoalType, InterventionRung } from "./types";
 
@@ -73,7 +74,8 @@ export const METHOD_CATALOG: Readonly<Record<GoalMethod, MethodDefinition>> = {
  */
 export const PUPD_WARNING_AGE_DAYS = 180;
 
-export const ILLNESS_TAGS: readonly string[] = ["gorączka", "infekcja_ucha", "szczepienie"];
+/** Te same tagi choroby co w silniku snu, żeby cel i drzewa nie rozjeżdżały się. */
+export const ILLNESS_TAGS: readonly string[] = ILLNESS_DAY_TAGS;
 export const TEETHING_TAG = "ząbkowanie";
 
 export const RUNG_ORDER: readonly InterventionRung[] = [
