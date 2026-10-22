@@ -44,7 +44,7 @@ export function extractStoredContext(call: AiCallRecord): InsightEvaluationConte
  */
 export async function POST(request: Request, context: RouteContext): Promise<NextResponse> {
   try {
-    const { pb } = await requireAdmin(request);
+    const { pb, user } = await requireAdmin(request);
     const { id } = await context.params;
     const body = await parseJsonBody(request, ReplayRequestSchema);
 
@@ -67,6 +67,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
       systemPrompt: body.prompt || undefined,
       audit: {
         kind: "sandbox",
+        userId: user.id,
         childId: call.child_id,
         householdId: call.household_id,
         requestSnapshot: { replayOf: id, ...buildRequestSnapshot(storedContext) },

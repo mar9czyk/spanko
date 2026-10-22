@@ -199,3 +199,9 @@ Wszystkie reguły `null` (tylko konto serwisowe). Pola: `name` (unikalne, np. `o
 (`v1:<iv>:<tag>:<dane>`, AES-256-GCM, AAD = `name`), `key_suffix` (ostatnie 4 znaki), `key_version`, `updated_by`.
 Klucz główny to zmienna `SPANKO_SECRETS_KEY` (32 bajty base64; `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
 — tylko w `.env.local` / `.env.production`, nigdy w bazie ani repo. Bez niego kopie zapasowe PocketBase nie ujawnią klucza.
+
+## Telemetria per użytkownik
+`ai_calls.user_id` (relation users, opcjonalne; stare wpisy go nie mają) i `ai_calls.cost_usd` (z `usage.cost` odpowiedzi OpenRouter;
+brak → szacunek z `lib/admin/pricing.ts`). `sleep_logs.created_by` (relation users): reguła create wymaga `created_by = @request.auth.id`,
+update nie może go zmieniać. Brak osobnej kolekcji zdarzeń — „dni aktywne” liczone z dat wpisów snu i wywołań AI
+(`lib/admin/usage.ts`, `GET /api/admin/usage`, zakładka „Telemetria”).

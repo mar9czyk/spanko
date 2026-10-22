@@ -73,7 +73,8 @@ export async function GET(request: Request): Promise<NextResponse> {
         .getFullList<HouseholdRecord>({ fields: "id,name,ai_daily_limit_override" }),
       service.collection("children").getList(1, 1),
       service.collection("ai_calls").getFullList<AiCallStat>({
-        fields: "created,model,status,kind,prompt_tokens,completion_tokens,latency_ms,household_id",
+        fields:
+          "created,model,status,kind,prompt_tokens,completion_tokens,cost_usd,latency_ms,household_id",
         filter: service.filter("created >= {:since}", { since: sinceIso(STATS_DAYS) }),
       }),
       fetchAdminSettings(),

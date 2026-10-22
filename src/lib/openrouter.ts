@@ -80,6 +80,8 @@ export interface AiCallAudit {
   readonly kind: AiCallKind;
   readonly childId?: string;
   readonly householdId?: string;
+  /** Rodzic (lub admin) wywołujący AI — do telemetrii per użytkownik */
+  readonly userId?: string;
   /** Wynik silnika deterministycznego zapisywany w ai_calls.request_snapshot_json */
   readonly requestSnapshot?: Record<string, unknown>;
 }
@@ -129,6 +131,8 @@ export interface OpenRouterRawResult {
   readonly content: string;
   readonly promptTokens?: number;
   readonly completionTokens?: number;
+  /** Koszt z odpowiedzi OpenRouter (`usage.cost`, kredyty ≈ USD) */
+  readonly costUsd?: number;
 }
 
 export interface InsightEvaluationContext {
@@ -320,6 +324,16 @@ export function assertSafeInsightText(text: AiInsightText, effectiveAgeDays: num
 }
 
 /**
+ * Odczytuje koszt z `usage.cost` odpowiedzi OpenRouter (liczba kredytów ≈ USD).
+ *
+ * @param {unknown} value - Surowa wartość pola
+ * @returns {number | undefined} Koszt albo undefined, gdy brak/niepoprawny
+ */
+export function parseUsageCost(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
+/**
  * Wykonuje bezpośrednie żądanie HTTP do bramki OpenRouter API.
  *
  * @param {string} apiKey - Klucz autoryzacji OpenRouter
@@ -384,6 +398,7 @@ export async function sendOpenRouterRequest(
     content: rawChoiceContent,
     promptTokens: jsonResponse.usage?.prompt_tokens,
     completionTokens: jsonResponse.usage?.completion_tokens,
+    costUsd: parseUsageCost(jsonResponse.usage?.cost),
   };
 }
 
@@ -475,6 +490,7 @@ export async function logAiCall(
     errorMessage?: string;
     promptTokens?: number;
     completionTokens?: number;
+    costUsd?: number;
     latencyMs: number;
     fallbackUsed?: boolean;
     promptVersion?: number;
@@ -489,6 +505,7 @@ export async function logAiCall(
     const record = await serviceClient.collection("ai_calls").create({
       child_id: audit.childId || undefined,
       household_id: audit.householdId || undefined,
+      user_id: audit.userId || undefined,
       kind: audit.kind,
       model: details.model,
       request_snapshot_json: audit.requestSnapshot ?? {},
@@ -497,6 +514,7 @@ export async function logAiCall(
       error_message: details.errorMessage?.slice(0, 2000),
       prompt_tokens: details.promptTokens,
       completion_tokens: details.completionTokens,
+      cost_usd: details.costUsd,
       latency_ms: details.latencyMs,
       fallback_used: details.fallbackUsed ?? false,
       prompt_version: details.promptVersion ?? 0,
@@ -562,6 +580,7 @@ export async function runInsightEvaluation(
     extra: {
       promptTokens?: number;
       completionTokens?: number;
+      costUsd?: number;
       fallbackUsed?: boolean;
       promptVersion?: number;
       aiSkipped?: boolean;
@@ -583,6 +602,7 @@ export async function runInsightEvaluation(
             latencyMs,
             promptTokens: extra.promptTokens,
             completionTokens: extra.completionTokens,
+            costUsd: extra.costUsd,
             fallbackUsed,
             promptVersion,
             category: result.insight.category,
@@ -658,6 +678,7 @@ export async function runInsightEvaluation(
         {
           promptTokens: raw.promptTokens,
           completionTokens: raw.completionTokens,
+          costUsd: raw.costUsd,
           fallbackUsed: index > 0,
           promptVersion,
         },
@@ -686,6 +707,7 @@ export async function runInsightEvaluation(
     {
       promptTokens: failure.raw?.promptTokens,
       completionTokens: failure.raw?.completionTokens,
+      costUsd: failure.raw?.costUsd,
       fallbackUsed: models.length > 1,
       promptVersion,
     },

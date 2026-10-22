@@ -12,6 +12,7 @@ import { InspectorTab } from "@/components/admin/InspectorTab";
 import { MatrixTab } from "@/components/admin/MatrixTab";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { SystemTab } from "@/components/admin/SystemTab";
+import { UsageTab } from "@/components/admin/UsageTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { pb } from "@/lib/pocketbase";
 
@@ -30,6 +31,7 @@ const TAB_GROUPS = [
     tabs: [
       { id: "settings", label: "OpenRouter & Prompty" },
       { id: "inspector", label: "Inspektor Wniosków" },
+      { id: "usage", label: "Telemetria" },
       { id: "matrix", label: "Matryca Snu" },
       { id: "calibration", label: "Trafność prognoz" },
     ],
@@ -59,6 +61,7 @@ export default function AdminPage(): ReactNode {
   const router = useRouter();
   const [isAllowed, setIsAllowed] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  const [inspectorUserId, setInspectorUserId] = useState("");
 
   useEffect(() => {
     if (pb.authStore.record?.is_admin === true) {
@@ -102,7 +105,17 @@ export default function AdminPage(): ReactNode {
       {activeTab === "households" && <HouseholdsTab />}
       {activeTab === "children" && <ChildrenTab />}
       {activeTab === "settings" && <SettingsTab />}
-      {activeTab === "inspector" && <InspectorTab />}
+      {activeTab === "inspector" && (
+        <InspectorTab key={inspectorUserId} initialUserId={inspectorUserId} />
+      )}
+      {activeTab === "usage" && (
+        <UsageTab
+          onOpenInspector={(userId) => {
+            setInspectorUserId(userId);
+            setActiveTab("inspector");
+          }}
+        />
+      )}
       {activeTab === "matrix" && <MatrixTab />}
       {activeTab === "calibration" && <CalibrationTab />}
       {activeTab === "content" && <ContentTab />}

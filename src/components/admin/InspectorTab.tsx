@@ -50,6 +50,7 @@ interface ReplayResponse {
 interface Filters {
   status: "" | AiCallStatus;
   household: string;
+  user: string;
   child: string;
   category: string;
   model: string;
@@ -60,6 +61,7 @@ interface Filters {
 const EMPTY_FILTERS: Filters = {
   status: "",
   household: "",
+  user: "",
   child: "",
   category: "",
   model: "",
@@ -270,10 +272,10 @@ function QualityView(): ReactNode {
  *
  * @returns {ReactNode} Zawartość zakładki
  */
-export function InspectorTab(): ReactNode {
+export function InspectorTab({ initialUserId = "" }: { initialUserId?: string }): ReactNode {
   const [view, setView] = useState<"calls" | "quality">("calls");
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, user: initialUserId });
   const [data, setData] = useState<CallsPage | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -282,6 +284,7 @@ export function InspectorTab(): ReactNode {
       const query = new URLSearchParams({ page: String(page), perPage: "20" });
       if (filters.status) query.set("status", filters.status);
       if (filters.household.trim()) query.set("household_id", filters.household.trim());
+      if (filters.user.trim()) query.set("user_id", filters.user.trim());
       if (filters.child.trim()) query.set("child_id", filters.child.trim());
       if (filters.category.trim()) query.set("category", filters.category.trim());
       if (filters.model.trim()) query.set("model", filters.model.trim());
@@ -365,6 +368,13 @@ export function InspectorTab(): ReactNode {
               placeholder="ID gospodarstwa"
               value={filters.household}
               onChange={(event) => updateFilter("household", event.target.value)}
+            />
+            <input
+              className={inputClass}
+              aria-label="Filtr użytkownika"
+              placeholder="ID użytkownika"
+              value={filters.user}
+              onChange={(event) => updateFilter("user", event.target.value)}
             />
             <input
               className={inputClass}

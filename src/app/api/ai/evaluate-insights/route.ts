@@ -214,6 +214,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         kind: "evaluate",
         childId: child.id,
         householdId: user.household_id,
+        userId: user.id,
         requestSnapshot: buildRequestSnapshot(evaluationContext),
       },
     });

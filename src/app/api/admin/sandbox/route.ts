@@ -16,7 +16,7 @@ import { buildSandboxContext } from "@/lib/server/sandboxFixtures";
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    await requireAdmin(request);
+    const { user } = await requireAdmin(request);
     const body = await parseJsonBody(request, SandboxRequestSchema);
 
     const context = buildSandboxContext(body.sample);
@@ -25,6 +25,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       systemPrompt: body.prompt || undefined,
       audit: {
         kind: "sandbox",
+        userId: user.id,
         requestSnapshot: { sample: body.sample, ...buildRequestSnapshot(context) },
       },
     });
