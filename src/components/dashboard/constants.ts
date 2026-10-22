@@ -64,17 +64,17 @@ export const QUICK_WAKE_DURATION_OPTIONS = [
 ] as const;
 
 export const DAY_TAG_PRESETS = [
-  "ząbkowanie",
-  "spacer",
-  "skok_rozwojowy",
-  "gorączka",
-  "katar",
-  "infekcja_ucha",
-  "biegunka_wymioty",
-  "szczepienie",
-  "podróż",
-  "światło_dzienne",
-  "goście",
+  "teething",
+  "walk",
+  "growth_spurt",
+  "fever",
+  "runny_nose",
+  "ear_infection",
+  "gastro",
+  "vaccination",
+  "travel",
+  "daylight",
+  "visitors",
 ] as const;
 
 export const DEFAULT_BOTTLE_ML = 120;

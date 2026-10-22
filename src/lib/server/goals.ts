@@ -84,6 +84,7 @@ function shiftDate(date: string, days: number): string {
  * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} childId - Identyfikator dziecka
  * @param {string} householdId - Gospodarstwo zalogowanego użytkownika
+ * @param {number} [historyDays] - Ile dób wstecz zbudować metryki (domyślnie 21)
  * @throws {ApiAuthError} 404/403 gdy dziecko niedostępne
  * @returns {Promise<ChildGoalContext>} Kontekst do oceny celów
  */
@@ -91,6 +92,7 @@ export async function loadChildGoalContext(
   pb: PocketBase,
   childId: string,
   householdId: string,
+  historyDays: number = HISTORY_DAYS,
 ): Promise<ChildGoalContext> {
   let child: ChildRecord;
   try {
@@ -131,7 +133,7 @@ export async function loadChildGoalContext(
   const feedings = context.items.map(toFeedingEvent).filter((e): e is FeedingEvent => e !== null);
 
   const days: DailyGoalMetrics[] = [];
-  for (let offset = HISTORY_DAYS; offset >= 1; offset--) {
+  for (let offset = historyDays; offset >= 1; offset--) {
     const date = shiftDate(todayDate, -offset);
     const nightRecord = logs.items.find(
       (l) => l.type === "night" && l.status === "completed" && l.physiological_date === date,

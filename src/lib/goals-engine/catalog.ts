@@ -76,7 +76,7 @@ export const PUPD_WARNING_AGE_DAYS = 180;
 
 /** Te same tagi choroby co w silniku snu, żeby cel i drzewa nie rozjeżdżały się. */
 export const ILLNESS_TAGS: readonly string[] = ILLNESS_DAY_TAGS;
-export const TEETHING_TAG = "ząbkowanie";
+export const TEETHING_TAG = "teething";
 
 export const RUNG_ORDER: readonly InterventionRung[] = [
   "feed",

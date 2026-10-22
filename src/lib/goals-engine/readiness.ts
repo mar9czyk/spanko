@@ -2,6 +2,7 @@
  * Ocena gotowości do rozpoczęcia celu (wiek, dane, choroba, czerwone flagi).
  */
 
+import { hasDayTag } from "../sleep-engine/dayTags";
 import {
   GOAL_CATALOG,
   ILLNESS_TAGS,
@@ -67,7 +68,7 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
   }
   const hasEnoughData = input.baseline.dayCount >= MIN_BASELINE_DAYS;
   if (!hasEnoughData) blockers.push("INSUFFICIENT_DATA");
-  if (input.illnessModeActive || input.todayTags.some((t) => ILLNESS_TAGS.includes(t))) {
+  if (input.illnessModeActive || ILLNESS_TAGS.some((key) => hasDayTag(input.todayTags, key))) {
     blockers.push("ILLNESS_ACTIVE");
   }
   // Nawyki snu nie ograniczają reakcji rodzica, więc nie wymagają listy flag ani „problemu”
@@ -77,7 +78,7 @@ export function evaluateReadiness(input: ReadinessInput): ReadinessResult {
     blockers.push("NO_PROBLEM_TO_SOLVE");
   }
 
-  if (input.todayTags.includes(TEETHING_TAG)) warnings.push("TEETHING_ACTIVE");
+  if (hasDayTag(input.todayTags, TEETHING_TAG)) warnings.push("TEETHING_ACTIVE");
   if (input.method === "pick_up_put_down" && input.effectiveAgeDays > PUPD_WARNING_AGE_DAYS) {
     warnings.push("PUPD_OLDER_CHILD");
   }

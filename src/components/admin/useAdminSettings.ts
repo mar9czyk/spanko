@@ -8,6 +8,7 @@ export interface AdminSettingsDefaults {
   readonly fastModel: string;
   readonly reasoningModel: string;
   readonly systemPrompt: string;
+  readonly goalCoachPrompt: string;
   readonly matrix: readonly AgeBracketConfig[];
 }
 
@@ -22,6 +23,7 @@ export type AdminSettingsPatch = Partial<
     | "openrouter_fast_model"
     | "openrouter_reasoning_model"
     | "system_prompt_insights"
+    | "system_prompt_goal_coach"
     | "ai_daily_limit_per_household"
     | "ai_disabled"
     | "openrouter_fallback_model"

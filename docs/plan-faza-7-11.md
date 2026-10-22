@@ -3,7 +3,7 @@
 Źródło założeń: sekcja **0** w `SPANKO MASTER PLAN` (aktualizacja 2026-10-19). Kolejność ustalona z właścicielką produktu: **najpierw pełny tracker (tryb bazowy), potem Silnik Celów z 2–3 celami dla baby**, następnie i18n i monetyzacja.
 
 **Status (2026-10-19):** Fazy 7–10 zaimplementowane i scommitowane (zob. `git log`). **Faza 11 (monetyzacja) celowo wstrzymana** na życzenie właścicielki produktu.
-Odstępstwa od planu: i18n zrealizowane własnym lekkim modułem (`src/i18n/`) zamiast `next-intl` (zob. `docs/agent/i18n.md`); tagi dnia zostają kluczami PL; brak edycji `system_prompt_goal_coach` w Panelu Admina; wykres postępu celu w `/insights` jeszcze nie powstał; teksty awaryjne drzew diagnostycznych nadal tylko po polsku.
+Odstępstwa od planu: i18n zrealizowane własnym lekkim modułem (`src/i18n/`) zamiast `next-intl` (zob. `docs/agent/i18n.md`). Luki z faz 7–10 zamknięte (2026-10-22): tagi dnia mają klucze neutralne EN (stare klucze PL są mapowane), prompt coacha edytuje się w Panelu Admina (bez wersjonowania), `/insights` ma sekcję „Postęp celu” (wykres + historia celów), a teksty awaryjne drzew diagnostycznych mają wersje EN.
 Przed użyciem: zaimportuj zaktualizowany `pb_schema.json` do lokalnego PocketBase (nowe kolekcje `child_goals`, `goal_daily_tasks`, nowe pola `day_context`, `ai_calls.kind = goal_coach`, `admin_settings.system_prompt_goal_coach`).
 
 Każda faza kończy się `pnpm check && pnpm test`.

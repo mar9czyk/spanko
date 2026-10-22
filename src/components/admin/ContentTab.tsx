@@ -285,7 +285,7 @@ export function ContentTab(): ReactNode {
           Własne teksty
         </h3>
         <p className="text-xs text-slate-400">
-          Klucz musi odpowiadać kluczowi używanemu w aplikacji (np. tag.infekcja_ucha).
+          Klucz musi odpowiadać kluczowi używanemu w aplikacji (np. tag.ear_infection).
         </p>
         {customItems.map((item) => (
           <ContentRow
@@ -300,7 +300,7 @@ export function ContentTab(): ReactNode {
           <input
             className={inputClass}
             aria-label="Nowy klucz tekstu"
-            placeholder="np. tag.infekcja_ucha"
+            placeholder="np. tag.ear_infection"
             maxLength={80}
             value={customKey}
             onChange={(event) => setCustomKey(event.target.value)}
