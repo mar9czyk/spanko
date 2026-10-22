@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { SANDBOX_SAMPLES } from "@/lib/sandboxSamples";
 import { adminRequest, jsonBody } from "./adminApi";
 import { GoalCoachPromptSection } from "./GoalCoachPromptSection";
+import { OpenRouterKeyCard } from "./OpenRouterKeyCard";
 import { PromptHistory } from "./PromptHistory";
 import { Field, inputClass, PrimaryButton, StatusMessage } from "./ui";
 import { useAdminSettings } from "./useAdminSettings";
@@ -290,6 +291,8 @@ export function SettingsTab(): ReactNode {
       </PrimaryButton>
       {saved && <p className="text-xs text-emerald-400">Zapisano.</p>}
       {error && <StatusMessage error={error} />}
+
+      <OpenRouterKeyCard />
 
       <section className="flex flex-col gap-2 rounded-xl border border-slate-800 bg-[#151B28] p-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">

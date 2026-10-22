@@ -118,3 +118,9 @@ Zasady wspólne: każdy handler `/api/admin/*` zaczyna od `requireAdmin`; każda
 - Prompt systemowy: `admin_settings.system_prompt_goal_coach` (brak edycji w Panelu Admina — do dodania), domyślnie `DEFAULT_GOAL_COACH_PROMPT`.
 - Insighty (`evaluate-insights`) są teraz promptowane jako **praktyczna rada na dziś**, a wyjaśnienie „dlaczego” jest wtórne.
 - Endpointy celów: `POST /api/goals/preview` (gotowość + plan), `POST /api/goals` (start, walidacja po stronie serwera, jeden aktywny cel na dziecko), `POST /api/goals/status` (wstrzymaj/wznów/porzuć).
+
+## Klucz OpenRouter w panelu
+Kolejność źródeł (`resolveOpenRouterApiKey()` w `lib/openrouter.ts`, asynchroniczne, cache 30 s): `app_secrets` (panel) →
+`OPENROUTER_API_KEY` (env) → brak. Brak mastera lub błąd odszyfrowania = fallback do env + alert na Pulpicie.
+API: `GET/PUT/DELETE /api/admin/openrouter/key` (PUT najpierw sprawdza klucz w OpenRouter `/credits`; audit
+`secret.openrouter.set|delete` zawiera tylko końcówkę). Klucz nigdy nie wraca do przeglądarki.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { toErrorResponse } from "@/lib/server/apiResponse";
 import { getServiceClient, requireAdmin, resolveServerPocketBaseUrl } from "@/lib/server/auth";
+import { resolveOpenRouterKey } from "@/lib/server/openrouterKey";
 import packageJson from "../../../../../package.json";
 
 const HEALTH_TIMEOUT_MS = 4000;
@@ -35,7 +36,11 @@ async function checkPocketBaseHealth(): Promise<{ ok: boolean; message: string }
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     await requireAdmin(request);
-    const [health, service] = await Promise.all([checkPocketBaseHealth(), getServiceClient()]);
+    const [health, service, openRouterKey] = await Promise.all([
+      checkPocketBaseHealth(),
+      getServiceClient(),
+      resolveOpenRouterKey(),
+    ]);
 
     let backups: { key: string; size: number; modified: string }[] | null = null;
     if (service) {
@@ -55,7 +60,8 @@ export async function GET(request: Request): Promise<NextResponse> {
       pocketbase: { url: resolveServerPocketBaseUrl(), ...health },
       config: {
         serviceAccount: Boolean(service),
-        openRouterKey: Boolean(process.env.OPENROUTER_API_KEY?.trim()),
+        openRouterKey: openRouterKey.source !== "none",
+        openRouterKeySource: openRouterKey.source,
       },
       backups,
       lastBackupAt: backups?.[0]?.modified ?? null,

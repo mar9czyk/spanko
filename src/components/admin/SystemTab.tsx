@@ -4,10 +4,20 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { adminRequest, jsonBody } from "./adminApi";
 import { inputClass, PrimaryButton, StatusMessage } from "./ui";
 
+const KEY_SOURCE_LABELS = {
+  panel: "z panelu (zaszyfrowany)",
+  env: "ze zmiennej środowiskowej",
+  none: "brak",
+} as const;
+
 interface SystemInfo {
   readonly app: { readonly name: string; readonly version: string; readonly node: string };
   readonly pocketbase: { readonly url: string; readonly ok: boolean; readonly message: string };
-  readonly config: { readonly serviceAccount: boolean; readonly openRouterKey: boolean };
+  readonly config: {
+    readonly serviceAccount: boolean;
+    readonly openRouterKey: boolean;
+    readonly openRouterKeySource: "panel" | "env" | "none";
+  };
   readonly backups:
     | readonly { readonly key: string; readonly size: number; readonly modified: string }[]
     | null;
@@ -297,7 +307,11 @@ export function SystemTab(): ReactNode {
         </p>
         <StatusRow label="PocketBase" ok={info.pocketbase.ok} detail={info.pocketbase.message} />
         <StatusRow label="Konto serwisowe" ok={info.config.serviceAccount} />
-        <StatusRow label="Klucz OpenRouter" ok={info.config.openRouterKey} />
+        <StatusRow
+          label="Klucz OpenRouter"
+          ok={info.config.openRouterKey}
+          detail={KEY_SOURCE_LABELS[info.config.openRouterKeySource]}
+        />
       </section>
 
       <section className="flex flex-col gap-2 rounded-xl border border-slate-800 bg-[#151B28] p-3">

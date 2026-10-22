@@ -55,13 +55,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     await requireAdmin(request);
     const body = await parseJsonBody(request, OpenRouterTestSchema);
-    const apiKey = resolveOpenRouterApiKey();
+    const apiKey = (await resolveOpenRouterApiKey()).key;
     if (!apiKey) {
       return NextResponse.json({
         success: true,
         configured: false,
         ok: false,
-        error: "Brak OPENROUTER_API_KEY w zmiennych środowiskowych serwera.",
+        error: "Brak klucza OpenRouter (dodaj go w panelu albo w OPENROUTER_API_KEY).",
         credits: null,
       });
     }

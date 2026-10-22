@@ -193,3 +193,9 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 - Przycisk „Zaloguj jako testowy użytkownik (DEV)” na `/login` jest widoczny tylko gdy `IS_DEV_LOGIN_ENABLED` (`src/lib/dev-auth.ts`). Dane demo (`devFixtures.ts`) pokazują się tylko bez sesji.
 - `pnpm dev:seed:profiles` (po `pnpm dev:seed`) dodaje 4 dzieci-profile z 21 dobami logów (typowe, wczesny ptaszek, krótkie drzemki, częste pobudki) z `scripts/seed-profiles.mjs` — tego samego generatora używa test regresji silnika `seedProfilesRegression.test.ts`.
 - Na produkcyjnym PocketBase NIE importuj ręcznie włączonego passwordAuth; po imporcie schematu pozostaje wyłączone.
+
+## `app_secrets` (sekrety zaszyfrowane)
+Wszystkie reguły `null` (tylko konto serwisowe). Pola: `name` (unikalne, np. `openrouter_api_key`), `ciphertext`
+(`v1:<iv>:<tag>:<dane>`, AES-256-GCM, AAD = `name`), `key_suffix` (ostatnie 4 znaki), `key_version`, `updated_by`.
+Klucz główny to zmienna `SPANKO_SECRETS_KEY` (32 bajty base64; `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
+— tylko w `.env.local` / `.env.production`, nigdy w bazie ani repo. Bez niego kopie zapasowe PocketBase nie ujawnią klucza.
