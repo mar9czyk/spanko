@@ -1,9 +1,17 @@
+import { isIllnessDay } from "./dayModes";
 import {
   getMinutesFromMidnightInTimeZone,
   hasUtcOffsetChangedWithinDays,
 } from "./physiologicalDay";
+
 import { MILLISECONDS_PER_DAY, MILLISECONDS_PER_MINUTE } from "./threeDrives";
-import type { DiagnosticEvaluationInput, DiagnosticTreeResult, SleepLog, SleepMood } from "./types";
+import type {
+  DiagnosticEvaluationInput,
+  DiagnosticTreeResult,
+  ProblemCategory,
+  SleepLog,
+  SleepMood,
+} from "./types";
 
 /*
  * Progi drzew. Liczby bez źródła w badaniach są oznaczone `// heurystyka`
@@ -95,7 +103,6 @@ export const REGRESSION_8_10_MAX_DAYS = 330;
 export const REGRESSION_18_24_MIN_DAYS = 540;
 export const REGRESSION_18_24_MAX_DAYS = 730;
 /** CAT5: tagi doby włączające tryb choroby. Ząbkowanie ≠ choroba (Azevedo 2015). */
-export const ILLNESS_DAY_TAGS: readonly string[] = ["gorączka", "infekcja_ucha", "szczepienie"];
 export const TEETHING_DAY_TAG = "ząbkowanie";
 /** CAT6: budzenie z drzemki dziennej noworodka po 2 h. */
 export const NEWBORN_MAX_NAP_MINUTES = 120; // heurystyka
@@ -851,18 +858,14 @@ function isSpontaneousRelapse(planNights: readonly SleepLog[]): boolean {
 }
 
 /**
- * Sprawdza chorobę (tagi gorączka, infekcja, szczepienie lub tryb choroby) i ząbkowanie.
+ * Sprawdza chorobę (tagi choroby z `ILLNESS_DAY_TAGS` lub tryb „Choroba”).
  * Ząbkowanie nie włącza trybu choroby (Azevedo 2015).
  *
  * @param {DiagnosticEvaluationInput} input - Dane diagnostyczne dziecka
  * @returns {DiagnosticTreeResult | null} Wynik choroby lub null
  */
 function checkIllness(input: DiagnosticEvaluationInput): DiagnosticTreeResult | null {
-  const tags = input.todayContext?.tags ?? [];
-  const isIll =
-    tags.some((t) => ILLNESS_DAY_TAGS.includes(t)) ||
-    input.child.activeDayMode === "illness_regression";
-  if (!isIll) return null;
+  if (!isIllnessDay(input.child.activeDayMode, input.todayContext?.tags ?? [])) return null;
 
   return {
     category: "CAT5_REGRESSION_ILLNESS_CRISIS",
@@ -873,7 +876,7 @@ function checkIllness(input: DiagnosticEvaluationInput): DiagnosticTreeResult | 
     title: "Choroba zaburza sen",
     explanation: "W czasie choroby sen często się pogarsza i to jest w porządku.",
     clinicalAction:
-      "Skróć okna czuwania i wstrzymaj zmiany w nawykach snu. Do planu wróć 3–5 dni po ustąpieniu objawów.",
+      "Pozwól na więcej snu i pomagaj w zasypianiu tak, jak dziecko potrzebuje, a zmiany nawyków wstrzymaj. Do planu wróć po ok. 2 dobach bez gorączki i ostrych objawów, o krok wstecz (praktyka, nie wynik badań).",
     algorithmOverride: { recommendedDayMode: "illness_regression" },
   };
 }
@@ -1189,7 +1192,7 @@ export function evaluateAll7DiagnosticCategories(
     recentSleepLogs: selectLogsInDiagnosticWindow(input.recentSleepLogs, input.nowIso),
   };
   const logs = windowed.recentSleepLogs;
-  return [
+  const results = [
     evaluateCat1SleepAssociations(logs, input.currentMetrics.effectiveAgeDays),
     evaluateCat2BedtimeResistance(logs, input.currentMetrics.chronicSleepDebtMin),
     evaluateCat3EarlyWakingAndSplitNight(windowed),
@@ -1198,4 +1201,35 @@ export function evaluateAll7DiagnosticCategories(
     evaluateCat6NewbornCare(input.currentMetrics.effectiveAgeDays, logs),
     evaluateCat7NightWeaning(windowed),
   ];
+  const paused = resolvePausedCategories(input);
+  return results.map((result) =>
+    paused.includes(result.category) ? { ...result, isTriggered: false } : result,
+  );
+}
+
+/** W chorobie zostaje tylko diagnoza choroby i ochrona noworodka; reszta to nietypowe dni. */
+const ILLNESS_PAUSED_CATEGORIES: readonly ProblemCategory[] = [
+  "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
+  "CAT2_BEDTIME_RESISTANCE_LATENCY",
+  "CAT3_EARLY_WAKING_SPLIT_NIGHT",
+  "CAT4_SHORT_NAPS_TRANSITIONS",
+  "CAT7_NIGHT_WEANING_FEEDING",
+];
+/** W drodze krótkie drzemki i przesunięta pora snu są oczekiwane, więc nie są problemem. */
+const ON_THE_GO_PAUSED_CATEGORIES: readonly ProblemCategory[] = [
+  "CAT2_BEDTIME_RESISTANCE_LATENCY",
+  "CAT4_SHORT_NAPS_TRANSITIONS",
+];
+
+/**
+ * Kategorie wstrzymane przez tryb dnia (heurystyka Spanko na bazie raportu „Sen w chorobie i w drodze”).
+ *
+ * @param {DiagnosticEvaluationInput} input - Dane diagnostyczne dziecka
+ * @returns {readonly ProblemCategory[]} Kategorie, które nie zgłaszają problemu
+ */
+function resolvePausedCategories(input: DiagnosticEvaluationInput): readonly ProblemCategory[] {
+  if (isIllnessDay(input.child.activeDayMode, input.todayContext?.tags ?? [])) {
+    return ILLNESS_PAUSED_CATEGORIES;
+  }
+  return input.child.activeDayMode === "on_the_go" ? ON_THE_GO_PAUSED_CATEGORIES : [];
 }

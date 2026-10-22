@@ -63,7 +63,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `feeding_type` (select: `breast` | `bottle` | `solid` | `none`, default: `none`)
 - `bottle_ml` (number, nullable)
 - `breast_side` (select: `left` | `right` | `both` | `none`, default: `none`)
-- `tags` (json array: `['ząbkowanie', 'gorączka', 'infekcja_ucha', 'skok_rozwojowy', 'spacer', 'ekran_przed_snem', 'goście']`)
+- `tags` (json array: `['ząbkowanie', 'gorączka', 'infekcja_ucha', 'katar', 'biegunka_wymioty', 'skok_rozwojowy', 'spacer', 'ekran_przed_snem', 'goście']`)
 - `event_type` (select: `feeding` | `diaper` | `tag`, opcjonalne — stare rekordy wnioskowane z `feeding_type`)
 - `bottle_content` (select: `breast_milk` | `formula`), `breast_left_min` / `breast_right_min` (number, minuty karmienia piersią)
 - `diaper_kind` (select: `wet` | `dirty` | `both`)

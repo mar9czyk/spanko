@@ -256,12 +256,22 @@ describe("CAT5: wybuch, nawrót, ząbkowanie i regresje", () => {
     expect(result.explanation).toMatch(/gorączka/i);
   });
 
-  it("choroba: powrót do planu 3–5 dni po objawach", () => {
+  it("choroba: powrót do planu po ok. 2 dobach bez objawów, opisany jako praktyka", () => {
     const result = evaluateCat5RegressionsAndCrisis(
       input(nights(3), 300, { todayContext: { tags: ["szczepienie"] } }),
     );
     expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT5_ILLNESS);
-    expect(result.clinicalAction).toContain("3–5 dni");
+    expect(result.clinicalAction).toContain("2 dobach");
+    expect(result.clinicalAction).toContain("nie wynik badań");
+  });
+
+  it("katar i wymioty/biegunka też włączają diagnozę choroby", () => {
+    for (const tag of ["katar", "biegunka_wymioty"]) {
+      const result = evaluateCat5RegressionsAndCrisis(
+        input(nights(3), 300, { todayContext: { tags: [tag] } }),
+      );
+      expect(result.diagnosisCode).toBe(DIAGNOSIS_CODES.CAT5_ILLNESS);
+    }
   });
 
   it("wybuch tylko w nocach 2–5 planu", () => {

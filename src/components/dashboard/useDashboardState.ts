@@ -17,12 +17,16 @@ import {
   formatDateToCalendarString,
   getAgeBracket,
   getMinutesFromMidnightInTimeZone,
+  isIllnessDay,
   minutesSinceLastFeeding,
+  needsWakeCheck,
   predictNextSleepSlot,
+  resolveDayModeGuidance,
   resolveInsightDayAdjustments,
   resolveInsightWwOffset,
   resolvePhysiologicalDate,
   resolveSleepRestedness,
+  resolveUsualNapStats,
   suggestNapWakeTime,
 } from "@/lib/sleep-engine";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
@@ -318,14 +322,16 @@ export function useDashboardState() {
     currentSleepLog?.type === "nap" && currentSleepLog.status === "sleeping"
       ? currentSleepLog.fell_asleep_at || currentSleepLog.put_down_at
       : undefined;
+  const todayDaytimeSleepMin = todayCompletedNaps.reduce(
+    (sum, log) =>
+      sum + calculateDurationInMinutes(log.fell_asleep_at || log.put_down_at, log.woke_up_at),
+    0,
+  );
+  const usualNapStats = useMemo(() => resolveUsualNapStats(completedDays), [completedDays]);
   const napWakeSuggestionIso = activeNapStartIso
     ? suggestNapWakeTime({
         napStartIso: activeNapStartIso,
-        daytimeSleepBeforeNapMin: todayCompletedNaps.reduce(
-          (sum, log) =>
-            sum + calculateDurationInMinutes(log.fell_asleep_at || log.put_down_at, log.woke_up_at),
-          0,
-        ),
+        daytimeSleepBeforeNapMin: todayDaytimeSleepMin,
         bracket: ageBracket,
         daytimeSleepCapOffsetMin: dayAdjustments.daytimeSleepCapOffsetMin,
       })
@@ -350,8 +356,30 @@ export function useDashboardState() {
           biologicalBedtimeMinFromMidnight: circadianParams.biologicalBedtimeMinFromMidnight,
           insightWwOffsetMin: resolveInsightWwOffset(activeInsight),
           timeZone,
+          todayDaytimeSleepMin,
+          usualDaytimeSleepMin: usualNapStats.daytimeMin,
         })
       : null;
+
+  // Tryby dnia: podpowiedzi i pytanie o budzenie przy długim śnie w chorobie
+  const todayTags = dayContext.flatMap((entry) => entry.tags ?? []);
+  const dayModeGuidance = child
+    ? resolveDayModeGuidance({ dayMode: child.active_day_mode, tags: todayTags, effectiveAgeDays })
+    : null;
+  const lastTodayNap = todayCompletedNaps[0];
+  const wakeCheckNapMin = activeNapStartIso
+    ? calculateDurationInMinutes(activeNapStartIso, nowIso)
+    : lastTodayNap
+      ? calculateDurationInMinutes(
+          lastTodayNap.fell_asleep_at || lastTodayNap.put_down_at,
+          lastTodayNap.woke_up_at,
+        )
+      : 0;
+  const isWakeCheckNeeded = needsWakeCheck({
+    isIllness: isIllnessDay(child?.active_day_mode, todayTags),
+    napDurationMin: wakeCheckNapMin,
+    usualLongestNapMin: usualNapStats.longestNapMin,
+  });
 
   const timelineEvents = useMemo<readonly TimelineEvent[]>(() => {
     const todayLogs = recentLogs
@@ -676,6 +704,8 @@ export function useDashboardState() {
       ? tDynamic(`reason.${sweetSpotPrediction.reasonCode}`, sweetSpotPrediction.reasonCode)
       : t("dashboard.noWakeYet"),
     handleSelectDayMode,
+    dayModeGuidance,
+    isWakeCheckNeeded,
     handleToggleAntiOrthosomnia,
     handleAcceptInsight,
     handleUndoAcceptInsight,

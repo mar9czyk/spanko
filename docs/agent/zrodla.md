@@ -142,6 +142,13 @@ WHO 2024, *Ethics and governance of AI for health: guidance on large multi-modal
 | Progi wyspania | 75 / 150 min | [H] | — |
 | Skrócenie okna przy długu | −15 min | [H] | — |
 | Tryb choroby | okno ×0,8 | [H] | — |
+| Choroba: wstrzymanie CAT1–4, CAT7 | dzień nietypowy | [H] | raport „Sen w chorobie i w drodze” |
+| Choroba: pytanie o budzenie | drzemka > 3 h lub > 1,5× zwykłej | pytanie [W], próg [H] | NICE NG143, NHS |
+| Czerwone flagi | <3 mies. ≥38°C, 3–6 mies. ≥39°C, gorączka >24 h <2 lat, brak mokrej pieluchy 8 h, lista 999 | [W] | NICE NG143, NHS, AAP |
+| Powrót do planu po chorobie | ok. 2 doby bez objawów, krok wstecz | [E] | praktyka doradców snu |
+| W drodze: sen w ruchu bez rabatu | 100% minut | [H] (brak dowodów na rabat) | Bayer 2011 (dorośli) |
+| W drodze: wcześniejszy sen | niedobór > 45 min → połowa, maks. 60 min | [H] | praktyka doradców |
+| Fotelik: kontrola co 30 min u najmłodszych | <4 mies., wcześniaki | [B] | Arya 2017, Batra 2015, AAP 2022 |
 | Przewidywana pora snu | wzór z pobudki, sen nocny 600–690 min | [H] | wzór autorski |
 | Domieszka faktycznej pory zaśnięcia | 50%, ≥3 noce, ±120 min | kierunek [B], wartości [H] | Akacem 2016, LeBourgeois 2013 |
 | WMZ | 90–30 min przed snem | istnienie [B], okno [H] | Giganti 2001 |

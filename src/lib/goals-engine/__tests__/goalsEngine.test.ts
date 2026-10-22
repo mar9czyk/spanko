@@ -83,6 +83,15 @@ describe("evaluateReadiness", () => {
     expect(result.ready).toBe(false);
   });
 
+  it("tryb „Choroba” blokuje start celu jak tag choroby", () => {
+    expect(evaluateReadiness({ ...readyInput, illnessModeActive: true }).blockers).toContain(
+      "ILLNESS_ACTIVE",
+    );
+    expect(evaluateReadiness({ ...readyInput, todayTags: ["katar"] }).blockers).toContain(
+      "ILLNESS_ACTIVE",
+    );
+  });
+
   it("blokuje cel, gdy nie ma problemu do rozwiązania", () => {
     const result = evaluateReadiness({
       ...readyInput,

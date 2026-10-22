@@ -156,6 +156,7 @@ export const pl = {
   "reason.CHRONIC_SLEEP_DEBT_COMPENSATION": "Kompensacja długu sennego",
   "reason.ILLNESS_PROTECTIVE_MODE": "Tryb ochronny: choroba/regresja",
   "reason.FLEXIBLE_ON_THE_GO_WINDOW": "Elastyczne okno w drodze",
+  "reason.ON_THE_GO_EARLY_BEDTIME": "Mało drzemek w drodze: wcześniejszy sen nocny",
   "reason.CIRCADIAN_WMZ_AVOIDANCE_SHIFT": "Przesunięcie poza Strefę Zakazaną",
   "reason.CIRCADIAN_BEDTIME_LATE_CAP": "Wcześniej, by nie przesuwać zwykłej pory snu",
   "reason.NO_NAP_DAY_BEDTIME": "Dzień bez drzemki: sen nocny o przewidywanej porze",
@@ -242,6 +243,8 @@ export const pl = {
   "tag.światło_dzienne": "światło dzienne",
   "tag.goście": "goście",
   "tag.infekcja_ucha": "infekcja ucha",
+  "tag.katar": "katar",
+  "tag.biegunka_wymioty": "wymioty / biegunka",
 
   "goal.choose.title": "Wybierz cel snu",
   "goal.choose.text":
@@ -511,6 +514,7 @@ export const en: Record<MessageKey, string> = {
   "reason.CHRONIC_SLEEP_DEBT_COMPENSATION": "Sleep debt compensation",
   "reason.ILLNESS_PROTECTIVE_MODE": "Protective mode: illness/regression",
   "reason.FLEXIBLE_ON_THE_GO_WINDOW": "Flexible on-the-go window",
+  "reason.ON_THE_GO_EARLY_BEDTIME": "Little nap sleep on the go: earlier bedtime",
   "reason.CIRCADIAN_WMZ_AVOIDANCE_SHIFT": "Shifted out of the forbidden zone",
   "reason.CIRCADIAN_BEDTIME_LATE_CAP": "Earlier, to keep the usual bedtime",
   "reason.NO_NAP_DAY_BEDTIME": "No-nap day: night sleep at the predicted bedtime",
@@ -597,6 +601,8 @@ export const en: Record<MessageKey, string> = {
   "tag.światło_dzienne": "daylight",
   "tag.goście": "visitors",
   "tag.infekcja_ucha": "ear infection",
+  "tag.katar": "blocked nose",
+  "tag.biegunka_wymioty": "vomiting / diarrhoea",
 
   "goal.choose.title": "Pick a sleep goal",
   "goal.choose.text":
