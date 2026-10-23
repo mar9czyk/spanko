@@ -27,6 +27,10 @@ export const pl = {
   "login.devMode": "Tryb deweloperski",
   "login.devUser": "Zaloguj jako testowy użytkownik (DEV)",
   "login.devAdmin": "Zaloguj jako testowy admin (DEV)",
+  "login.devFamilyNewborn": "Zaloguj jako Anna — Lena, ~2 mies. (DEV)",
+  "login.devFamilyInfant": "Zaloguj jako Marta — Franek, ~7 mies. (DEV)",
+  "login.devFamilyInfantPartner": "Zaloguj jako Piotr — Franek, ~7 mies. (DEV)",
+  "login.devFamilyToddler": "Zaloguj jako Kasia — Ola, ~14 mies. (DEV)",
 
   "dashboard.noChild": "Nie dodano jeszcze dziecka do Twojego gospodarstwa domowego.",
   "dashboard.loadError": "Nie udało się pobrać danych: {message}",
@@ -470,6 +474,10 @@ export const en: Record<MessageKey, string> = {
   "login.devMode": "Developer mode",
   "login.devUser": "Sign in as test user (DEV)",
   "login.devAdmin": "Sign in as test admin (DEV)",
+  "login.devFamilyNewborn": "Sign in as Anna — Lena, ~2 mo (DEV)",
+  "login.devFamilyInfant": "Sign in as Marta — Franek, ~7 mo (DEV)",
+  "login.devFamilyInfantPartner": "Sign in as Piotr — Franek, ~7 mo (DEV)",
+  "login.devFamilyToddler": "Sign in as Kasia — Ola, ~14 mo (DEV)",
 
   "dashboard.noChild": "No child has been added to your household yet.",
   "dashboard.loadError": "Could not load data: {message}",

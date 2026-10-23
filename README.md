@@ -41,4 +41,8 @@ pb/pocketbase.exe serve --http=127.0.0.1:8090   # lokalny PocketBase ze schemate
 pnpm dev:seed                                   # tworzy użytkowników testowych i dane przykładowe
 pnpm dev                                        # potem http://localhost:3000/login -> „Zaloguj jako testowy użytkownik (DEV)”
 ```
+Trzy testowe rodziny z 21 dobami historii (noworodek ~2 mies., niemowlę ~7 mies. z dwojgiem rodziców, maluch ~14 mies.), każda w osobnym gospodarstwie:
+```bash
+pnpm dev:seed:families   # idempotentny; potem na /login przyciski „Zaloguj jako … (DEV)”
+```
 Wymaga `POCKETBASE_SUPERUSER_EMAIL/PASSWORD` w `.env.development.local`. Opis: `docs/agent/database.md`.

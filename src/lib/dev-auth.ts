@@ -1,6 +1,28 @@
 const LOCAL_HOSTNAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"];
 
-export type DevLoginRole = "user" | "admin";
+/** Rola logowania DEV -> prefiks zmiennych `<PREFIX>_EMAIL/_PASSWORD` w .env.development.local. */
+export const DEV_LOGIN_ENV_PREFIX = {
+  user: "DEV_USER",
+  admin: "DEV_ADMIN",
+  "family-newborn": "DEV_FAMILY_NEWBORN",
+  "family-infant": "DEV_FAMILY_INFANT",
+  "family-infant-partner": "DEV_FAMILY_INFANT_PARTNER",
+  "family-toddler": "DEV_FAMILY_TODDLER",
+} as const;
+
+export type DevLoginRole = keyof typeof DEV_LOGIN_ENV_PREFIX;
+
+/**
+ * Zamienia rolę z żądania na prefiks zmiennych środowiskowych; nieznana rola = zwykły użytkownik.
+ *
+ * @param {unknown} role - Rola z ciała żądania
+ * @returns {string} Prefiks zmiennych DEV
+ */
+export function devLoginEnvPrefix(role: unknown): string {
+  return typeof role === "string" && Object.hasOwn(DEV_LOGIN_ENV_PREFIX, role)
+    ? DEV_LOGIN_ENV_PREFIX[role as DevLoginRole]
+    : DEV_LOGIN_ENV_PREFIX.user;
+}
 
 /**
  * Sprawdza, czy adres PocketBase wskazuje na maszynę lokalną.

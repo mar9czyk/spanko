@@ -1,5 +1,5 @@
 import PocketBase, { ClientResponseError } from "pocketbase";
-import { type DevLoginRole, isDevLoginEnabled } from "@/lib/dev-auth";
+import { devLoginEnvPrefix, isDevLoginEnabled } from "@/lib/dev-auth";
 
 const POCKETBASE_URL =
   process.env.POCKETBASE_INTERNAL_URL ||
@@ -14,13 +14,16 @@ export async function POST(request: Request): Promise<Response> {
   if (!isDevLoginEnabled(process.env.NODE_ENV, POCKETBASE_URL)) {
     return new Response("Not found", { status: 404 });
   }
-  const body = (await request.json().catch(() => ({}))) as { role?: DevLoginRole };
-  const prefix = body.role === "admin" ? "DEV_ADMIN" : "DEV_USER";
+  const body = (await request.json().catch(() => ({}))) as { role?: unknown };
+  const prefix = devLoginEnvPrefix(body.role);
   const email = process.env[`${prefix}_EMAIL`];
   const password = process.env[`${prefix}_PASSWORD`];
   if (!email || !password) {
     return Response.json(
-      { error: "Brak danych DEV w .env.development.local — uruchom pnpm dev:seed" },
+      {
+        error:
+          "Brak danych DEV w .env.development.local — uruchom pnpm dev:seed (lub pnpm dev:seed:families)",
+      },
       { status: 500 },
     );
   }
