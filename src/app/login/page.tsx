@@ -15,6 +15,13 @@ const INTRO_POINTS: readonly { icon: string; titleKey: MessageKey; textKey: Mess
   { icon: "👶", titleKey: "login.intro.thumb.title", textKey: "login.intro.thumb.text" },
 ];
 
+const DEV_FAMILY_BUTTONS: readonly { role: DevLoginRole; labelKey: MessageKey }[] = [
+  { role: "family-newborn", labelKey: "login.devFamilyNewborn" },
+  { role: "family-infant", labelKey: "login.devFamilyInfant" },
+  { role: "family-infant-partner", labelKey: "login.devFamilyInfantPartner" },
+  { role: "family-toddler", labelKey: "login.devFamilyToddler" },
+];
+
 /**
  * Ekran logowania: Google OAuth oraz (tylko lokalnie w development) logowanie testowe.
  */
@@ -114,6 +121,16 @@ export default function LoginPage(): ReactNode {
               >
                 {t("login.devUser")}
               </button>
+              {DEV_FAMILY_BUTTONS.map(({ role, labelKey }) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => handleDev(role)}
+                  className="h-11 rounded-xl border border-amber-400/30 text-xs text-amber-200/80 active:scale-[0.98] transition"
+                >
+                  {t(labelKey)}
+                </button>
+              ))}
               <button
                 type="button"
                 onClick={() => handleDev("admin")}
