@@ -20,6 +20,7 @@ import type {
   SleepStatus,
   SleepType,
 } from "@/lib/sleep-engine/types";
+import type { SleepEnvironment, SleepPlace } from "@/lib/sleep-environment";
 
 export type {
   AgeBracketConfig,
@@ -90,6 +91,8 @@ export interface ChildRecord {
   readonly created_by?: string;
   /** Plan podróży ze zmianą strefy (strategia przestawiania snu); brak = bez podróży */
   readonly travel_json?: TravelPlan | null;
+  /** Profil „Gdzie i jak śpi” (miejsce, rolety, szum, temperatura); brak = nie wypełniono */
+  readonly sleep_environment?: SleepEnvironment | null;
   /** Nazwa pliku zdjęcia w PocketBase (chronione, URL wymaga tokenu plików); pusta, gdy brak */
   readonly photo?: string;
   readonly created: string;
@@ -107,6 +110,8 @@ export interface SleepLogRecord {
   readonly woke_up_at?: string;
   readonly interventions?: readonly InterventionLevel[];
   readonly mood?: SleepMood;
+  /** Miejsce snu, tylko gdy inne niż domyślne w profilu dziecka („dziś gdzie indziej”) */
+  readonly sleep_place?: SleepPlace | "";
   readonly night_wakings?: readonly NightWakingDetail[];
   readonly is_rebound_sleep: boolean;
   readonly ignore_in_calibration: boolean;
