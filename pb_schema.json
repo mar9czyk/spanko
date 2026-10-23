@@ -510,6 +510,17 @@
         "type": "json"
       },
       {
+        "help": "",
+        "hidden": false,
+        "id": "child_sleep_env_",
+        "maxSize": 20000,
+        "name": "sleep_environment",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "json"
+      },
+      {
         "hidden": false,
         "id": "autodate_created_pbc_children0",
         "name": "created",
@@ -669,6 +680,18 @@
         "system": false,
         "type": "select",
         "values": ["easy", "fussy", "crying"]
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "slog_sleep_place_",
+        "maxSelect": 1,
+        "name": "sleep_place",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": ["crib", "bedside_crib", "moses_basket", "floor_bed", "parents_bed", "stroller"]
       },
       {
         "help": "",

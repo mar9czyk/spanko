@@ -8,6 +8,7 @@ import { InsightCorrectionModal } from "@/components/insights/InsightCorrectionM
 import { InsightsHeader } from "@/components/insights/InsightsHeader";
 import { InsightsTimelineSection } from "@/components/insights/InsightsTimelineSection";
 import { SafeSleepNotice } from "@/components/insights/SafeSleepNotice";
+import { SleepEnvironmentCard } from "@/components/insights/SleepEnvironmentCard";
 import { SleepFoundationsCard } from "@/components/insights/SleepFoundationsCard";
 import { useInsightsState } from "@/components/insights/useInsightsState";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -61,6 +62,7 @@ export default function InsightsPage(): ReactNode {
       <SafeSleepNotice child={child} />
       <GoalProgressSection child={child} />
       <SleepFoundationsCard child={child} />
+      <SleepEnvironmentCard child={child} />
 
       <ActiveInsightsSection
         insights={activeInsights}
