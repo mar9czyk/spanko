@@ -1,4 +1,9 @@
-import type { DayContextRecord, SleepLogRecord } from "@/lib/types/database";
+import type {
+  DayContextRecord,
+  InterventionLevel,
+  SleepLogRecord,
+  SleepMood,
+} from "@/lib/types/database";
 import type { TimelineEvent } from "./types";
 
 const MS_PER_DAY = 86_400_000;
@@ -11,6 +16,10 @@ export interface EntryTimeDraft {
   readonly end?: string;
   /** Tylko butelka: nowa ilość mleka w ml. */
   readonly bottleMl?: number;
+  /** Tylko sen: nastrój przy zasypianiu; null = wyczyść, brak pola = bez zmiany. */
+  readonly mood?: SleepMood | null;
+  /** Tylko sen: co pomogło przy zasypianiu; brak pola = bez zmiany. */
+  readonly interventions?: readonly InterventionLevel[];
 }
 
 export type EntryEditError = "invalid_time" | "end_before_start" | "in_future";
@@ -20,8 +29,8 @@ export type EntryEditPatch =
       readonly collection: "sleep_logs";
       readonly id: string;
       readonly patch: Partial<
-        Pick<SleepLogRecord, "fell_asleep_at" | "put_down_at" | "woke_up_at">
-      >;
+        Pick<SleepLogRecord, "fell_asleep_at" | "put_down_at" | "woke_up_at" | "interventions">
+      > & { readonly mood?: SleepMood | "" };
     }
   | {
       readonly collection: "day_context";
@@ -119,7 +128,7 @@ export function buildEntryTimePatch(
   if (end && Date.parse(end) <= Date.parse(start)) return "end_before_start";
   if (Date.parse(end ?? start) > nowMs) return "in_future";
 
-  const patch: Partial<Pick<SleepLogRecord, "fell_asleep_at" | "put_down_at" | "woke_up_at">> = {
+  const patch: Extract<EntryEditPatch, { collection: "sleep_logs" }>["patch"] = {
     ...(event.startField === "put_down_at" ? { put_down_at: start } : { fell_asleep_at: start }),
     ...(event.startField === "fell_asleep_at" &&
     event.putDownIso &&
@@ -127,6 +136,8 @@ export function buildEntryTimePatch(
       ? { put_down_at: start }
       : {}),
     ...(end ? { woke_up_at: end } : {}),
+    ...(draft.mood === undefined ? {} : { mood: draft.mood ?? "" }),
+    ...(draft.interventions === undefined ? {} : { interventions: draft.interventions }),
   };
   return { collection: "sleep_logs", id: event.id, patch };
 }

@@ -77,12 +77,13 @@ Widok `/dashboard` składa się z zintegrowanych stref:
 - Wyraźne oznaczenie granicy doby (poranna pobudka).
 
 ### 3.5. Dolny Pasek Akcji (Floating Action Bar)
-- **Główny Przycisk Cyklu:**
-  1. `[▶ Start usypiania]` (status: `falling_asleep`)
-  2. `[💤 Zasnął]` (status: `sleeping`)
-  3. `[■ Obudził się]` (status: `completed`)
-- **Nocny Przycisk Błyskawiczny:** W trakcie snu nocnego wyświetla się duży przycisk `[⚡ Szybka pobudka / Mleko]`, który jednym dotknięciem rejestruje zdarzenie bez wybudzania rodzica formularzami.
+- **Układ w dzień:** `[Karmienie]` `[Pielucha]` duży przycisk snu `[+]`. Karmienie i Pielucha to kafelki z ikoną i podpisem, `+` to sam znak.
+- **Przycisk snu** ma jedno słowo i ikonę: `[🌙 Usypiam]` (status: `falling_asleep`) → `[✨ Zasnął]` (status: `sleeping`) → `[☀ Wstał]` (status: `completed`). „Wstał” jest tak samo przy drzemce i porannej pobudce.
+- **Karmienie** otwiera mały arkusz: duże kafelki **L** / **P** (przy stronie przeciwnej do ostatniej piersi dziś podpis „teraz ta”) oraz rząd butelki (Butelka bez ilości, dwa presety, Inna ilość). Dotknięcie zapisuje i zamyka arkusz. Toast „Pierś P zapisana” ma opcjonalne pigułki `10 min` / `20 min` i `Cofnij`.
+- **Pielucha** zapisuje mokrą jednym dotknięciem. Toast oferuje `Brudna` / `Obie` (zmiana rodzaju) i `Cofnij`.
+- **Karta „Jak zasnął?”:** po `Zasnął` (drzemka i noc) pojawia się opcjonalna karta nad paskiem: nastrój (jeden wybór: Spokojnie / Marudził / Płakał) i „Co pomogło?” (wielokrotny wybór: Sam, Smoczek, Pierś, Butelka, Bujanie, Noszenie, Głaskanie, Szum, Obecność). Każde dotknięcie zapisuje się od razu na tym śnie (`mood`, `interventions`); `Pomiń` / `Gotowe` albo samoczynne zamknięcie po ok. 15 s bez dotyku. Nastrój i interwencje widać jako pigułki na karcie snu na osi czasu i można je zmienić w arkuszu edycji wpisu.
+- **Przycisk `+`:** arkusz „Co dziś wpływa na sen?” z wielokrotnym wyborem tagów doby. Zostaje otwarty po dotknięciu (zaznaczony tag ma ptaszek, ponowne dotknięcie go zdejmuje), zamyka go `Gotowe`.
+- **Noc (sen trwa):** nad paskiem jeden duży przycisk `[Pobudka]`, a pod nim rząd `[Karmienie]` `[Pielucha]` `[Wstał]` (obrysowany) `[+]`. Dotknięcie `Pobudka` zapisuje pobudkę (bez założeń o karmieniu) i pokazuje toast „Pobudka HH:mm” z wyborem `L` / `P` / `Butelka` / `Bez` oraz `Cofnij`. `fedMilk` i interwencje pobudki wynikają z tego wyboru. Licznik „Pobudki: N” i znaczniki na osi czasu zostają bez zmian.
 - **Poranne Podsumowanie Pobudek (Morning Summary Banner):**
   - Po kliknięciu rano `[■ Obudził się na dzień]`, jeśli w nocy odnotowano szybkie pobudki, pojawia się baner z pigułkami:
     *"W nocy o 01:20 i 03:45 odnotowano pobudki. Ile mniej więcej trwały? `[5 min]` `[15 min]` `[1h+]`"*.
-- **Przycisk Dodawania:** Otwiera Bottom Sheet do rejestracji karmienia, leków czy nastroju zasypiania.

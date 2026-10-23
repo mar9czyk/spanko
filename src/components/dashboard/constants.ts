@@ -48,11 +48,11 @@ export interface InterventionOptionItem {
 export const INTERVENTION_OPTIONS: readonly InterventionOptionItem[] = [
   { value: "independent", labelKey: "intervention.independent" },
   { value: "pacifier_reinsert", labelKey: "intervention.pacifier_reinsert" },
-  { value: "patting", labelKey: "intervention.patting" },
-  { value: "carrying", labelKey: "intervention.carrying" },
-  { value: "bouncing", labelKey: "intervention.bouncing" },
   { value: "breast", labelKey: "intervention.breast" },
   { value: "bottle", labelKey: "intervention.bottle" },
+  { value: "bouncing", labelKey: "intervention.bouncing" },
+  { value: "carrying", labelKey: "intervention.carrying" },
+  { value: "patting", labelKey: "intervention.patting" },
   { value: "shushing_voice", labelKey: "intervention.shushing_voice" },
   { value: "room_presence", labelKey: "intervention.room_presence" },
 ] as const;
@@ -79,7 +79,8 @@ export const DAY_TAG_PRESETS = [
 
 export const DEFAULT_BOTTLE_ML = 120;
 
-export const BREAST_DURATION_PRESETS_MIN = [5, 10, 15, 20] as const;
+/** Minuty karmienia piersią do dopisania w toście po zapisie. */
+export const BREAST_TOAST_MINUTES = [10, 20] as const;
 
 export const DIAPER_OPTIONS = [
   { value: "wet", labelKey: "diaper.wet" },

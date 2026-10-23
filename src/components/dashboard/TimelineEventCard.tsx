@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatDuration, formatVolume } from "@/i18n/translate";
 import { normalizeDayTag } from "@/lib/sleep-engine/dayTags";
+import { INTERVENTION_OPTIONS, MOOD_OPTIONS } from "./constants";
 import type {
   TimelineDiaperEvent,
   TimelineEvent,
@@ -23,28 +24,54 @@ function NapEventCard({ event }: { event: TimelineNapEvent }) {
     ? formatDuration(event.durationMinutes)
     : t("timeline.inProgress");
 
+  const moodOption = MOOD_OPTIONS.find((option) => option.value === event.mood);
+  const helped = INTERVENTION_OPTIONS.filter((option) =>
+    event.interventions?.includes(option.value),
+  );
+
   return (
-    <div className="flex items-center justify-between p-3 rounded-xl bg-[#151B28] border border-[#263348] shadow-sm">
-      <div className="flex items-center gap-3">
-        <div
-          className={`p-2 rounded-lg ${isNight ? "bg-violet-950/60 text-violet-400" : "bg-amber-950/60 text-amber-400"}`}
-        >
-          {isNight ? <Moon className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+    <div className="flex flex-col gap-2 p-3 rounded-xl bg-[#151B28] border border-[#263348] shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className={`p-2 rounded-lg ${isNight ? "bg-violet-950/60 text-violet-400" : "bg-amber-950/60 text-amber-400"}`}
+          >
+            {isNight ? <Moon className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-ink block">
+              {isNight ? t("timeline.night") : t("timeline.nap")}
+            </span>
+            <span className="text-sm text-slate-400 tabular-nums">
+              {event.startTime} {event.endTime ? `— ${event.endTime}` : ""}
+            </span>
+          </div>
         </div>
-        <div>
-          <span className="text-sm font-semibold text-ink block">
-            {isNight ? t("timeline.night") : t("timeline.nap")}
-          </span>
-          <span className="text-sm text-slate-400 tabular-nums">
-            {event.startTime} {event.endTime ? `— ${event.endTime}` : ""}
+        <div className="flex items-center gap-2">
+          <span className="text-xs tabular-nums font-medium text-slate-200 bg-[#1E2738] px-2 py-0.5 rounded-md">
+            {durationText}
           </span>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs tabular-nums font-medium text-slate-200 bg-[#1E2738] px-2 py-0.5 rounded-md">
-          {durationText}
-        </span>
-      </div>
+      {(moodOption || helped.length > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          {moodOption && (
+            <span
+              className={`rounded-md border bg-[#1E2738] px-2 py-0.5 text-xs ${moodOption.colorClass}`}
+            >
+              {t(moodOption.labelKey)}
+            </span>
+          )}
+          {helped.map((option) => (
+            <span
+              key={option.value}
+              className="rounded-md border border-[#263348] bg-[#1E2738] px-2 py-0.5 text-xs text-slate-300"
+            >
+              {t(option.labelKey)}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
