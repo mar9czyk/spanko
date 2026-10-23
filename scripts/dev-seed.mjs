@@ -250,7 +250,9 @@ await pb.collection("child_insights").create({
   status: "active",
   title: "Częste pobudki i usypianie z dużą pomocą",
   explanation:
-    "Stopniowo zmniejszaj pomoc przy zasypianiu: odkładaj Hanię senną, ale jeszcze nieśpiącą. Dlaczego: w 7 ostatnich nocach budziła się 4 razy i za każdym razem zasypiała przy piersi lub na rękach.",
+    "W 7 ostatnich nocach budziła się 4 razy i za każdym razem zasypiała przy piersi lub na rękach.",
+  clinical_action:
+    "Stopniowo zmniejszaj pomoc przy zasypianiu: odkładaj Hanię senną, ale jeszcze nieśpiącą.",
   confidence_score: 0.85,
   parent_feedback: "pending",
   algorithm_override_json: {},

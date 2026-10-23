@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ChildInsightRecord } from "@/lib/types/database";
 import { CATEGORY_PRESENTATIONS, DEFAULT_CATEGORY_PRESENTATION } from "./constants";
+import { InsightAdviceWhy } from "./InsightAdviceWhy";
 
 interface ActiveInsightsSectionProps {
   readonly insights: readonly ChildInsightRecord[];
@@ -88,7 +89,7 @@ function ActiveInsightCard({
 
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-semibold text-ink leading-snug">{insight.title}</h3>
-        <p className="text-xs text-slate-300 leading-relaxed">{insight.explanation}</p>
+        <InsightAdviceWhy insight={insight} compact />
         <AlgorithmOverridePill overrides={insight.algorithm_override_json} />
       </div>
 

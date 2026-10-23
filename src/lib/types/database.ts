@@ -151,6 +151,8 @@ export interface ChildInsightRecord {
   readonly status: InsightStatus;
   readonly title: string;
   readonly explanation: string;
+  /** Rada: co rodzic ma zrobić (z silnika albo od AI); brak w starszych wnioskach. */
+  readonly clinical_action?: string;
   readonly algorithm_override_json?: Record<string, unknown>;
   readonly confidence_score?: number;
   readonly parent_feedback?: ParentFeedback;

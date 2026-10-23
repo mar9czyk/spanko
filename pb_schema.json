@@ -1109,6 +1109,21 @@
         "type": "text"
       },
       {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "cins_clinact_f",
+        "max": 1000,
+        "min": 0,
+        "name": "clinical_action",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
         "help": "",
         "hidden": false,
         "id": "cins_algo_ovr_fl",

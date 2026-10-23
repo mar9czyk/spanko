@@ -228,7 +228,9 @@ const first = await insight({
   status: "superseded",
   title: "Zasypianie przy karmieniu napędza nocne pobudki",
   explanation:
-    "Dziś wieczorem skończ karmienie 10–15 minut przed odłożeniem do łóżeczka, a w łóżeczku zostaw smoczek. Dlaczego: w 3 z 4 ostatnich nocy dziecko zasypiało przy piersi lub butelce, a potem budziło się szukając tego samego.",
+    "W 3 z 4 ostatnich nocy dziecko zasypiało przy piersi lub butelce, a potem budziło się szukając tego samego.",
+  clinical_action:
+    "Dziś wieczorem skończ karmienie 10–15 minut przed odłożeniem do łóżeczka, a w łóżeczku zostaw smoczek.",
   valid_from: daysAgoIso(18),
   valid_until: daysAgoIso(13),
   parent_feedback: "accepted",
@@ -239,7 +241,8 @@ const second = await insight({
   status: "corrected_by_parent",
   title: "Skróć ostatnie okno czuwania przed snem nocnym",
   explanation:
-    "Zacznij wieczorną rutynę o 15 minut wcześniej. Dlaczego: dziecko zasypia dłużej niż 25 minut, co przy tym wieku zwykle oznacza przemęczenie.",
+    "Dziecko zasypia dłużej niż 25 minut, co przy tym wieku zwykle oznacza przemęczenie.",
+  clinical_action: "Zacznij wieczorną rutynę o 15 minut wcześniej.",
   algorithm_override_json: { wwOffsetMin: -15 },
   valid_from: daysAgoIso(13),
   valid_until: daysAgoIso(9),
@@ -252,8 +255,9 @@ const third = await insight({
   diagnosis_code: "DEV_SHORT_NAP_COMPENSATION",
   status: "active",
   title: "Po krótkiej drzemce skróć następne okno czuwania",
-  explanation:
-    "Gdy drzemka trwa mniej niż 30 minut, położ dziecko o 15–20 minut wcześniej niż zwykle. Dlaczego: po mikro-drzemkach dziecko szybciej się męczy i wieczorem jest marudne.",
+  explanation: "Po mikro-drzemkach dziecko szybciej się męczy i wieczorem jest marudne.",
+  clinical_action:
+    "Gdy drzemka trwa mniej niż 30 minut, położ dziecko o 15–20 minut wcześniej niż zwykle.",
   algorithm_override_json: { wwOffsetMin: -15 },
   confidence_score: 0.9,
   valid_from: daysAgoIso(9),
@@ -264,8 +268,9 @@ await insight({
   diagnosis_code: "DEV_NIGHT_FEEDS_DECREASING",
   status: "validated",
   title: "Nocne karmienia stopniowo się skracają",
-  explanation:
-    "Utrzymaj obecne tempo: przy pierwszej pobudce poczekaj 2–3 minuty, zanim zaproponujesz mleko. Dlaczego: liczba nocnych karmień spadła z 2 do 1 w ciągu 2 tygodni.",
+  explanation: "Liczba nocnych karmień spadła z 2 do 1 w ciągu 2 tygodni.",
+  clinical_action:
+    "Utrzymaj obecne tempo: przy pierwszej pobudce poczekaj 2–3 minuty, zanim zaproponujesz mleko.",
   confidence_score: 0.88,
   valid_from: daysAgoIso(7),
   parent_feedback: "accepted",
@@ -275,8 +280,8 @@ await insight({
   diagnosis_code: "DEV_EARLY_WAKING_HYPOTHESIS",
   status: "hypothesis",
   title: "Możliwe wczesne pobudki po 5:30",
-  explanation:
-    "Na razie tylko obserwujemy: zaciemnij pokój i unikaj karmienia przed 6:00. Dlaczego: w 2 z ostatnich 3 dni dziecko wstało przed 5:30.",
+  explanation: "W 2 z ostatnich 3 dni dziecko wstało przed 5:30.",
+  clinical_action: "Na razie tylko obserwujemy: zaciemnij pokój i unikaj karmienia przed 6:00.",
   confidence_score: 0.55,
   valid_from: daysAgoIso(2),
 });
