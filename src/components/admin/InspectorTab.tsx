@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { AiQualityReport, QualityRow } from "@/lib/admin/quality";
 import type { AiCallRecord, AiCallStatus } from "@/lib/types/database";
 import { adminRequest, jsonBody } from "./adminApi";
@@ -68,6 +69,22 @@ const EMPTY_FILTERS: Filters = {
   from: "",
   to: "",
 };
+
+const CATEGORY_CODES = [
+  "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
+  "CAT2_BEDTIME_RESISTANCE_LATENCY",
+  "CAT3_EARLY_WAKING_SPLIT_NIGHT",
+  "CAT4_SHORT_NAPS_TRANSITIONS",
+  "CAT5_REGRESSION_ILLNESS_CRISIS",
+  "CAT6_NEWBORN_DAY_NIGHT_ACTIVE_SLEEP",
+  "CAT7_NIGHT_WEANING_FEEDING",
+] as const;
+
+interface ChildOption {
+  readonly id: string;
+  readonly name: string;
+  readonly household_name: string | null;
+}
 
 const STATUS_STYLE: Record<AiCallStatus, string> = {
   ok: "text-emerald-400",
@@ -177,7 +194,15 @@ function ReplayPanel({ callId }: { callId: string }): ReactNode {
  * @param {object} props - Tytuł i wiersze
  * @returns {ReactNode} Tabela
  */
-function QualityTable({ title, rows }: { title: string; rows: readonly QualityRow[] }): ReactNode {
+function QualityTable({
+  title,
+  rows,
+  labelKey,
+}: {
+  title: string;
+  rows: readonly QualityRow[];
+  labelKey?: (key: string) => string;
+}): ReactNode {
   return (
     <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -201,7 +226,7 @@ function QualityTable({ title, rows }: { title: string; rows: readonly QualityRo
             {rows.map((row) => (
               <tr key={row.key} className="border-t border-slate-800">
                 <th scope="row" className="py-1.5 text-left font-medium">
-                  {row.key}
+                  {labelKey ? labelKey(row.key) : row.key}
                 </th>
                 <td className="text-right">{row.total}</td>
                 <td className="text-right">{row.accepted}</td>
@@ -224,7 +249,7 @@ function QualityTable({ title, rows }: { title: string; rows: readonly QualityRo
  *
  * @returns {ReactNode} Widok jakości
  */
-function QualityView(): ReactNode {
+function QualityView({ categoryLabel }: { categoryLabel: (code: string) => string }): ReactNode {
   const [data, setData] = useState<QualityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -241,7 +266,7 @@ function QualityView(): ReactNode {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-slate-400">Przeanalizowano wniosków: {data.analyzed}.</p>
-      <QualityTable title="Wg kategorii" rows={data.report.byCategory} />
+      <QualityTable title="Wg kategorii" rows={data.report.byCategory} labelKey={categoryLabel} />
       <QualityTable title="Wg wersji promptu" rows={data.report.byPromptVersion} />
       <div className="rounded-xl border border-slate-800 bg-[#151B28] p-3">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -256,7 +281,7 @@ function QualityView(): ReactNode {
               <p className="font-medium text-slate-200">{correction.title}</p>
               <p className="text-slate-300">„{correction.note}”</p>
               <p className="text-xs text-slate-400">
-                {correction.category} · {correction.feedback ?? "—"} ·{" "}
+                {categoryLabel(correction.category)} · {correction.feedback ?? "—"} ·{" "}
                 {new Date(correction.updated).toLocaleString("pl-PL")}
               </p>
             </li>
@@ -278,6 +303,15 @@ export function InspectorTab({ initialUserId = "" }: { initialUserId?: string })
   const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, user: initialUserId });
   const [data, setData] = useState<CallsPage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [children, setChildren] = useState<readonly ChildOption[]>([]);
+  const { tDynamic } = useI18n();
+  const categoryLabel = (code: string) => tDynamic(`insights.cat.${code}`, code);
+
+  useEffect(() => {
+    adminRequest<{ items: readonly ChildOption[] }>("/api/admin/children?perPage=50")
+      .then((result) => setChildren(result.items))
+      .catch(() => setChildren([]));
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -332,7 +366,7 @@ export function InspectorTab({ initialUserId = "" }: { initialUserId?: string })
         ))}
       </div>
 
-      {view === "quality" && <QualityView />}
+      {view === "quality" && <QualityView categoryLabel={categoryLabel} />}
 
       {view === "calls" && (
         <>
@@ -348,13 +382,19 @@ export function InspectorTab({ initialUserId = "" }: { initialUserId?: string })
               <option value="error">error</option>
               <option value="invalid_json">invalid_json</option>
             </select>
-            <input
+            <select
               className={inputClass}
               aria-label="Filtr kategorii"
-              placeholder="Kategoria (np. CAT1)"
               value={filters.category}
               onChange={(event) => updateFilter("category", event.target.value)}
-            />
+            >
+              <option value="">Wszystkie kategorie</option>
+              {CATEGORY_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {categoryLabel(code)}
+                </option>
+              ))}
+            </select>
             <input
               className={inputClass}
               aria-label="Filtr modelu"
@@ -376,13 +416,19 @@ export function InspectorTab({ initialUserId = "" }: { initialUserId?: string })
               value={filters.user}
               onChange={(event) => updateFilter("user", event.target.value)}
             />
-            <input
+            <select
               className={inputClass}
               aria-label="Filtr dziecka"
-              placeholder="ID dziecka"
               value={filters.child}
               onChange={(event) => updateFilter("child", event.target.value)}
-            />
+            >
+              <option value="">Wszystkie dzieci</option>
+              {children.map((child) => (
+                <option key={child.id} value={child.id}>
+                  {child.household_name ? `${child.name} (${child.household_name})` : child.name}
+                </option>
+              ))}
+            </select>
             <div className="grid grid-cols-2 gap-2">
               <input
                 className={inputClass}
@@ -443,7 +489,7 @@ export function InspectorTab({ initialUserId = "" }: { initialUserId?: string })
                 {call.error_message && <StatusMessage error={call.error_message} />}
                 <p className="text-xs text-slate-400">
                   Tokeny: {call.prompt_tokens ?? "—"} / {call.completion_tokens ?? "—"}
-                  {call.category ? ` · ${call.category}` : ""}
+                  {call.category ? ` · ${categoryLabel(call.category)}` : ""}
                 </p>
                 {canReplay(call) ? (
                   <ReplayPanel callId={call.id} />
