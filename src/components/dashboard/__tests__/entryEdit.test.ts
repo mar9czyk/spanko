@@ -59,6 +59,26 @@ describe("buildEntryTimePatch", () => {
     });
   });
 
+  it("butelka zapisuje ilość tylko gdy ją podano", () => {
+    const bottle: TimelineEvent = {
+      id: "b1",
+      kind: "feeding",
+      time: "",
+      timeIso: local(21, 14, 10),
+      feedingType: "bottle",
+    };
+    expect(buildEntryTimePatch(bottle, { start: "14:10" }, NOW)).toEqual({
+      collection: "day_context",
+      id: "b1",
+      patch: { timestamp: local(21, 14, 10) },
+    });
+    expect(buildEntryTimePatch(bottle, { start: "14:10", bottleMl: 130 }, NOW)).toEqual({
+      collection: "day_context",
+      id: "b1",
+      patch: { timestamp: local(21, 14, 10), bottle_ml: 130 },
+    });
+  });
+
   it("nie pozwala przenieść wpisu w przyszłość", () => {
     expect(buildEntryTimePatch(diaper, { start: "22:30" }, local(21, 22, 0))).toBe("in_future");
   });

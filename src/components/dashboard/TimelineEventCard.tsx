@@ -68,7 +68,11 @@ function FeedingEventCard({ event }: { event: TimelineFeedingEvent }) {
     const details = event.breastMinutes ? `${side}, ${formatDuration(event.breastMinutes)}` : side;
     label = t("timeline.breast", { details });
   } else if (event.feedingType === "bottle") {
-    label = t("timeline.bottle", { volume: formatVolume(event.bottleMl || 120, units) });
+    label = t("timeline.bottle", {
+      volume: event.bottleMl
+        ? formatVolume(event.bottleMl, units)
+        : `? ${units === "imperial" ? "oz" : "ml"}`,
+    });
   } else if (event.feedingType === "solid") {
     label = `${t("timeline.solid")}${event.notes ? ` (${event.notes})` : ""}`;
   }

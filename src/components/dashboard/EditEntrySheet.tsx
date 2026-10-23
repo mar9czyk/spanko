@@ -6,6 +6,8 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { pb } from "@/lib/pocketbase";
 import type { DayContextRecord, SleepLogRecord } from "@/lib/types/database";
+import { BottleVolumeInput } from "./BottleVolumeInput";
+import { DEFAULT_BOTTLE_ML } from "./constants";
 import {
   buildEntryTimePatch,
   type EntryEditError,
@@ -78,10 +80,10 @@ function TimeField({
 }
 
 /**
- * Arkusz edycji godziny wpisu z osi czasu (sen, karmienie, pielucha, tagi).
+ * Arkusz edycji wpisu z osi czasu (sen, karmienie, pielucha, tagi).
  *
  * @description
- * Zmienia tylko godziny; wpis zostaje w swojej dobie fizjologicznej. Godzina trafia na moment
+ * Zmienia godziny (a w butelce ilość mleka); wpis zostaje w swojej dobie fizjologicznej. Godzina trafia na moment
  * najbliższy pierwotnemu, więc korekta 00:30 → 23:50 oznacza poprzedni wieczór.
  *
  * @param {EditEntrySheetProps} props - Wpis i callbacki
@@ -91,6 +93,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   const { t } = useI18n();
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [bottleMl, setBottleMl] = useState<number | undefined>(undefined);
   const [error, setError] = useState<EntryEditError | "save_failed" | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -98,13 +101,16 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
     if (!event) return;
     setStart(toClockInputValue(event.kind === "nap" ? event.startIso : event.timeIso));
     setEnd(event.kind === "nap" ? toClockInputValue(event.endIso) : "");
+    setBottleMl(
+      event.kind === "feeding" ? (event.bottleMl ?? DEFAULT_BOTTLE_ML) : DEFAULT_BOTTLE_ML,
+    );
     setError(null);
     setIsSaving(false);
   }, [event]);
 
   const handleSave = async () => {
     if (!event) return;
-    const change = buildEntryTimePatch(event, { start, end }, new Date().toISOString());
+    const change = buildEntryTimePatch(event, { start, end, bottleMl }, new Date().toISOString());
     if (typeof change === "string") {
       setError(change);
       return;
@@ -120,6 +126,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   };
 
   const isSleep = event?.kind === "nap";
+  const isBottle = event?.kind === "feeding" && event.feedingType === "bottle";
   return (
     <AnimatePresence>
       {event && (
@@ -163,6 +170,14 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
                 <TimeField label={t("entryEdit.sleepEnd")} value={end} onChange={setEnd} />
               )}
             </div>
+            {isBottle && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {t("entryEdit.bottleAmount")}
+                </span>
+                <BottleVolumeInput valueMl={bottleMl ?? DEFAULT_BOTTLE_ML} onChange={setBottleMl} />
+              </div>
+            )}
             <p className="text-xs text-slate-400">{t("entryEdit.hint")}</p>
             {error && (
               <p role="alert" className="text-xs text-red-300">

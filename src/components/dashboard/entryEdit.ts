@@ -9,6 +9,8 @@ export interface EntryTimeDraft {
   readonly start: string;
   /** Tylko sen: godzina pobudki. */
   readonly end?: string;
+  /** Tylko butelka: nowa ilość mleka w ml. */
+  readonly bottleMl?: number;
 }
 
 export type EntryEditError = "invalid_time" | "end_before_start" | "in_future";
@@ -24,7 +26,8 @@ export type EntryEditPatch =
   | {
       readonly collection: "day_context";
       readonly id: string;
-      readonly patch: Pick<DayContextRecord, "timestamp">;
+      readonly patch: Pick<DayContextRecord, "timestamp"> &
+        Partial<Pick<DayContextRecord, "bottle_ml">>;
     };
 
 /**
@@ -82,7 +85,7 @@ export function applyClockTime(originalIso: string, clock: string): string | nul
  * @description
  * Sen: zmienia początek (zaśnięcie albo odłożenie, zależnie od tego, które pole wyznacza
  * start) i pobudkę; odłożenie późniejsze niż nowe zaśnięcie przesuwa razem z nim.
- * Karmienie, pielucha, tagi: zmienia `timestamp`. Doba fizjologiczna wpisu się nie zmienia.
+ * Karmienie, pielucha, tagi: zmienia `timestamp`; butelka dodatkowo `bottle_ml`. Doba fizjologiczna wpisu się nie zmienia.
  *
  * @param {TimelineEvent} event - Edytowany wpis
  * @param {EntryTimeDraft} draft - Nowe godziny HH:mm
@@ -100,7 +103,13 @@ export function buildEntryTimePatch(
     const timestamp = applyClockTime(event.timeIso, draft.start);
     if (!timestamp) return "invalid_time";
     if (Date.parse(timestamp) > nowMs) return "in_future";
-    return { collection: "day_context", id: event.id, patch: { timestamp } };
+    const bottleMl =
+      event.kind === "feeding" && event.feedingType === "bottle" ? draft.bottleMl : undefined;
+    return {
+      collection: "day_context",
+      id: event.id,
+      patch: bottleMl === undefined ? { timestamp } : { timestamp, bottle_ml: bottleMl },
+    };
   }
 
   if (!event.startIso) return "invalid_time";

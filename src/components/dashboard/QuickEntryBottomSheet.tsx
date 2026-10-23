@@ -12,9 +12,11 @@ import type {
   InterventionLevel,
   SleepMood,
 } from "@/lib/types/database";
+import { BottleVolumeInput } from "./BottleVolumeInput";
 import {
   BREAST_DURATION_PRESETS_MIN,
   DAY_TAG_PRESETS,
+  DEFAULT_BOTTLE_ML,
   DIAPER_OPTIONS,
   INTERVENTION_OPTIONS,
   MOOD_OPTIONS,
@@ -51,6 +53,8 @@ function FeedingSection({
 }) {
   const { t, units } = useI18n();
   const [minutes, setMinutes] = useState<number | undefined>(undefined);
+  const [isCustomBottle, setIsCustomBottle] = useState(false);
+  const [customMl, setCustomMl] = useState(DEFAULT_BOTTLE_ML);
   return (
     <div className="flex flex-col gap-2">
       <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -95,7 +99,27 @@ function FeedingSection({
             {preset.label}
           </button>
         ))}
+        <button
+          type="button"
+          aria-expanded={isCustomBottle}
+          onClick={() => setIsCustomBottle((open) => !open)}
+          className={`flex-1 py-2 px-2 rounded-xl text-xs font-medium border whitespace-nowrap ${isCustomBottle ? "bg-emerald-900/50 border-emerald-500/60 text-emerald-200" : "bg-[#151B28] border-[#263348] text-slate-300"}`}
+        >
+          {t("bottle.other")}
+        </button>
       </div>
+      {isCustomBottle && (
+        <div className="flex flex-col gap-2">
+          <BottleVolumeInput valueMl={customMl} onChange={setCustomMl} />
+          <button
+            type="button"
+            onClick={() => onSelect("bottle", { ml: customMl })}
+            className="min-h-12 rounded-xl bg-emerald-600 text-sm font-semibold text-white"
+          >
+            {t("bottle.save")}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

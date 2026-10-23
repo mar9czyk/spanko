@@ -45,7 +45,7 @@ import type {
   SleepLogRecord,
   SleepMood,
 } from "@/lib/types/database";
-import { DEFAULT_BOTTLE_ML, FALLBACK_LAST_NAP_CAPPING } from "./constants";
+import { FALLBACK_LAST_NAP_CAPPING } from "./constants";
 import {
   DEV_FIXTURE_CHILD,
   DEV_FIXTURE_INSIGHT,
@@ -675,11 +675,8 @@ export function useDashboardState() {
   const handleSaveDiaper = (kind: DiaperKind) =>
     saveDayContext({ event_type: "diaper", feeding_type: "none", diaper_kind: kind });
 
-  /** 1-tap: butelka z ostatnio użytą objętością (domyślnie 120 ml). */
-  const handleQuickBottle = () => {
-    const lastBottle = dayContext.find((r) => r.feeding_type === "bottle" && r.bottle_ml);
-    return handleSaveFeeding("bottle", { ml: lastBottle?.bottle_ml ?? DEFAULT_BOTTLE_ML });
-  };
+  /** 1-tap: butelka bez ilości; ilość da się uzupełnić później w edycji wpisu. */
+  const handleQuickBottle = () => handleSaveFeeding("bottle", {});
 
   /** 1-tap: mokra pielucha. */
   const handleQuickDiaper = () => handleSaveDiaper("wet");
