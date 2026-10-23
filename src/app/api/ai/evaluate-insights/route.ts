@@ -91,6 +91,7 @@ async function saveNewInsightRecord(
     status: "active" | "hypothesis";
     title: string;
     explanation: string;
+    clinicalAction?: string;
     algorithmOverrideJson: Record<string, unknown>;
     confidenceScore: number;
     previousInsightId?: string;
@@ -103,6 +104,7 @@ async function saveNewInsightRecord(
     status: payload.status,
     title: payload.title,
     explanation: payload.explanation,
+    clinical_action: payload.clinicalAction,
     algorithm_override_json: payload.algorithmOverrideJson,
     confidence_score: payload.confidenceScore,
     parent_feedback: "pending" as const,
@@ -227,6 +229,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       status: aiInsight.status === "hypothesis" ? "hypothesis" : "active",
       title: aiInsight.title,
       explanation: aiInsight.explanation,
+      clinicalAction: aiInsight.clinical_action,
       algorithmOverrideJson: aiInsight.algorithm_override_json,
       confidenceScore: aiInsight.confidence_score,
       previousInsightId: existingActiveInsight?.id,

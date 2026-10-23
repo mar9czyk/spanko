@@ -106,6 +106,8 @@ export const pl = {
   "insightCard.adjust": "Skoryguj",
   "insightCard.saved": "Zapisane, uwzględnimy to w prognozach.",
   "insightCard.undo": "Cofnij",
+  "insightCard.advice": "Co zrobić",
+  "insightCard.why": "Dlaczego?",
   "insightCard.history": "Karta Rozwoju i Kalendarz Historii",
 
   "battery.period": "względem zwykłego snu, ostatnie 3 doby",
@@ -569,6 +571,8 @@ export const en: Record<MessageKey, string> = {
   "insightCard.adjust": "Adjust",
   "insightCard.saved": "Saved, we'll use it in predictions.",
   "insightCard.undo": "Undo",
+  "insightCard.advice": "What to do",
+  "insightCard.why": "Why?",
   "insightCard.history": "Sleep profile & history",
 
   "battery.period": "vs usual sleep, last 3 days",
