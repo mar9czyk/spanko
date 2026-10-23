@@ -32,6 +32,7 @@ import {
   type TravelPlan,
   type TravelStrategy,
 } from "@/lib/sleep-engine";
+import { normalizeDayTag } from "@/lib/sleep-engine/dayTags";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
   ActiveDayMode,
@@ -61,6 +62,31 @@ import {
 import type { TimelineEvent } from "./types";
 
 export type DashboardLoadStatus = "loading" | "ready" | "empty" | "error";
+
+/** Wybór w toście pobudki nocnej: pierś lewa/prawa, butelka albo bez karmienia. */
+export type NightWakeFeed = "left" | "right" | "bottle" | "none";
+
+/** Ostatnio zapisane karmienie lub pielucha — toast „zapisano” z cofnięciem i dopiskiem. */
+export interface EntryToast {
+  readonly id: string;
+  readonly kind: "breast" | "bottle" | "diaper";
+  readonly side?: BreastSide;
+  readonly bottleMl?: number;
+  readonly diaperKind?: DiaperKind;
+}
+
+/** Dane pierwszego wpisu day_context, zanim dostanie id. */
+type DayContextDraft = {
+  event_type: DayContextRecord["event_type"];
+  feeding_type: FeedingType;
+  bottle_ml?: number;
+  breast_side?: BreastSide;
+  breast_left_min?: number;
+  breast_right_min?: number;
+  diaper_kind?: DiaperKind;
+  tags?: readonly string[];
+  notes?: string;
+};
 
 // Czas bieżący ustawiany po zamontowaniu (new Date() w stanie początkowym blokuje prerender)
 const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
@@ -123,6 +149,9 @@ export function useDashboardState() {
     readonly logId: string;
     readonly wokeAt: string;
   } | null>(null);
+  const [entryToast, setEntryToast] = useState<EntryToast | null>(null);
+  // Sen, po którego rozpoczęciu pokazujemy kartę „Jak zasnął?”
+  const [fellAsleepPromptLogId, setFellAsleepPromptLogId] = useState<string | null>(null);
   const [isDemoData, setIsDemoData] = useState(false);
   const [children, setChildren] = useState<readonly ChildRecord[]>([]);
   const [child, setChild] = useState<ChildRecord | null>(null);
@@ -381,6 +410,16 @@ export function useDashboardState() {
   const dayModeGuidance = child
     ? resolveDayModeGuidance({ dayMode: child.active_day_mode, tags: todayTags, effectiveAgeDays })
     : null;
+  const activeDayTags = useMemo(
+    () => [...new Set(todayTags.map((tag) => normalizeDayTag(tag)))],
+    [todayTags],
+  );
+  // Strona następnej piersi: przeciwna do ostatniej zapisanej dziś
+  const lastBreastSide = [...dayContext]
+    .filter((entry) => entry.feeding_type === "breast" && entry.breast_side)
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0]?.breast_side;
+  const suggestedBreastSide: BreastSide | undefined =
+    lastBreastSide === "left" ? "right" : lastBreastSide === "right" ? "left" : undefined;
   const lastTodayNap = todayCompletedNaps[0];
   const wakeCheckNapMin = activeNapStartIso
     ? calculateDurationInMinutes(activeNapStartIso, nowIso)
@@ -556,10 +595,12 @@ export function useDashboardState() {
         status: "sleeping",
         fell_asleep_at: new Date().toISOString(),
       });
+      setFellAsleepPromptLogId(currentSleepLog.id);
       return;
     }
 
     if (currentSleepLog.status === "sleeping") {
+      setFellAsleepPromptLogId(null);
       if (currentSleepLog.type === "night" && currentSleepLog.night_wakings?.length) {
         setPendingMorningWakingReview(
           currentSleepLog.night_wakings.map((wake) => formatClock(wake.wokeAt)),
@@ -572,21 +613,30 @@ export function useDashboardState() {
     }
   };
 
+  /** Zapisuje pobudkę bez założeń o karmieniu; co dostał, wybiera się w toście. */
   const handleQuickNightWake = async () => {
     if (!currentSleepLog) return;
     const previousWakings = currentSleepLog.night_wakings || [];
     const wokeAt = new Date().toISOString();
     const updatedWakings = [
       ...previousWakings,
-      {
-        wokeAt,
-        estimatedDurationMin: 15,
-        fedMilk: true,
-        interventions: ["bottle" as const],
-      },
+      { wokeAt, estimatedDurationMin: 15, fedMilk: false, interventions: [] },
     ];
     await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
     setNightWakeToast({ logId: currentSleepLog.id, wokeAt });
+  };
+
+  /** Uzupełnia ostatnią pobudkę o wybór z tostu: fedMilk i interwencje wynikają z niego. */
+  const handleNightWakeFeed = async (feed: NightWakeFeed) => {
+    const toast = nightWakeToast;
+    setNightWakeToast(null);
+    if (!toast || !currentSleepLog || currentSleepLog.id !== toast.logId) return;
+    if (feed === "none") return;
+    const interventions: readonly InterventionLevel[] = [feed === "bottle" ? "bottle" : "breast"];
+    const updatedWakings = (currentSleepLog.night_wakings || []).map((wake) =>
+      wake.wokeAt === toast.wokeAt ? { ...wake, fedMilk: true, interventions } : wake,
+    );
+    await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
   };
 
   /** Cofa ostatnio zapisaną szybką pobudkę (usuwa wpis o tym samym czasie). */
@@ -619,18 +669,31 @@ export function useDashboardState() {
     setPendingMorningWakingReview([]);
   };
 
-  const saveDayContext = async (draft: {
-    event_type: DayContextRecord["event_type"];
-    feeding_type: FeedingType;
-    bottle_ml?: number;
-    breast_side?: BreastSide;
-    breast_left_min?: number;
-    breast_right_min?: number;
-    diaper_kind?: DiaperKind;
-    tags?: readonly string[];
-    notes?: string;
-  }) => {
-    if (!child) return;
+  const patchDayContext = async (id: string, patch: Partial<DayContextRecord>) => {
+    setDayContext((prev) =>
+      prev.map((record) => (record.id === id ? { ...record, ...patch } : record)),
+    );
+    if (isDemoData) return;
+    try {
+      await pb.collection("day_context").update(id, patch);
+    } catch (error) {
+      reportError(error, t("dashboard.saveEntryError"));
+    }
+  };
+
+  const removeDayContext = async (id: string) => {
+    setDayContext((prev) => prev.filter((record) => record.id !== id));
+    if (isDemoData) return;
+    try {
+      await pb.collection("day_context").delete(id);
+    } catch (error) {
+      reportError(error, t("dashboard.saveEntryError"));
+    }
+  };
+
+  /** Zapisuje wpis day_context; zwraca go, gdy zapis się udał. */
+  const saveDayContext = async (draft: DayContextDraft): Promise<DayContextRecord | undefined> => {
+    if (!child) return undefined;
     const timestamp = new Date().toISOString();
     if (isDemoData) {
       const record = {
@@ -643,7 +706,7 @@ export function useDashboardState() {
         updated: timestamp,
       };
       setDayContext((prev) => [record, ...prev]);
-      return;
+      return record;
     }
     try {
       const created = await pb.collection("day_context").create<DayContextRecord>({
@@ -653,16 +716,19 @@ export function useDashboardState() {
         timestamp,
       });
       setDayContext((prev) => [created, ...prev]);
+      return created;
     } catch (error) {
       reportError(error, t("dashboard.saveEntryError"));
+      return undefined;
     }
   };
 
-  const handleSaveFeeding = (
+  /** Zapisuje karmienie i pokazuje toast z cofnięciem (pierś: dopisek minut). */
+  const handleSaveFeeding = async (
     type: FeedingType,
     details: { side?: BreastSide; ml?: number; minutes?: number; notes?: string },
-  ) =>
-    saveDayContext({
+  ) => {
+    const record = await saveDayContext({
       event_type: "feeding",
       feeding_type: type,
       breast_side: details.side,
@@ -671,26 +737,72 @@ export function useDashboardState() {
       breast_right_min: details.side === "right" ? details.minutes : undefined,
       notes: details.notes,
     });
+    if (!record || (type !== "breast" && type !== "bottle")) return;
+    setEntryToast({ id: record.id, kind: type, side: details.side, bottleMl: details.ml });
+  };
 
-  const handleSaveDiaper = (kind: DiaperKind) =>
-    saveDayContext({ event_type: "diaper", feeding_type: "none", diaper_kind: kind });
-
-  /** 1-tap: butelka bez ilości; ilość da się uzupełnić później w edycji wpisu. */
-  const handleQuickBottle = () => handleSaveFeeding("bottle", {});
+  /** Zapisuje pieluchę i pokazuje toast z cofnięciem (zmiana rodzaju). */
+  const handleSaveDiaper = async (kind: DiaperKind) => {
+    const record = await saveDayContext({
+      event_type: "diaper",
+      feeding_type: "none",
+      diaper_kind: kind,
+    });
+    if (record) setEntryToast({ id: record.id, kind: "diaper", diaperKind: kind });
+  };
 
   /** 1-tap: mokra pielucha. */
   const handleQuickDiaper = () => handleSaveDiaper("wet");
 
-  const handleSaveMoodAndIntervention = async (
-    mood: SleepMood,
-    interventions: readonly InterventionLevel[],
-  ) => {
-    if (!currentSleepLog) return;
-    await saveSleepLog(currentSleepLog, { mood, interventions });
+  /** Dopisek do toastu: minuty karmienia piersią. */
+  const handleToastBreastMinutes = async (minutes: number) => {
+    const toast = entryToast;
+    setEntryToast(null);
+    if (toast?.kind !== "breast") return;
+    await patchDayContext(
+      toast.id,
+      toast.side === "left" ? { breast_left_min: minutes } : { breast_right_min: minutes },
+    );
   };
 
-  const handleSaveDayTag = (tag: string) =>
-    saveDayContext({ event_type: "tag", feeding_type: "none", tags: [tag] });
+  /** Dopisek do toastu: rodzaj pieluchy. */
+  const handleToastDiaperKind = async (kind: DiaperKind) => {
+    const toast = entryToast;
+    setEntryToast(null);
+    if (toast?.kind !== "diaper") return;
+    await patchDayContext(toast.id, { diaper_kind: kind });
+  };
+
+  const handleUndoEntryToast = async () => {
+    const toast = entryToast;
+    setEntryToast(null);
+    if (toast) await removeDayContext(toast.id);
+  };
+
+  /** Karta „Jak zasnął?”: nastrój i co pomogło trafiają do trwającego snu. */
+  const handleSaveFellAsleep = async (
+    mood: SleepMood | undefined,
+    interventions: readonly InterventionLevel[],
+  ) => {
+    if (!currentSleepLog || currentSleepLog.id !== fellAsleepPromptLogId) return;
+    await saveSleepLog(currentSleepLog, mood ? { mood, interventions } : { interventions });
+  };
+
+  /** Włącza lub wyłącza tag dnia; wyłączenie usuwa dzisiejsze wpisy z tym tagiem. */
+  const handleToggleDayTag = async (tag: string) => {
+    const matching = dayContext.filter((entry) =>
+      (entry.tags ?? []).some((value) => normalizeDayTag(value) === tag),
+    );
+    if (matching.length === 0) {
+      await saveDayContext({ event_type: "tag", feeding_type: "none", tags: [tag] });
+      return;
+    }
+    for (const entry of matching) {
+      const rest = (entry.tags ?? []).filter((value) => normalizeDayTag(value) !== tag);
+      if (rest.length === 0) await removeDayContext(entry.id);
+      else await patchDayContext(entry.id, { tags: rest });
+    }
+  };
 
   /** Po edycji godzin wpisu z osi czasu bieżącej doby podmienia rekord w stanie. */
   const handleEntryEdited = (entry: EditedEntry) => {
@@ -767,6 +879,7 @@ export function useDashboardState() {
     handleUndoAcceptInsight,
     handleCycleSleepStatus,
     handleQuickNightWake,
+    handleNightWakeFeed,
     nightWakeToast,
     dismissNightWakeToast: () => setNightWakeToast(null),
     handleUndoNightWake,
@@ -774,13 +887,21 @@ export function useDashboardState() {
     handleResolveMorningWaking,
     handleSaveFeeding,
     handleSaveDiaper,
-    handleQuickBottle,
     handleQuickDiaper,
+    entryToast,
+    dismissEntryToast: () => setEntryToast(null),
+    handleToastBreastMinutes,
+    handleToastDiaperKind,
+    handleUndoEntryToast,
+    suggestedBreastSide,
+    activeDayTags,
+    fellAsleepPromptLogId,
+    dismissFellAsleepPrompt: () => setFellAsleepPromptLogId(null),
+    handleSaveFellAsleep,
     minutesSinceFeeding,
     physiologicalDate: nowIso === EPOCH_ISO ? null : physiologicalDate,
     nowIso,
-    handleSaveMoodAndIntervention,
-    handleSaveDayTag,
+    handleToggleDayTag,
     handleEntryEdited,
   };
 }

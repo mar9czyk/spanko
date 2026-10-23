@@ -5,7 +5,12 @@ import { X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { pb } from "@/lib/pocketbase";
-import type { DayContextRecord, SleepLogRecord } from "@/lib/types/database";
+import type {
+  DayContextRecord,
+  InterventionLevel,
+  SleepLogRecord,
+  SleepMood,
+} from "@/lib/types/database";
 import { BottleVolumeInput } from "./BottleVolumeInput";
 import { DEFAULT_BOTTLE_ML } from "./constants";
 import {
@@ -14,6 +19,7 @@ import {
   type EntryEditPatch,
   toClockInputValue,
 } from "./entryEdit";
+import { SleepHowPicker } from "./SleepHowPicker";
 import type { TimelineEvent } from "./types";
 
 /** Zapisany wpis po edycji: kolekcja i rekord zwrócony przez PocketBase. */
@@ -93,6 +99,8 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   const { t } = useI18n();
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [mood, setMood] = useState<SleepMood | undefined>(undefined);
+  const [interventions, setInterventions] = useState<readonly InterventionLevel[]>([]);
   const [bottleMl, setBottleMl] = useState<number | undefined>(undefined);
   const [error, setError] = useState<EntryEditError | "save_failed" | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -101,6 +109,8 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
     if (!event) return;
     setStart(toClockInputValue(event.kind === "nap" ? event.startIso : event.timeIso));
     setEnd(event.kind === "nap" ? toClockInputValue(event.endIso) : "");
+    setMood(event.kind === "nap" ? event.mood : undefined);
+    setInterventions(event.kind === "nap" ? (event.interventions ?? []) : []);
     setBottleMl(
       event.kind === "feeding" ? (event.bottleMl ?? DEFAULT_BOTTLE_ML) : DEFAULT_BOTTLE_ML,
     );
@@ -110,7 +120,16 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
 
   const handleSave = async () => {
     if (!event) return;
-    const change = buildEntryTimePatch(event, { start, end, bottleMl }, new Date().toISOString());
+    const change = buildEntryTimePatch(
+      event,
+      {
+        start,
+        end,
+        bottleMl,
+        ...(event.kind === "nap" ? { mood: mood ?? null, interventions } : {}),
+      },
+      new Date().toISOString(),
+    );
     if (typeof change === "string") {
       setError(change);
       return;
@@ -170,6 +189,22 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
                 <TimeField label={t("entryEdit.sleepEnd")} value={end} onChange={setEnd} />
               )}
             </div>
+            {isSleep && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {t("entryEdit.howFellAsleep")}
+                </span>
+                <SleepHowPicker
+                  mood={mood}
+                  interventions={interventions}
+                  allowClearMood
+                  onChange={(nextMood, nextInterventions) => {
+                    setMood(nextMood);
+                    setInterventions(nextInterventions);
+                  }}
+                />
+              </div>
+            )}
             {isBottle && (
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">

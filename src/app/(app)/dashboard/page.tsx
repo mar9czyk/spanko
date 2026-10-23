@@ -11,6 +11,9 @@ import {
 import { DayDetailSheet } from "@/components/dashboard/DayDetailSheet";
 import { DayModeGuidanceCard } from "@/components/dashboard/DayModeGuidanceCard";
 import { pastDayStripNowIso, shiftPhysiologicalDate } from "@/components/dashboard/dayHistory";
+import { EntryToast } from "@/components/dashboard/EntryToast";
+import { FeedingSheet } from "@/components/dashboard/FeedingSheet";
+import { FellAsleepCard } from "@/components/dashboard/FellAsleepCard";
 import { FloatingActionBar } from "@/components/dashboard/FloatingActionBar";
 import { HeroWidget } from "@/components/dashboard/HeroWidget";
 import { LastNapPanel } from "@/components/dashboard/LastNapPanel";
@@ -44,7 +47,8 @@ import { nightAdviceFor } from "@/lib/sleep-engine/nightAdvice";
  */
 export default function DashboardPage() {
   const { t, locale } = useI18n();
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
+  const [isTagsOpen, setIsTagsOpen] = useState(false);
+  const [isFeedingOpen, setIsFeedingOpen] = useState(false);
   const state = useDashboardState();
   const { child } = state;
   const goalState = useGoalState({
@@ -233,17 +237,37 @@ export default function DashboardPage() {
           onEntryEdited={state.isDemoData ? undefined : state.handleEntryEdited}
         />
       )}
-      <NightWakeToast
-        wokeAtIso={state.nightWakeToast?.wokeAt ?? null}
-        onUndo={() => void state.handleUndoNightWake()}
-        onDismiss={state.dismissNightWakeToast}
-      />
+      <div
+        className={`pointer-events-none fixed inset-x-0 z-40 mx-auto flex w-[calc(100%-2rem)] max-w-md flex-col gap-2 ${isNightSleepActive ? "bottom-40" : "bottom-28"}`}
+      >
+        {state.fellAsleepPromptLogId &&
+          state.fellAsleepPromptLogId === state.currentSleepLog?.id && (
+            <FellAsleepCard
+              key={state.fellAsleepPromptLogId}
+              onSave={state.handleSaveFellAsleep}
+              onDismiss={state.dismissFellAsleepPrompt}
+            />
+          )}
+        <EntryToast
+          toast={state.entryToast}
+          onBreastMinutes={(minutes) => void state.handleToastBreastMinutes(minutes)}
+          onDiaperKind={(kind) => void state.handleToastDiaperKind(kind)}
+          onUndo={() => void state.handleUndoEntryToast()}
+          onDismiss={state.dismissEntryToast}
+        />
+        <NightWakeToast
+          wokeAtIso={state.nightWakeToast?.wokeAt ?? null}
+          onChoose={(feed) => void state.handleNightWakeFeed(feed)}
+          onUndo={() => void state.handleUndoNightWake()}
+          onDismiss={state.dismissNightWakeToast}
+        />
+      </div>
       <FloatingActionBar
         currentSleepLog={state.currentSleepLog}
         onCycleSleepStatus={state.handleCycleSleepStatus}
         onQuickNightWake={state.handleQuickNightWake}
-        onOpenQuickEntry={() => setIsQuickEntryOpen(true)}
-        onQuickBottle={state.handleQuickBottle}
+        onOpenFeeding={() => setIsFeedingOpen(true)}
+        onOpenTags={() => setIsTagsOpen(true)}
         onQuickDiaper={state.handleQuickDiaper}
       />
       <DayDetailSheet
@@ -281,13 +305,18 @@ export default function DashboardPage() {
           nap: <LastNapPanel time={state.latestLastNapEndAt} />,
         }}
       />
+      <FeedingSheet
+        isOpen={isFeedingOpen}
+        suggestedSide={state.suggestedBreastSide}
+        onClose={() => setIsFeedingOpen(false)}
+        onSaveBreast={(side) => void state.handleSaveFeeding("breast", { side })}
+        onSaveBottle={(ml) => void state.handleSaveFeeding("bottle", { ml })}
+      />
       <QuickEntryBottomSheet
-        isOpen={isQuickEntryOpen}
-        onClose={() => setIsQuickEntryOpen(false)}
-        onSaveFeeding={state.handleSaveFeeding}
-        onSaveDiaper={state.handleSaveDiaper}
-        onSaveMoodAndIntervention={state.handleSaveMoodAndIntervention}
-        onSaveDayTag={state.handleSaveDayTag}
+        isOpen={isTagsOpen}
+        activeTags={state.activeDayTags}
+        onClose={() => setIsTagsOpen(false)}
+        onToggleTag={(tag) => void state.handleToggleDayTag(tag)}
       />
     </main>
   );

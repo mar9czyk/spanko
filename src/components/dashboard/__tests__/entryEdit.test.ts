@@ -129,4 +129,28 @@ describe("buildEntryTimePatch", () => {
       patch: { fell_asleep_at: local(20, 20, 0), woke_up_at: local(21, 6, 10) },
     });
   });
+
+  it("sen: nastrój i co pomogło trafiają do zmiany rekordu", () => {
+    const result = buildEntryTimePatch(
+      nap,
+      {
+        start: "12:00",
+        end: "13:00",
+        mood: "fussy",
+        interventions: ["pacifier_reinsert", "bouncing"],
+      },
+      NOW,
+    );
+    expect(result).toMatchObject({
+      patch: { mood: "fussy", interventions: ["pacifier_reinsert", "bouncing"] },
+    });
+  });
+
+  it("sen: wyczyszczony nastrój to pusta wartość, brak pola nie rusza nastroju", () => {
+    const cleared = buildEntryTimePatch(nap, { start: "12:00", end: "13:00", mood: null }, NOW);
+    expect(cleared).toMatchObject({ patch: { mood: "" } });
+    const untouched = buildEntryTimePatch(nap, { start: "12:00", end: "13:00" }, NOW);
+    expect(untouched).not.toHaveProperty("patch.mood");
+    expect(untouched).not.toHaveProperty("patch.interventions");
+  });
 });
