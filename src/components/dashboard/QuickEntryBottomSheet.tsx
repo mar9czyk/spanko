@@ -1,8 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { Droplets, Milk, Smile, Tag, X } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
+import { Check, Droplets, Milk, Smile, Tag, X } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { bottlePresets } from "@/i18n/translate";
 import type {
@@ -22,19 +22,36 @@ import {
   MOOD_OPTIONS,
 } from "./constants";
 
+/** Cofa zapisany wpis; zwracane przez handlery zapisu, gdy zapis się udał. */
+export type UndoSave = () => Promise<void>;
+type SaveResult = Promise<UndoSave | undefined> | undefined;
+
+/** Zapisuje wpis pod kluczem opcji; udany zapis pokazuje ✓ i umożliwia cofnięcie. */
+type RecordSave = (key: string, save: () => SaveResult) => void;
+
+interface SavedSectionProps {
+  readonly savedKeys: ReadonlySet<string>;
+  readonly onRecord: RecordSave;
+}
+
 interface QuickEntryBottomSheetProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly onSaveFeeding: (
     type: FeedingType,
     details: { side?: BreastSide; ml?: number; minutes?: number; notes?: string },
-  ) => void;
-  readonly onSaveDiaper: (kind: DiaperKind) => void;
+  ) => SaveResult;
+  readonly onSaveDiaper: (kind: DiaperKind) => SaveResult;
   readonly onSaveMoodAndIntervention: (
     mood: SleepMood,
     interventions: readonly InterventionLevel[],
-  ) => void;
-  readonly onSaveDayTag: (tag: string) => void;
+  ) => SaveResult;
+  readonly onSaveDayTag: (tag: string) => SaveResult;
+}
+
+/** Znacznik ✓ przy opcji zapisanej w tym otwarciu arkusza. */
+function SavedMark({ show }: { show: boolean }): ReactNode {
+  return show ? <Check aria-hidden="true" className="inline w-3.5 h-3.5 ml-1 -mt-0.5" /> : null;
 }
 
 /**
@@ -44,12 +61,11 @@ interface QuickEntryBottomSheetProps {
  * @returns {ReactNode} Kafelki karmienia
  */
 function FeedingSection({
-  onSelect,
-}: {
-  onSelect: (
-    type: FeedingType,
-    details: { side?: BreastSide; ml?: number; minutes?: number; notes?: string },
-  ) => void;
+  onSave,
+  savedKeys,
+  onRecord,
+}: SavedSectionProps & {
+  onSave: QuickEntryBottomSheetProps["onSaveFeeding"];
 }) {
   const { t, units } = useI18n();
   const [minutes, setMinutes] = useState<number | undefined>(undefined);
@@ -75,17 +91,21 @@ function FeedingSection({
       <div className="flex items-center gap-1.5">
         <button
           type="button"
-          onClick={() => onSelect("breast", { side: "left", minutes })}
+          onClick={() => onRecord("breast-left", () => onSave("breast", { side: "left", minutes }))}
           className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-medium text-slate-200 border border-[#263348] hover:border-emerald-500/40"
         >
           {t("sheet.breastLeft")}
+          <SavedMark show={savedKeys.has("breast-left")} />
         </button>
         <button
           type="button"
-          onClick={() => onSelect("breast", { side: "right", minutes })}
+          onClick={() =>
+            onRecord("breast-right", () => onSave("breast", { side: "right", minutes }))
+          }
           className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs font-medium text-slate-200 border border-[#263348] hover:border-emerald-500/40"
         >
           {t("sheet.breastRight")}
+          <SavedMark show={savedKeys.has("breast-right")} />
         </button>
       </div>
       <div className="flex items-center gap-1.5 overflow-x-auto py-1">
@@ -93,10 +113,13 @@ function FeedingSection({
           <button
             key={preset.ml}
             type="button"
-            onClick={() => onSelect("bottle", { ml: preset.ml })}
+            onClick={() =>
+              onRecord(`bottle-${preset.ml}`, () => onSave("bottle", { ml: preset.ml }))
+            }
             className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-emerald-950/40 text-xs tabular-nums font-medium text-emerald-300 border border-[#263348] whitespace-nowrap"
           >
             {preset.label}
+            <SavedMark show={savedKeys.has(`bottle-${preset.ml}`)} />
           </button>
         ))}
         <button
@@ -113,10 +136,11 @@ function FeedingSection({
           <BottleVolumeInput valueMl={customMl} onChange={setCustomMl} />
           <button
             type="button"
-            onClick={() => onSelect("bottle", { ml: customMl })}
+            onClick={() => onRecord("bottle-custom", () => onSave("bottle", { ml: customMl }))}
             className="min-h-12 rounded-xl bg-emerald-600 text-sm font-semibold text-white"
           >
             {t("bottle.save")}
+            <SavedMark show={savedKeys.has("bottle-custom")} />
           </button>
         </div>
       )}
@@ -130,7 +154,11 @@ function FeedingSection({
  * @param {object} props - Callback zapisu pieluchy
  * @returns {ReactNode} Kafelki pieluchy
  */
-function DiaperSection({ onSelect }: { onSelect: (kind: DiaperKind) => void }) {
+function DiaperSection({
+  onSave,
+  savedKeys,
+  onRecord,
+}: SavedSectionProps & { onSave: (kind: DiaperKind) => SaveResult }) {
   const { t } = useI18n();
   return (
     <div className="flex flex-col gap-2">
@@ -142,10 +170,11 @@ function DiaperSection({ onSelect }: { onSelect: (kind: DiaperKind) => void }) {
           <button
             key={option.value}
             type="button"
-            onClick={() => onSelect(option.value)}
+            onClick={() => onRecord(`diaper-${option.value}`, () => onSave(option.value))}
             className="flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-diaper/10 text-xs font-medium text-slate-200 border border-[#263348]"
           >
             {t(option.labelKey)}
+            <SavedMark show={savedKeys.has(`diaper-${option.value}`)} />
           </button>
         ))}
       </div>
@@ -161,8 +190,10 @@ function DiaperSection({ onSelect }: { onSelect: (kind: DiaperKind) => void }) {
  */
 function MoodAndInterventionsSection({
   onSave,
-}: {
-  onSave: (mood: SleepMood, interventions: readonly InterventionLevel[]) => void;
+  savedKeys,
+  onRecord,
+}: SavedSectionProps & {
+  onSave: (mood: SleepMood, interventions: readonly InterventionLevel[]) => SaveResult;
 }) {
   const { t } = useI18n();
   return (
@@ -175,10 +206,13 @@ function MoodAndInterventionsSection({
           <button
             key={mood.value}
             type="button"
-            onClick={() => onSave(mood.value, ["pacifier_reinsert"])}
+            onClick={() =>
+              onRecord(`mood-${mood.value}`, () => onSave(mood.value, ["pacifier_reinsert"]))
+            }
             className={`flex-1 py-2 px-2 rounded-xl bg-[#1E2738] hover:bg-[#253248] text-xs font-medium border ${mood.colorClass}`}
           >
             {t(mood.labelKey)}
+            <SavedMark show={savedKeys.has(`mood-${mood.value}`)} />
           </button>
         ))}
       </div>
@@ -187,10 +221,13 @@ function MoodAndInterventionsSection({
           <button
             key={intervention.value}
             type="button"
-            onClick={() => onSave("easy", [intervention.value])}
+            onClick={() =>
+              onRecord(`int-${intervention.value}`, () => onSave("easy", [intervention.value]))
+            }
             className="py-1 px-2.5 rounded-lg bg-[#151B28] hover:bg-[#1E2738] text-xs text-slate-300 border border-[#263348]"
           >
             {t(intervention.labelKey)}
+            <SavedMark show={savedKeys.has(`int-${intervention.value}`)} />
           </button>
         ))}
       </div>
@@ -204,7 +241,11 @@ function MoodAndInterventionsSection({
  * @param {object} props - Callback wyboru tagu
  * @returns {ReactNode} Kafelki tagów
  */
-function DayTagsSection({ onSelectTag }: { onSelectTag: (tag: string) => void }) {
+function DayTagsSection({
+  onSave,
+  savedKeys,
+  onRecord,
+}: SavedSectionProps & { onSave: (tag: string) => SaveResult }) {
   const { t, tDynamic } = useI18n();
   return (
     <div className="flex flex-col gap-2">
@@ -216,10 +257,11 @@ function DayTagsSection({ onSelectTag }: { onSelectTag: (tag: string) => void })
           <button
             key={tag}
             type="button"
-            onClick={() => onSelectTag(tag)}
+            onClick={() => onRecord(`tag-${tag}`, () => onSave(tag))}
             className="py-1 px-2.5 rounded-lg bg-[#1E2738] hover:bg-violet-950/40 text-xs text-violet-300 border border-[#263348]"
           >
             #{tDynamic(`tag.${tag}`, tag)}
+            <SavedMark show={savedKeys.has(`tag-${tag}`)} />
           </button>
         ))}
       </div>
@@ -227,8 +269,16 @@ function DayTagsSection({ onSelectTag }: { onSelectTag: (tag: string) => void })
   );
 }
 
+/** Ile pikseli przeciągnięcia w dół zamyka arkusz. */
+const SWIPE_CLOSE_PX = 80;
+
 /**
- * Płynny Bottom Sheet (Framer Motion) do 1-tap rejestracji karmienia, nastroju i tagów.
+ * Płynny Bottom Sheet (Framer Motion) do rejestracji karmienia, pieluchy, nastroju i tagów.
+ *
+ * @description
+ * Arkusz zostaje otwarty po zapisie, żeby dało się dodać kilka wpisów naraz. Zapisana opcja
+ * dostaje ✓, a linia „Zapisano · Cofnij” cofa ostatni zapis. Zamykanie: przycisk, tło albo
+ * przeciągnięcie uchwytu w dół.
  *
  * @param {QuickEntryBottomSheetProps} props - Stan widoczności i handlery akcji
  * @returns {ReactNode} Komponent Bottom Sheet
@@ -242,6 +292,27 @@ export function QuickEntryBottomSheet({
   onSaveDayTag,
 }: QuickEntryBottomSheetProps): ReactNode {
   const { t } = useI18n();
+  const dragControls = useDragControls();
+  const [saved, setSaved] = useState<readonly { key: string; undo: UndoSave }[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) setSaved([]);
+  }, [isOpen]);
+
+  const handleRecord: RecordSave = async (key, save) => {
+    const undo = await save();
+    if (undo) setSaved((prev) => [...prev, { key, undo }]);
+  };
+
+  const handleUndo = async () => {
+    const last = saved[saved.length - 1];
+    if (!last) return;
+    setSaved((prev) => prev.slice(0, -1));
+    await last.undo();
+  };
+
+  const savedKeys = new Set(saved.map((item) => item.key));
+  const sectionProps = { savedKeys, onRecord: handleRecord };
   return (
     <AnimatePresence>
       {isOpen && (
@@ -258,43 +329,60 @@ export function QuickEntryBottomSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > SWIPE_CLOSE_PX) onClose();
+            }}
             className="relative w-full max-w-md bg-[#151B28] border-t border-[#263348] rounded-t-3xl p-4 flex flex-col gap-4 shadow-2xl z-10 max-h-[85vh] overflow-y-auto"
           >
-            <div className="w-12 h-1 bg-[#263348] rounded-full mx-auto" />
+            <div
+              onPointerDown={(down) => dragControls.start(down)}
+              className="-mt-2 -mb-2 py-2 cursor-grab touch-none"
+            >
+              <div className="w-12 h-1 bg-[#263348] rounded-full mx-auto" />
+            </div>
             <div className="flex items-center justify-between pb-1">
               <h2 className="text-sm font-semibold text-ink">{t("sheet.title")}</h2>
               <button
                 type="button"
                 onClick={onClose}
+                aria-label={t("common.cancel")}
                 className="p-1 rounded-full text-slate-400 hover:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <FeedingSection
-              onSelect={(type, details) => {
-                onSaveFeeding(type, details);
-                onClose();
-              }}
-            />
-            <DiaperSection
-              onSelect={(kind) => {
-                onSaveDiaper(kind);
-                onClose();
-              }}
-            />
-            <MoodAndInterventionsSection
-              onSave={(mood, interventions) => {
-                onSaveMoodAndIntervention(mood, interventions);
-                onClose();
-              }}
-            />
-            <DayTagsSection
-              onSelectTag={(tag) => {
-                onSaveDayTag(tag);
-                onClose();
-              }}
-            />
+            <FeedingSection onSave={onSaveFeeding} {...sectionProps} />
+            <DiaperSection onSave={onSaveDiaper} {...sectionProps} />
+            <MoodAndInterventionsSection onSave={onSaveMoodAndIntervention} {...sectionProps} />
+            <DayTagsSection onSave={onSaveDayTag} {...sectionProps} />
+            <div className="sticky bottom-0 -mx-4 -mb-4 flex items-center gap-2 border-t border-[#263348] bg-[#151B28] px-4 py-3">
+              <div role="status" className="flex-1 text-sm text-emerald-300">
+                {saved.length > 0 && (
+                  <>
+                    {t("sheet.saved")} ·{" "}
+                    <button
+                      type="button"
+                      onClick={() => void handleUndo()}
+                      className="min-h-12 px-1 font-semibold text-amber-300"
+                    >
+                      {t("sheet.undo")}
+                    </button>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="min-h-12 rounded-xl bg-amber-500 px-5 text-sm font-semibold text-[#0B0F17]"
+              >
+                {t("sheet.done")}
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

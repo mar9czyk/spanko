@@ -501,12 +501,14 @@ export function useDashboardState() {
   const saveSleepLog = async (log: SleepLogRecord, patch: Partial<SleepLogRecord>) => {
     const next = { ...log, ...patch };
     setCurrentSleepLog(next.status === "completed" ? null : next);
-    if (isDemoData) return;
+    if (isDemoData) return true;
     try {
       await pb.collection("sleep_logs").update(log.id, patch);
+      return true;
     } catch (error) {
       setCurrentSleepLog(log);
       reportError(error, t("dashboard.saveSleepError"));
+      return false;
     }
   };
 
@@ -619,6 +621,16 @@ export function useDashboardState() {
     setPendingMorningWakingReview([]);
   };
 
+  /** Cofnięcie zapisu: usuwa wpis day_context (w trybie demo tylko ze stanu). */
+  const removeDayContext = async (id: string, isLocalOnly: boolean) => {
+    try {
+      if (!isLocalOnly) await pb.collection("day_context").delete(id);
+      setDayContext((prev) => prev.filter((record) => record.id !== id));
+    } catch (error) {
+      reportError(error, t("dashboard.saveEntryError"));
+    }
+  };
+
   const saveDayContext = async (draft: {
     event_type: DayContextRecord["event_type"];
     feeding_type: FeedingType;
@@ -630,7 +642,7 @@ export function useDashboardState() {
     tags?: readonly string[];
     notes?: string;
   }) => {
-    if (!child) return;
+    if (!child) return undefined;
     const timestamp = new Date().toISOString();
     if (isDemoData) {
       const record = {
@@ -643,7 +655,7 @@ export function useDashboardState() {
         updated: timestamp,
       };
       setDayContext((prev) => [record, ...prev]);
-      return;
+      return async () => removeDayContext(record.id, true);
     }
     try {
       const created = await pb.collection("day_context").create<DayContextRecord>({
@@ -653,8 +665,10 @@ export function useDashboardState() {
         timestamp,
       });
       setDayContext((prev) => [created, ...prev]);
+      return async () => removeDayContext(created.id, false);
     } catch (error) {
       reportError(error, t("dashboard.saveEntryError"));
+      return undefined;
     }
   };
 
@@ -685,8 +699,12 @@ export function useDashboardState() {
     mood: SleepMood,
     interventions: readonly InterventionLevel[],
   ) => {
-    if (!currentSleepLog) return;
-    await saveSleepLog(currentSleepLog, { mood, interventions });
+    if (!currentSleepLog) return undefined;
+    const log = currentSleepLog;
+    if (!(await saveSleepLog(log, { mood, interventions }))) return undefined;
+    return async () => {
+      await saveSleepLog(log, { mood: log.mood, interventions: log.interventions });
+    };
   };
 
   const handleSaveDayTag = (tag: string) =>

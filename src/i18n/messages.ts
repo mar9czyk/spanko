@@ -270,6 +270,9 @@ export const pl = {
 
   "sheet.title": "Szybki wpis zdarzenia",
   "sheet.feeding": "Karmienie",
+  "sheet.saved": "Zapisano",
+  "sheet.undo": "Cofnij",
+  "sheet.done": "Gotowe",
   "sheet.breastLeft": "Pierś Lewa",
   "sheet.breastRight": "Pierś Prawa",
   "sheet.diaper": "Pielucha",
@@ -704,6 +707,9 @@ export const en: Record<MessageKey, string> = {
 
   "sheet.title": "Quick entry",
   "sheet.feeding": "Feeding",
+  "sheet.saved": "Saved",
+  "sheet.undo": "Undo",
+  "sheet.done": "Done",
   "sheet.breastLeft": "Breast Left",
   "sheet.breastRight": "Breast Right",
   "sheet.diaper": "Diaper",
