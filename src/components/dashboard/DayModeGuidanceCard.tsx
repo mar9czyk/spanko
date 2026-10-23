@@ -77,17 +77,15 @@ export function DayModeGuidanceCard({
       {wakeAnswer === "yes" && <p className="text-sm text-emerald-200">{copy.wakeCheckOk}</p>}
 
       {guidance.showRedFlags && (
-        <details
-          open={showAlarm || guidance.isYoungInfant}
+        <div
           role={showAlarm ? "alert" : undefined}
-          className={`group rounded-xl px-3 flex flex-col gap-1.5 ${
+          className={`rounded-xl px-3 flex flex-col gap-1.5 ${
             showAlarm ? "bg-coral-500/25 border border-coral-400/60" : "bg-coral-500/10"
           }`}
         >
-          <summary className="cursor-pointer list-none min-h-12 flex items-center gap-1.5 text-sm font-semibold text-coral-200">
+          <h3 className="min-h-12 flex items-center gap-1.5 text-sm font-semibold text-coral-200">
             <Phone className="w-4 h-4 shrink-0" /> {copy.redFlagsTitle}
-            <ChevronDown className="w-4 h-4 ml-auto shrink-0 transition-transform group-open:rotate-180" />
-          </summary>
+          </h3>
           {showAlarm && (
             <p className="text-base font-semibold text-coral-200">{copy.wakeCheckAlarm}</p>
           )}
@@ -105,7 +103,7 @@ export function DayModeGuidanceCard({
             ))}
           </ul>
           <p className="pt-1 pb-3 text-xs text-slate-400">{copy.whereToGo}</p>
-        </details>
+        </div>
       )}
 
       {guidance.topics.map((topic) => {
