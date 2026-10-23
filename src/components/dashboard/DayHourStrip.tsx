@@ -85,6 +85,12 @@ export function DayHourStrip({
               className="absolute top-[30px] h-3 w-[2px] -translate-x-1/2 rounded-full bg-emerald-400"
               style={{ left: toPercent(mark.offset) }}
             />
+          ) : mark.kind === "waking" ? (
+            <div
+              key={`w-${mark.offset}`}
+              className="absolute top-[30px] h-2 w-2 -translate-x-1/2 rounded-full bg-violet-300 ring-2 ring-violet-950"
+              style={{ left: toPercent(mark.offset) }}
+            />
           ) : (
             <div
               key={`d-${mark.offset}`}
@@ -120,6 +126,12 @@ export function DayHourStrip({
           <span className="h-1.5 w-1.5 rotate-45 rounded-[1px] bg-diaper" />
           {t("timeline.legendDiaper")}
         </span>
+        {input.wakingIsos?.length ? (
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-violet-300" />
+            {t("timeline.legendWaking")}
+          </span>
+        ) : null}
       </div>
     </div>
   );
