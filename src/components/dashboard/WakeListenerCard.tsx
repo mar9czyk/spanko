@@ -1,7 +1,7 @@
 "use client";
 
-import { Ear, EarOff, MicOff } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { Ear, EarOff, Info, MicOff } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { notifyWakeDetected } from "@/lib/push-client";
 import type { SleepType } from "@/lib/types/database";
@@ -16,6 +16,8 @@ interface WakeListenerCardProps {
   /** Zapis wykrytej pobudki: nocna pobudka w trakcie nocy albo koniec drzemki. */
   readonly onConfirmWake: () => Promise<void> | void;
 }
+
+const SCREEN_HINT_KEY = "spanko.wakeListener.screenHintSeen";
 
 const SENSITIVITIES: readonly WakeSensitivity[] = ["low", "medium", "high"];
 
@@ -38,6 +40,20 @@ export function WakeListenerCard({
     onDetected: () => notifyWakeDetected(childId),
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showScreenHint, setShowScreenHint] = useState(false);
+
+  const isListening = listener.status === "listening";
+  useEffect(() => {
+    if (!isListening) return;
+    try {
+      if (localStorage.getItem(SCREEN_HINT_KEY)) return;
+      localStorage.setItem(SCREEN_HINT_KEY, "1");
+    } catch {
+      // brak localStorage: podpowiedź pokaże się tylko w tej sesji
+    }
+    setShowScreenHint(true);
+  }, [isListening]);
 
   if (!isSleeping) return null;
 
@@ -56,17 +72,32 @@ export function WakeListenerCard({
   return (
     <>
       <section className="rounded-2xl border border-[#263348] bg-[#151B28] p-3 flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => void listener.start()}
-          disabled={listener.status === "starting"}
-          className="w-full min-h-[48px] rounded-xl bg-[#1E2738] hover:bg-[#253248] border border-violet-500/30 text-violet-200 text-sm font-semibold flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-60"
-        >
-          <Ear className="w-5 h-5 text-violet-400" />
-          {listener.status === "starting" ? t("wakeListener.starting") : t("wakeListener.start")}
-        </button>
-        <p className="text-xs text-slate-400 text-center">{t("wakeListener.privacy")}</p>
-        <p className="text-xs text-slate-400 text-center">{t("wakeListener.otherPhone")}</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void listener.start()}
+            disabled={listener.status === "starting"}
+            className="flex-1 min-h-[48px] rounded-xl bg-[#1E2738] hover:bg-[#253248] border border-violet-500/30 text-violet-200 text-sm font-semibold flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-60"
+          >
+            <Ear className="w-5 h-5 text-violet-400" />
+            {listener.status === "starting" ? t("wakeListener.starting") : t("wakeListener.start")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowInfo((v) => !v)}
+            aria-expanded={showInfo}
+            aria-label={t("wakeListener.info")}
+            className="min-w-[48px] min-h-[48px] rounded-xl bg-[#1E2738] border border-[#263348] text-slate-400 flex items-center justify-center"
+          >
+            <Info className="w-5 h-5" />
+          </button>
+        </div>
+        {showInfo && (
+          <>
+            <p className="text-xs text-slate-400 text-center">{t("wakeListener.privacy")}</p>
+            <p className="text-xs text-slate-400 text-center">{t("wakeListener.otherPhone")}</p>
+          </>
+        )}
         {listener.error && (
           <p role="alert" className="text-xs text-red-300 flex items-center gap-1.5">
             <MicOff className="w-4 h-4 shrink-0" />
@@ -131,9 +162,11 @@ export function WakeListenerCard({
                     })}
                   </p>
                 )}
-                <p className="text-xs text-slate-400 text-center">
-                  {t("wakeListener.keepScreenOn")}
-                </p>
+                {showScreenHint && (
+                  <p className="text-xs text-slate-400 text-center">
+                    {t("wakeListener.keepScreenOn")}
+                  </p>
+                )}
               </div>
               <fieldset className="flex gap-2">
                 <legend className="sr-only">{t("wakeListener.sensitivity")}</legend>

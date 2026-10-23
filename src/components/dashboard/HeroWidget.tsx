@@ -38,6 +38,7 @@ function ClockOrStopwatch(props: HeroWidgetProps): ReactNode {
         sleepType={currentSleepLog.type}
         startTimeIso={currentSleepLog.fell_asleep_at || currentSleepLog.put_down_at}
         wakeSuggestion={props.napWakeSuggestion}
+        wakingsCount={currentSleepLog.night_wakings?.length ?? 0}
       />
     );
   }

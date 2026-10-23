@@ -15,6 +15,7 @@ import { FloatingActionBar } from "@/components/dashboard/FloatingActionBar";
 import { HeroWidget } from "@/components/dashboard/HeroWidget";
 import { LastNapPanel } from "@/components/dashboard/LastNapPanel";
 import { MorningNightSummaryBanner } from "@/components/dashboard/MorningNightSummaryBanner";
+import { NightWakeToast } from "@/components/dashboard/NightWakeToast";
 import { PhysiologicalTimeline } from "@/components/dashboard/PhysiologicalTimeline";
 import { QuickEntryBottomSheet } from "@/components/dashboard/QuickEntryBottomSheet";
 import { SleepBatteryIndicator } from "@/components/dashboard/SleepBatteryIndicator";
@@ -28,7 +29,9 @@ import { countGoalTasks, GoalPathCard } from "@/components/goals/GoalPathCard";
 import { NightTipCard } from "@/components/goals/NightTipCard";
 import { useGoalState } from "@/components/goals/useGoalState";
 import { useI18n } from "@/i18n/I18nProvider";
+import { describeTask, describeTaskShort } from "@/lib/goal-copy";
 import { DEFAULT_TIME_ZONE } from "@/lib/sleep-engine";
+import { nightAdviceFor } from "@/lib/sleep-engine/nightAdvice";
 
 /**
  * Główny widok aplikacji Spanko w stylistyce 3 AM One-Thumb Dark UX.
@@ -79,6 +82,16 @@ export default function DashboardPage() {
   const isSleepInProgress =
     state.currentSleepLog !== null && state.currentSleepLog.status !== "completed";
   const insightShown = isInsightShown(state.activeInsight, state.justAcceptedInsightId);
+  const nightTipTask = goalState.daily?.night_tip_json;
+  const insightAdvice =
+    insightShown && state.activeInsight
+      ? nightAdviceFor(state.activeInsight.diagnosis_code, locale)
+      : null;
+  const nightTip = nightTipTask
+    ? { short: describeTaskShort(nightTipTask, locale), full: describeTask(nightTipTask, locale) }
+    : insightAdvice
+      ? { short: insightAdvice, full: undefined }
+      : null;
   const availableTabs = DAY_DETAIL_TAB_ORDER.filter((tab) => {
     if (tab === "goal") return Boolean(goalState.goal);
     if (tab === "insight") return insightShown;
@@ -143,8 +156,8 @@ export default function DashboardPage() {
         onApply={state.handleApplyTravel}
         onFinishAdaptation={state.handleFinishTravelAdaptation}
       />
-      {isNightSleepActive && goalState.daily?.night_tip_json && (
-        <NightTipCard tip={goalState.daily.night_tip_json} locale={locale} />
+      {isNightSleepActive && nightTip && (
+        <NightTipCard short={nightTip.short} full={nightTip.full} />
       )}
       <MorningNightSummaryBanner
         wakingTimes={state.pendingMorningWakingReview}
@@ -220,6 +233,11 @@ export default function DashboardPage() {
           onEntryEdited={state.isDemoData ? undefined : state.handleEntryEdited}
         />
       )}
+      <NightWakeToast
+        wokeAtIso={state.nightWakeToast?.wokeAt ?? null}
+        onUndo={() => void state.handleUndoNightWake()}
+        onDismiss={state.dismissNightWakeToast}
+      />
       <FloatingActionBar
         currentSleepLog={state.currentSleepLog}
         onCycleSleepStatus={state.handleCycleSleepStatus}
