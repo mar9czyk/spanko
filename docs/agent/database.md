@@ -192,6 +192,8 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 - Dane logowania (`DEV_USER_*`, `DEV_ADMIN_*`) generuje skrypt do `.env.development.local` (gitignored). Hasła nie trafiają do bundla — loguje je serwerowy `POST /api/dev/login`, który zwraca 404 poza `NODE_ENV=development` z lokalnym PocketBase.
 - Przycisk „Zaloguj jako testowy użytkownik (DEV)” na `/login` jest widoczny tylko gdy `IS_DEV_LOGIN_ENABLED` (`src/lib/dev-auth.ts`). Dane demo (`devFixtures.ts`) pokazują się tylko bez sesji.
 - `pnpm dev:seed:profiles` (po `pnpm dev:seed`) dodaje 4 dzieci-profile z 21 dobami logów (typowe, wczesny ptaszek, krótkie drzemki, częste pobudki) z `scripts/seed-profiles.mjs` — tego samego generatora używa test regresji silnika `seedProfilesRegression.test.ts`.
+- `pnpm dev:seed:families` (nie wymaga `dev:seed`) tworzy 3 rodziny w osobnych gospodarstwach: Lena (~2 mies.), Franek (~7 mies., dwoje rodziców: Marta i Piotr) i Ola (~14 mies., 1 drzemka); 21 dób snu, karmień i pieluch z `scripts/seed-families.mjs`. Dane logowania (`DEV_FAMILY_*`) trafiają do `.env.development.local`, każda rodzina ma własny przycisk DEV na `/login` (role w `DEV_LOGIN_ENV_PREFIX`).
+- „Hania (DEV)” z `pnpm dev:seed` ma 7 dób z 4 nocnymi pobudkami i karmieniem/noszeniem (uruchamia diagnozę CAT1) oraz wniosek `DEV_HANIA_NIGHT_WAKINGS`.
 - Na produkcyjnym PocketBase NIE importuj ręcznie włączonego passwordAuth; po imporcie schematu pozostaje wyłączone.
 
 ## `app_secrets` (sekrety zaszyfrowane)

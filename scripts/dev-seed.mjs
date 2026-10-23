@@ -178,7 +178,9 @@ for (const col of ["sleep_logs", "day_context"]) {
   for (const r of old) await pb.collection(col).delete(r.id);
 }
 
-for (let daysAgo = 5; daysAgo >= 1; daysAgo--) {
+// Hania ma 7 dób z częstymi nocnymi pobudkami i usypianiem z dużą pomocą (pierś/noszenie) —
+// to uruchamia realną diagnozę (CAT1/CAT7), więc „Przeanalizuj sen z AI” ma co pokazać.
+for (let daysAgo = 7; daysAgo >= 1; daysAgo--) {
   const pd = dateStr(daysAgo);
   await pb.collection("sleep_logs").create({
     child_id: older.id,
@@ -189,7 +191,22 @@ for (let daysAgo = 5; daysAgo >= 1; daysAgo--) {
     fell_asleep_at: at(daysAgo + 1, 19, 30),
     woke_up_at: at(daysAgo, 6, 45),
     mood: "easy",
-    night_wakings: [],
+    interventions: ["breast"],
+    night_wakings: [
+      [22, 40],
+      [1, 15],
+      [3, 30],
+      [5, 10],
+    ].map(([h, m], i) => {
+      const wokeAt = new Date(at(h >= 18 ? daysAgo + 1 : daysAgo, h, m + daysAgo));
+      return {
+        wokeAt: wokeAt.toISOString(),
+        fellAsleepAt: new Date(wokeAt.getTime() + 15 * 60_000).toISOString(),
+        estimatedDurationMin: 15,
+        fedMilk: i < 2,
+        interventions: [i < 2 ? "breast" : "carrying"],
+      };
+    }),
     is_rebound_sleep: false,
     ignore_in_calibration: false,
   });
@@ -219,6 +236,26 @@ for (let daysAgo = 5; daysAgo >= 1; daysAgo--) {
     });
   }
 }
+
+// Wniosek dla Hani (prefiks DEV_, idempotentnie) — czeka na reakcję rodzica
+for (const r of await pb.collection("child_insights").getFullList({
+  filter: pb.filter("child_id = {:c} && diagnosis_code ~ 'DEV_'", { c: older.id }),
+})) {
+  await pb.collection("child_insights").delete(r.id);
+}
+await pb.collection("child_insights").create({
+  child_id: older.id,
+  category: "CAT1_ASSOCIATIONS_NIGHT_WAKINGS",
+  diagnosis_code: "DEV_HANIA_NIGHT_WAKINGS",
+  status: "active",
+  title: "Częste pobudki i usypianie z dużą pomocą",
+  explanation:
+    "Stopniowo zmniejszaj pomoc przy zasypianiu: odkładaj Hanię senną, ale jeszcze nieśpiącą. Dlaczego: w 7 ostatnich nocach budziła się 4 razy i za każdym razem zasypiała przy piersi lub na rękach.",
+  confidence_score: 0.85,
+  parent_feedback: "pending",
+  algorithm_override_json: {},
+  valid_from: new Date().toISOString(),
+});
 
 console.log(
   `Gotowe. Dzieci: ${child.name}, ${older.name}. Użytkownicy: ${Object.values(accounts)

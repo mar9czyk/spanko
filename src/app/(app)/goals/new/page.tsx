@@ -23,6 +23,7 @@ import {
 import { GOAL_CATALOG, isSleepTrainingGoal, METHOD_CATALOG } from "@/lib/goals-engine/catalog";
 import { buildDailyTasks } from "@/lib/goals-engine/dailyTasks";
 import type { GoalMethod, GoalPlan, GoalType, ReadinessResult } from "@/lib/goals-engine/types";
+import { pb } from "@/lib/pocketbase";
 import type { ChildRecord } from "@/lib/types/database";
 
 const GOALS: readonly GoalType[] = [
@@ -56,12 +57,25 @@ export default function NewGoalPage() {
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [hasGoal, setHasGoal] = useState(false);
 
   useEffect(() => {
     loadActiveChild()
       .then(setChild)
       .catch((e) => setError(e instanceof Error ? e.message : t("goal.new.errChild")));
   }, [t]);
+
+  useEffect(() => {
+    if (!child) return;
+    pb.collection("child_goals")
+      .getList(1, 1, {
+        filter: pb.filter("child_id = {:childId} && (status = 'active' || status = 'paused')", {
+          childId: child.id,
+        }),
+      })
+      .then((result) => setHasGoal(result.totalItems > 0))
+      .catch(() => setHasGoal(false));
+  }, [child]);
 
   const fetchPreview = useCallback(async () => {
     if (!child || !goal || !method) return;
@@ -145,7 +159,16 @@ export default function NewGoalPage() {
         </p>
       )}
 
-      {step === "goal" && (
+      {hasGoal && (
+        <section className="flex flex-col gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5">
+          <p className="text-sm text-amber-200">{t("goal.new.hasGoal")}</p>
+          <Link href="/settings" className="w-fit text-sm font-semibold text-amber-400">
+            {t("goal.new.hasGoalLink")}
+          </Link>
+        </section>
+      )}
+
+      {!hasGoal && step === "goal" && (
         <section className="flex flex-col gap-2.5">
           <p className="text-sm text-slate-400">{t("goal.new.pickGoal")}</p>
           {GOALS.map((g) => (
@@ -171,7 +194,7 @@ export default function NewGoalPage() {
         </section>
       )}
 
-      {step === "method" && goal && (
+      {!hasGoal && step === "method" && goal && (
         <section className="flex flex-col gap-2.5">
           <p className="text-sm text-slate-400">{t("goal.new.pickMethod")}</p>
           {GOAL_CATALOG[goal].methods.map((m) => (
@@ -203,7 +226,7 @@ export default function NewGoalPage() {
         </section>
       )}
 
-      {step === "check" && goal && method && (
+      {!hasGoal && step === "check" && goal && method && (
         <section className="flex flex-col gap-3">
           {isSleepTrainingGoal(goal) && (
             <div className="rounded-2xl bg-[#151B28] border border-[#263348] p-3.5 flex flex-col gap-2">

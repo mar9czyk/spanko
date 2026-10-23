@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ failure: null as unknown }));
 
-vi.mock("@/lib/dev-auth", () => ({ isDevLoginEnabled: () => true }));
+vi.mock("@/lib/dev-auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/dev-auth")>()),
+  isDevLoginEnabled: () => true,
+}));
 
 vi.mock("pocketbase", () => {
   class ClientResponseError extends Error {
@@ -42,6 +45,18 @@ describe("POST /api/dev/login", () => {
     const response = await POST(loginRequest());
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ token: "tok" });
+  });
+
+  it("loguje rolę rodziny danymi z jej prefiksu", async () => {
+    process.env.DEV_FAMILY_TODDLER_EMAIL = "maluch@spanko.test";
+    process.env.DEV_FAMILY_TODDLER_PASSWORD = "y";
+    const response = await POST(
+      new Request("http://localhost/api/dev/login", {
+        method: "POST",
+        body: JSON.stringify({ role: "family-toddler" }),
+      }),
+    );
+    expect(response.status).toBe(200);
   });
 
   it("zwraca 401 z podpowiedzią dev:seed, gdy PocketBase odrzuci dane logowania", async () => {
