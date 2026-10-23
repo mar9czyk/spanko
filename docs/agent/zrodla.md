@@ -212,6 +212,10 @@ WHO 2024, *Ethics and governance of AI for health: guidance on large multi-modal
 | Fundamenty: rytuał przed snem | stała rutyna | [B] | Mindell 2009, Mindell 2015 |
 | Fundamenty: temperatura | 16–20°C | [E] | Lullaby Trust [NZ] |
 | Fundamenty: stała pora pobudki | kotwica rytmu | [H] | — |
+| Miejsce snu: łóżko rodziców, palenie, wózek | stałe flagi bezpieczeństwa (`sleep-environment.ts`) | [W] | Moon 2022 (AAP), raport „Czynniki środowiskowe snu” |
+| Miejsce snu: kosz Mojżesza, łóżko Montessori | porada bez liczb (limit producenta) | [E] | producenci, zdrowy rozsądek |
+| Szum: cicho i > 2 m od łóżeczka | porada przy „nie wiem” | [W] | AAP 2014 |
+| Rolety / ekran przed snem | kontekst dla CAT3/CAT2/CAT4, bez zmiany liczb | [B/E] | raport „Czynniki środowiskowe snu” |
 
 ## 4. Czego nie używać jako źródła
 - „Drzewo Flynn-Evans” jako publikacji: to wpis blogowy ekspertki (opinia [E]), nie badanie.

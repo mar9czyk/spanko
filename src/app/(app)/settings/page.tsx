@@ -8,6 +8,7 @@ import { GoalSettingsSection } from "@/components/settings/GoalSettingsSection";
 import { PreferencesMenu } from "@/components/settings/PreferencesMenu";
 import { ProfileSection } from "@/components/settings/ProfileSection";
 import { SettingsCard } from "@/components/settings/SettingsCard";
+import { SleepEnvironmentSection } from "@/components/settings/SleepEnvironmentSection";
 import { useCurrentUser } from "@/components/settings/useCurrentUser";
 import { WakeAlertsSection } from "@/components/settings/WakeAlertsSection";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -44,6 +45,12 @@ export default function SettingsPage(): ReactNode {
       {session.status === "signedIn" && (
         <SettingsCard title={t("settings.goal")} hint={t("settings.goalHint")}>
           <GoalSettingsSection />
+        </SettingsCard>
+      )}
+
+      {session.status === "signedIn" && (
+        <SettingsCard title={t("env.title")} hint={t("env.hint")}>
+          <SleepEnvironmentSection />
         </SettingsCard>
       )}
 

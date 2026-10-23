@@ -35,6 +35,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { describeTask, describeTaskShort } from "@/lib/goal-copy";
 import { DEFAULT_TIME_ZONE } from "@/lib/sleep-engine";
 import { nightAdviceFor } from "@/lib/sleep-engine/nightAdvice";
+import { parseSleepEnvironment } from "@/lib/sleep-environment";
 
 /**
  * Główny widok aplikacji Spanko w stylistyce 3 AM One-Thumb Dark UX.
@@ -82,6 +83,12 @@ export default function DashboardPage() {
   const [detailTab, setDetailTab] = useState<DayDetailTab | null>(null);
   const isNightSleepActive =
     state.currentSleepLog?.type === "night" && state.currentSleepLog.status !== "completed";
+
+  const sleepEnvironment = parseSleepEnvironment(child?.sleep_environment);
+  const defaultSleepPlace =
+    state.currentSleepLog?.type === "night"
+      ? sleepEnvironment.nightPlace
+      : sleepEnvironment.napPlace;
 
   const isSleepInProgress =
     state.currentSleepLog !== null && state.currentSleepLog.status !== "completed";
@@ -246,6 +253,8 @@ export default function DashboardPage() {
               key={state.fellAsleepPromptLogId}
               onSave={state.handleSaveFellAsleep}
               onDismiss={state.dismissFellAsleepPrompt}
+              defaultPlace={defaultSleepPlace}
+              onSavePlace={(place) => void state.handleSaveSleepPlace(place)}
             />
           )}
         <EntryToast
