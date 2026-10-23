@@ -80,3 +80,24 @@ export function mapDayContextToTimelineEvent(record: DayContextRecord): Timeline
     notes: record.notes,
   };
 }
+
+function eventTimeMs(event: TimelineEvent): number {
+  const iso = event.kind === "nap" ? event.startIso : event.timeIso;
+  return iso ? Date.parse(iso) : Number.POSITIVE_INFINITY;
+}
+
+/**
+ * Sortuje zdarzenia doby chronologicznie od rana do wieczora (sen wg zaśnięcia/odłożenia,
+ * reszta wg znacznika czasu). Zdarzenia bez czasu trafiają na koniec.
+ *
+ * @param {readonly TimelineEvent[]} events - Zdarzenia w dowolnej kolejności
+ * @returns {TimelineEvent[]} Nowa lista, najstarsze pierwsze
+ */
+export function sortTimelineEventsAsc(events: readonly TimelineEvent[]): TimelineEvent[] {
+  return [...events].sort((a, b) => {
+    const am = eventTimeMs(a);
+    const bm = eventTimeMs(b);
+    if (am === bm) return 0;
+    return am > bm ? 1 : -1;
+  });
+}
