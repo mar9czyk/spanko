@@ -57,7 +57,7 @@ import {
   formatClock,
   mapDayContextToTimelineEvent,
   mapSleepLogToTimelineEvent,
-  sortTimelineEventsDesc,
+  sortTimelineEventsAsc,
 } from "./timelineMapping";
 import type { TimelineEvent } from "./types";
 
@@ -401,7 +401,7 @@ export function useDashboardState() {
     const todayLogs = recentLogs
       .filter((log) => log.physiological_date === physiologicalDate && log.status === "completed")
       .map(mapSleepLogToTimelineEvent);
-    return sortTimelineEventsDesc([
+    return sortTimelineEventsAsc([
       ...localTimelineEvents,
       ...dayContext.map(mapDayContextToTimelineEvent),
       ...todayLogs,

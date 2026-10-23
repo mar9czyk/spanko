@@ -88,18 +88,18 @@ describe("buildPastDay", () => {
     expect(day.dayEndIso).toBe("2026-10-19T04:50:00Z");
   });
 
-  it("keeps only this day's entries, newest first", () => {
+  it("keeps only this day's entries, oldest first (morning to evening)", () => {
     const day = buildPastDay("2026-10-18", LOGS, contexts);
     expect(day.events.map((event) => event.id)).toEqual([
-      "night-18",
-      "nap-2",
-      "feed-2",
-      "nap-1",
       "feed-1",
+      "nap-1",
+      "feed-2",
+      "nap-2",
+      "night-18",
     ]);
   });
 
-  it("interleaves feeds, diapers and naps chronologically, newest first", () => {
+  it("interleaves feeds, diapers and naps chronologically, oldest first (morning to evening)", () => {
     const mixed = [
       context({ id: "feed-a", timestamp: "2026-10-18T06:00:00Z" }),
       context({
@@ -113,13 +113,13 @@ describe("buildPastDay", () => {
     ];
     const day = buildPastDay("2026-10-18", LOGS, mixed);
     expect(day.events.map((event) => event.id)).toEqual([
-      "night-18",
-      "feed-c",
-      "nap-2",
-      "feed-b",
-      "diaper-a",
-      "nap-1",
       "feed-a",
+      "nap-1",
+      "diaper-a",
+      "feed-b",
+      "nap-2",
+      "feed-c",
+      "night-18",
     ]);
   });
 

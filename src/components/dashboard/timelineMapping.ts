@@ -87,17 +87,17 @@ function eventTimeMs(event: TimelineEvent): number {
 }
 
 /**
- * Sortuje zdarzenia doby chronologicznie od najnowszego (sen wg zaśnięcia/odłożenia,
- * reszta wg znacznika czasu). Zdarzenia bez czasu trafiają na górę.
+ * Sortuje zdarzenia doby chronologicznie od rana do wieczora (sen wg zaśnięcia/odłożenia,
+ * reszta wg znacznika czasu). Zdarzenia bez czasu trafiają na koniec.
  *
  * @param {readonly TimelineEvent[]} events - Zdarzenia w dowolnej kolejności
- * @returns {TimelineEvent[]} Nowa lista, najnowsze pierwsze
+ * @returns {TimelineEvent[]} Nowa lista, najstarsze pierwsze
  */
-export function sortTimelineEventsDesc(events: readonly TimelineEvent[]): TimelineEvent[] {
+export function sortTimelineEventsAsc(events: readonly TimelineEvent[]): TimelineEvent[] {
   return [...events].sort((a, b) => {
     const am = eventTimeMs(a);
     const bm = eventTimeMs(b);
     if (am === bm) return 0;
-    return bm > am ? 1 : -1;
+    return am > bm ? 1 : -1;
   });
 }

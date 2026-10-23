@@ -2,7 +2,7 @@ import type { DayContextRecord, SleepLogRecord } from "@/lib/types/database";
 import {
   mapDayContextToTimelineEvent,
   mapSleepLogToTimelineEvent,
-  sortTimelineEventsDesc,
+  sortTimelineEventsAsc,
 } from "./timelineMapping";
 import type { TimelineEvent } from "./types";
 
@@ -75,7 +75,7 @@ export function buildPastDay(
     date,
     dayStartIso: findNightWake(logs, shiftPhysiologicalDate(date, -1)),
     dayEndIso: findNightWake(logs, date),
-    events: sortTimelineEventsDesc([...dayContexts.map(mapDayContextToTimelineEvent), ...dayLogs]),
+    events: sortTimelineEventsAsc([...dayContexts.map(mapDayContextToTimelineEvent), ...dayLogs]),
   };
 }
 
