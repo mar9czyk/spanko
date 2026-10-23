@@ -41,6 +41,34 @@ export function isLocalPocketBaseUrl(url: string | undefined): boolean {
   }
 }
 
+const PRIVATE_IPV4_PATTERN =
+  /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)\d+\.\d+(\.\d+)?$/;
+
+/**
+ * Sprawdza, czy nagłówek Host wskazuje na sieć lokalną: loopback, LAN (RFC1918), Tailscale (100.64/10, *.ts.net) lub *.local.
+ * Chroni logowanie DEV przed użyciem przez publiczny tunel (ngrok, cloudflared itp.).
+ *
+ * @param {string | null | undefined} hostHeader - Wartość nagłówka Host (z opcjonalnym portem)
+ * @returns {boolean} true dla hosta z sieci prywatnej
+ */
+export function isPrivateNetworkHost(hostHeader: string | null | undefined): boolean {
+  if (!hostHeader) {
+    return false;
+  }
+  let hostname: string;
+  try {
+    hostname = new URL(`http://${hostHeader}`).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return (
+    LOCAL_HOSTNAMES.includes(hostname) ||
+    PRIVATE_IPV4_PATTERN.test(hostname) ||
+    hostname.endsWith(".ts.net") ||
+    hostname.endsWith(".local")
+  );
+}
+
 /**
  * Decyduje, czy dev-logowanie hasłem jest dozwolone.
  *

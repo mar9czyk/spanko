@@ -46,3 +46,21 @@ Trzy testowe rodziny z 21 dobami historii (noworodek ~2 mies., niemowlę ~7 mies
 pnpm dev:seed:families   # idempotentny; potem na /login przyciski „Zaloguj jako … (DEV)”
 ```
 Wymaga `POCKETBASE_SUPERUSER_EMAIL/PASSWORD` w `.env.development.local`. Opis: `docs/agent/database.md`.
+
+## Dostęp z telefonu (tylko development)
+Aplikacja otwarta z innego urządzenia łączy się z PocketBase przez proxy `/pb` na tym samym adresie (rewrite w `next.config.ts`), więc `NEXT_PUBLIC_POCKETBASE_URL=http://127.0.0.1:8090` zostaje bez zmian. PocketBase może nadal nasłuchiwać tylko na `127.0.0.1:8090`. Logowanie DEV działa z localhost, sieci LAN i Tailscale, a z publicznych adresów (np. tunele ngrok) jest odrzucane.
+
+**Opcja A: Wi-Fi w domu (http).** Dodaj do `.env.development.local` adres komputera i uruchom serwer na wszystkich interfejsach:
+```bash
+ALLOWED_DEV_ORIGINS=192.168.0.161   # IP komputera w LAN (ipconfig); kilka hostów po przecinku
+pnpm dev:lan                         # next dev -H 0.0.0.0
+```
+Na telefonie: `http://192.168.0.161:3000/login`. Pierwsze uruchomienie w Windows może wymagać zgody zapory dla Node.js w sieci prywatnej. Bez HTTPS przeglądarka nie włączy service workera ani instalacji PWA.
+
+**Opcja B: Tailscale (https, działa też poza domem).** Zainstaluj Tailscale na komputerze i telefonie, potem:
+```bash
+ALLOWED_DEV_ORIGINS=nazwa-komputera.tailnet.ts.net,100.x.y.z   # host MagicDNS i/lub IP Tailscale
+pnpm dev                                                         # wystarczy localhost, serve łączy się lokalnie
+tailscale serve --bg 3000                                        # https://nazwa-komputera.tailnet.ts.net
+```
+Na telefonie: adres `https://...ts.net` z wyjścia `tailscale serve status`. Nie używaj `tailscale funnel` (publiczny internet).

@@ -1,4 +1,5 @@
 import PocketBase from "pocketbase";
+import { isLocalPocketBaseUrl } from "@/lib/dev-auth";
 import type { HouseholdRecord, UserRecord } from "@/lib/types/database";
 
 export const DEFAULT_POCKETBASE_URL = "http://127.0.0.1:8090";
@@ -7,7 +8,34 @@ export const INVITE_EXPIRATION_HOURS = 24;
 export const MILLISECONDS_PER_HOUR = 3_600_000;
 const INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-const pocketBaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || DEFAULT_POCKETBASE_URL;
+/**
+ * Adres PocketBase dla przeglądarki.
+ *
+ * @description
+ * W development, gdy aplikację otwarto z innego hosta niż loopback (telefon w Wi-Fi, Tailscale),
+ * adres 127.0.0.1 wskazywałby na telefon, więc używamy proxy `/pb` na tym samym originie (rewrite w next.config.ts).
+ *
+ * @param {string} configuredUrl - Skonfigurowany adres (NEXT_PUBLIC_POCKETBASE_URL)
+ * @param {{ hostname: string; origin: string } | undefined} location - window.location (undefined na serwerze)
+ * @returns {string} Adres bazowy dla klienta PocketBase
+ */
+export function resolveBrowserPocketBaseUrl(
+  configuredUrl: string,
+  location: { hostname: string; origin: string } | undefined,
+): string {
+  if (!location || process.env.NODE_ENV !== "development") {
+    return configuredUrl;
+  }
+  const pageIsLoopback = ["localhost", "127.0.0.1", "[::1]", "::1"].includes(location.hostname);
+  return isLocalPocketBaseUrl(configuredUrl) && !pageIsLoopback
+    ? `${location.origin}/pb`
+    : configuredUrl;
+}
+
+const pocketBaseUrl = resolveBrowserPocketBaseUrl(
+  process.env.NEXT_PUBLIC_POCKETBASE_URL || DEFAULT_POCKETBASE_URL,
+  typeof window === "undefined" ? undefined : window.location,
+);
 
 /**
  * Globalna instancja klienta PocketBase dla aplikacji Spanko.
