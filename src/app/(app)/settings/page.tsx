@@ -3,8 +3,8 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChooseGoalCard } from "@/components/goals/GoalPathCard";
 import { AccountSection } from "@/components/settings/AccountSection";
+import { GoalSettingsSection } from "@/components/settings/GoalSettingsSection";
 import { PreferencesMenu } from "@/components/settings/PreferencesMenu";
 import { ProfileSection } from "@/components/settings/ProfileSection";
 import { SettingsCard } from "@/components/settings/SettingsCard";
@@ -43,7 +43,7 @@ export default function SettingsPage(): ReactNode {
 
       {session.status === "signedIn" && (
         <SettingsCard title={t("settings.goal")} hint={t("settings.goalHint")}>
-          <ChooseGoalCard />
+          <GoalSettingsSection />
         </SettingsCard>
       )}
 
