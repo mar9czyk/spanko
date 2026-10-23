@@ -82,6 +82,18 @@ describe("summarizeNightFeedings", () => {
     });
   });
 
+  it("liczy butelkę bez ilości jako karmienie, ale nie dodaje ml", () => {
+    const events: FeedingEvent[] = [
+      { timestamp: "2026-10-19T23:30:00Z", kind: "bottle" },
+      bottle("2026-10-20T02:00:00Z", 90),
+    ];
+    expect(summarizeNightFeedings(events, "2026-10-19T19:30:00Z", "2026-10-20T06:00:00Z")).toEqual({
+      count: 2,
+      totalMl: 90,
+      breastMinutes: 0,
+    });
+  });
+
   it("zwraca zera bez nocnych karmień", () => {
     expect(summarizeNightFeedings([], "2026-10-19T19:30:00Z", "2026-10-20T06:00:00Z")).toEqual({
       count: 0,

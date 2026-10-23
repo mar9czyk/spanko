@@ -8,7 +8,7 @@ export const DEFAULT_LOCALE: Locale = "en";
 export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "pl"];
 
 const DICTIONARIES: Readonly<Record<Locale, Readonly<Record<string, string>>>> = { pl, en };
-const ML_PER_FLUID_OUNCE = 29.5735;
+export const ML_PER_FLUID_OUNCE = 29.5735;
 const IMPERIAL_BOTTLE_OZ = [2, 3, 4, 5, 6] as const;
 const METRIC_BOTTLE_ML = [60, 90, 120, 150, 180] as const;
 
