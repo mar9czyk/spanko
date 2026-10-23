@@ -110,7 +110,8 @@ function TimelineHeader({
 function toActiveSleep(log: SleepLogRecord | null): DayStripSleep | null {
   if (!log || log.status === "completed") return null;
   const startIso = log.fell_asleep_at || log.put_down_at;
-  return startIso ? { startIso, type: log.type } : null;
+  const wakingIsos = log.night_wakings?.map((wake) => wake.wokeAt);
+  return startIso ? { startIso, type: log.type, wakingIsos } : null;
 }
 
 /**

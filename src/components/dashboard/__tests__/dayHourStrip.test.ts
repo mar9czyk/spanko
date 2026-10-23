@@ -73,6 +73,16 @@ describe("buildDayStrip", () => {
     ]);
   });
 
+  it("places night wakings as marks", () => {
+    const { marks } = buildDayStrip({
+      ...EMPTY,
+      dayStartIso: DAY_START,
+      nowIso: "2026-10-19T12:00:00Z",
+      wakingIsos: ["2026-10-19T12:00:00Z"],
+    });
+    expect(marks).toEqual([{ kind: "waking", offset: 0.25 }]);
+  });
+
   it("has no now marker after the day has ended", () => {
     const { nowOffset } = buildDayStrip({
       ...EMPTY,

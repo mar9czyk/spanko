@@ -36,6 +36,9 @@ export function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
     endIso: log.woke_up_at || undefined,
     durationMinutes: calculateDurationInMinutes(startIso, log.woke_up_at),
     mood: log.mood,
+    nightWakingIsos: log.night_wakings?.length
+      ? log.night_wakings.map((wake) => wake.wokeAt)
+      : undefined,
   };
 }
 

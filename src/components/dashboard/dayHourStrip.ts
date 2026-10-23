@@ -12,6 +12,8 @@ export interface DayStripSleep {
   /** Brak końca = sen trwa do teraz. */
   readonly endIso?: string;
   readonly type: SleepType;
+  /** Pobudki nocne w tym śnie. */
+  readonly wakingIsos?: readonly string[];
 }
 
 export interface DayStripInput {
@@ -20,6 +22,8 @@ export interface DayStripInput {
   readonly sleeps: readonly DayStripSleep[];
   readonly feedingIsos: readonly string[];
   readonly diaperIsos: readonly string[];
+  /** Pobudki nocne; pomijane, gdy brak. */
+  readonly wakingIsos?: readonly string[];
 }
 
 export interface DayStripSlot {
@@ -32,7 +36,7 @@ export interface DayStripSlot {
 }
 
 export interface DayStripMark {
-  readonly kind: "feeding" | "diaper";
+  readonly kind: "feeding" | "diaper" | "waking";
   /** Położenie na pasku, 0..1 od początku doby. */
   readonly offset: number;
 }
@@ -88,6 +92,7 @@ export function buildDayStrip(input: DayStripInput): DayStrip {
   const marks: DayStripMark[] = [
     ...input.feedingIsos.map((iso) => ({ kind: "feeding" as const, offset: toOffset(iso) })),
     ...input.diaperIsos.map((iso) => ({ kind: "diaper" as const, offset: toOffset(iso) })),
+    ...(input.wakingIsos ?? []).map((iso) => ({ kind: "waking" as const, offset: toOffset(iso) })),
   ].filter((mark) => inDay(mark.offset));
 
   const nowOffset = (nowMs - firstMs) / DAY_MS;
@@ -104,19 +109,24 @@ export function buildDayStrip(input: DayStripInput): DayStrip {
 export function collectDayStripEvents(
   events: readonly TimelineEvent[],
   activeSleep: DayStripSleep | null,
-): Pick<DayStripInput, "sleeps" | "feedingIsos" | "diaperIsos"> {
+): Pick<DayStripInput, "sleeps" | "feedingIsos" | "diaperIsos" | "wakingIsos"> {
   const sleeps: DayStripSleep[] = [];
   const feedingIsos: string[] = [];
   const diaperIsos: string[] = [];
+  const wakingIsos: string[] = [];
   for (const event of events) {
     if (event.kind === "nap" && event.startIso) {
       sleeps.push({ startIso: event.startIso, endIso: event.endIso, type: event.type });
+      wakingIsos.push(...(event.nightWakingIsos ?? []));
     } else if (event.kind === "feeding" && event.timeIso) {
       feedingIsos.push(event.timeIso);
     } else if (event.kind === "diaper" && event.timeIso) {
       diaperIsos.push(event.timeIso);
     }
   }
-  if (activeSleep) sleeps.push(activeSleep);
-  return { sleeps, feedingIsos, diaperIsos };
+  if (activeSleep) {
+    sleeps.push(activeSleep);
+    wakingIsos.push(...(activeSleep.wakingIsos ?? []));
+  }
+  return { sleeps, feedingIsos, diaperIsos, wakingIsos };
 }

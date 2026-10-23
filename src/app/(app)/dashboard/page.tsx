@@ -15,6 +15,7 @@ import { FloatingActionBar } from "@/components/dashboard/FloatingActionBar";
 import { HeroWidget } from "@/components/dashboard/HeroWidget";
 import { LastNapPanel } from "@/components/dashboard/LastNapPanel";
 import { MorningNightSummaryBanner } from "@/components/dashboard/MorningNightSummaryBanner";
+import { NightWakeToast } from "@/components/dashboard/NightWakeToast";
 import { PhysiologicalTimeline } from "@/components/dashboard/PhysiologicalTimeline";
 import { QuickEntryBottomSheet } from "@/components/dashboard/QuickEntryBottomSheet";
 import { SleepBatteryIndicator } from "@/components/dashboard/SleepBatteryIndicator";
@@ -220,6 +221,11 @@ export default function DashboardPage() {
           onEntryEdited={state.isDemoData ? undefined : state.handleEntryEdited}
         />
       )}
+      <NightWakeToast
+        wokeAtIso={state.nightWakeToast?.wokeAt ?? null}
+        onUndo={() => void state.handleUndoNightWake()}
+        onDismiss={state.dismissNightWakeToast}
+      />
       <FloatingActionBar
         currentSleepLog={state.currentSleepLog}
         onCycleSleepStatus={state.handleCycleSleepStatus}

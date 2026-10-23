@@ -119,6 +119,10 @@ export function useDashboardState() {
   tRef.current = t;
   const [loadStatus, setLoadStatus] = useState<DashboardLoadStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [nightWakeToast, setNightWakeToast] = useState<{
+    readonly logId: string;
+    readonly wokeAt: string;
+  } | null>(null);
   const [isDemoData, setIsDemoData] = useState(false);
   const [children, setChildren] = useState<readonly ChildRecord[]>([]);
   const [child, setChild] = useState<ChildRecord | null>(null);
@@ -570,16 +574,30 @@ export function useDashboardState() {
 
   const handleQuickNightWake = async () => {
     if (!currentSleepLog) return;
+    const previousWakings = currentSleepLog.night_wakings || [];
+    const wokeAt = new Date().toISOString();
     const updatedWakings = [
-      ...(currentSleepLog.night_wakings || []),
+      ...previousWakings,
       {
-        wokeAt: new Date().toISOString(),
+        wokeAt,
         estimatedDurationMin: 15,
         fedMilk: true,
         interventions: ["bottle" as const],
       },
     ];
     await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
+    setNightWakeToast({ logId: currentSleepLog.id, wokeAt });
+  };
+
+  /** Cofa ostatnio zapisaną szybką pobudkę (usuwa wpis o tym samym czasie). */
+  const handleUndoNightWake = async () => {
+    const toast = nightWakeToast;
+    setNightWakeToast(null);
+    if (!toast || !currentSleepLog || currentSleepLog.id !== toast.logId) return;
+    const remaining = (currentSleepLog.night_wakings || []).filter(
+      (wake) => wake.wokeAt !== toast.wokeAt,
+    );
+    await saveSleepLog(currentSleepLog, { night_wakings: remaining });
   };
 
   /** Pobudka nocna wykryta nasłuchem mikrofonu — bez założeń o karmieniu. */
@@ -752,6 +770,9 @@ export function useDashboardState() {
     handleUndoAcceptInsight,
     handleCycleSleepStatus,
     handleQuickNightWake,
+    nightWakeToast,
+    dismissNightWakeToast: () => setNightWakeToast(null),
+    handleUndoNightWake,
     handleDetectedNightWake,
     handleResolveMorningWaking,
     handleSaveFeeding,

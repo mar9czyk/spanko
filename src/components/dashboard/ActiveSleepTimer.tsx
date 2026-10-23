@@ -11,6 +11,8 @@ interface ActiveSleepTimerProps {
   readonly startTimeIso?: string;
   /** Sugerowana pora wybudzenia z drzemki (HH:mm); miękka sugestia, nie limit. */
   readonly wakeSuggestion?: string | null;
+  /** Liczba pobudek zapisanych w trwającym śnie nocnym; pokazywana od pierwszej. */
+  readonly wakingsCount?: number;
 }
 
 /**
@@ -61,6 +63,7 @@ export function ActiveSleepTimer({
   sleepType,
   startTimeIso,
   wakeSuggestion,
+  wakingsCount = 0,
 }: ActiveSleepTimerProps): ReactNode {
   const { t } = useI18n();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -103,6 +106,11 @@ export function ActiveSleepTimer({
           {t("timer.sync")}
         </span>
       </div>
+      {sleepType === "night" && wakingsCount > 0 && (
+        <p className="mt-2 text-sm text-violet-300" role="status">
+          {t("timer.wakings", { count: wakingsCount })}
+        </p>
+      )}
       {wakeSuggestion && (
         <p className="mt-2 text-sm text-amber-300">
           {t("timer.napWakeSuggestion", { time: wakeSuggestion })}

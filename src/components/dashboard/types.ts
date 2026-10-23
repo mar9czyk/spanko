@@ -26,6 +26,8 @@ export interface TimelineNapEvent {
   readonly durationMinutes?: number;
   readonly mood?: SleepMood;
   readonly interventions?: readonly InterventionLevel[];
+  /** Momenty pobudek nocnych zapisanych w tym śnie. */
+  readonly nightWakingIsos?: readonly string[];
 }
 
 export interface TimelineFeedingEvent {
