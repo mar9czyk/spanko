@@ -8,6 +8,7 @@ import { pickActiveChild, readStoredActiveChildId, storeActiveChildId } from "@/
 import { prepareChildPhoto } from "@/lib/child-photo";
 import { authorizedFetch, loadChildren } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
+import { subscribeToCollection } from "@/lib/realtime";
 import {
   applyObservedNapsCount,
   calculateChronicDrive,
@@ -280,11 +281,16 @@ export function useDashboardState() {
       );
   }, [child, isDemoData, physiologicalDate]);
 
+  const childId = child?.id;
+
   useEffect(() => {
-    if (!child || isDemoData) return;
-    const childId = child.id;
-    pb.collection("sleep_logs")
-      .subscribe<SleepLogRecord>("*", (eventRecord) => {
+    if (!childId || isDemoData) return;
+    const reportSyncError = (error: unknown) =>
+      setErrorMessage(error instanceof Error ? error.message : tRef.current("dashboard.noSync"));
+
+    const stopSleepLogs = subscribeToCollection<SleepLogRecord>(
+      pb.collection("sleep_logs"),
+      (eventRecord) => {
         const updatedLog = eventRecord.record;
         if (updatedLog.child_id !== childId) return;
         if (eventRecord.action === "delete") {
@@ -297,15 +303,48 @@ export function useDashboardState() {
         setCurrentSleepLog((prev) =>
           updatedLog.status !== "completed" ? updatedLog : prev?.id === updatedLog.id ? null : prev,
         );
-      })
-      .catch((error) =>
-        setErrorMessage(error instanceof Error ? error.message : tRef.current("dashboard.noSync")),
-      );
+      },
+      reportSyncError,
+    );
+
+    // Karmienia, pieluchy i reszta kontekstu dnia z drugiego urządzenia
+    const stopDayContext = subscribeToCollection<DayContextRecord>(
+      pb.collection("day_context"),
+      (eventRecord) => {
+        const record = eventRecord.record;
+        if (record.child_id !== childId) return;
+        if (eventRecord.action === "delete") {
+          setDayContext((prev) => prev.filter((entry) => entry.id !== record.id));
+          return;
+        }
+        setDayContext((prev) =>
+          prev.some((entry) => entry.id === record.id)
+            ? prev.map((entry) => (entry.id === record.id ? record : entry))
+            : [record, ...prev],
+        );
+      },
+      reportSyncError,
+    );
 
     return () => {
-      pb.collection("sleep_logs").unsubscribe("*");
+      stopSleepLogs();
+      stopDayContext();
     };
-  }, [child, isDemoData]);
+  }, [childId, isDemoData]);
+
+  // Telefon w kieszeni zrywa SSE, a PocketBase nie odtwarza zdarzeń z przerwy: po powrocie dociągamy stan
+  useEffect(() => {
+    if (!childId || isDemoData) return;
+    const resync = () => {
+      if (document.visibilityState === "visible") loadDashboardData();
+    };
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("online", resync);
+    return () => {
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("online", resync);
+    };
+  }, [childId, isDemoData, loadDashboardData]);
 
   const effectiveAgeDays = child
     ? calculateEffectiveAgeDays(child.birth_date, child.due_date, nowIso)
