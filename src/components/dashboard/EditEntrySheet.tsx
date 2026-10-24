@@ -12,6 +12,7 @@ import type {
   SleepMood,
 } from "@/lib/types/database";
 import { BottleVolumeInput } from "./BottleVolumeInput";
+import { BreastMinutesInput } from "./BreastMinutesInput";
 import { DEFAULT_BOTTLE_ML } from "./constants";
 import {
   buildEntryTimePatch,
@@ -102,6 +103,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   const [mood, setMood] = useState<SleepMood | undefined>(undefined);
   const [interventions, setInterventions] = useState<readonly InterventionLevel[]>([]);
   const [bottleMl, setBottleMl] = useState<number | undefined>(undefined);
+  const [breastMinutes, setBreastMinutes] = useState<number | undefined>(undefined);
   const [error, setError] = useState<EntryEditError | "save_failed" | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -114,6 +116,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
     setBottleMl(
       event.kind === "feeding" ? (event.bottleMl ?? DEFAULT_BOTTLE_ML) : DEFAULT_BOTTLE_ML,
     );
+    setBreastMinutes(event.kind === "feeding" ? event.breastMinutes : undefined);
     setError(null);
     setIsSaving(false);
   }, [event]);
@@ -126,6 +129,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
         start,
         end,
         bottleMl,
+        breastMinutes,
         ...(event.kind === "nap" ? { mood: mood ?? null, interventions } : {}),
       },
       new Date().toISOString(),
@@ -145,6 +149,8 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   };
 
   const isSleep = event?.kind === "nap";
+  const isBreast =
+    event?.kind === "feeding" && event.feedingType === "breast" && event.breastSide !== undefined;
   const isBottle = event?.kind === "feeding" && event.feedingType === "bottle";
   return (
     <AnimatePresence>
@@ -211,6 +217,14 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
                   {t("entryEdit.bottleAmount")}
                 </span>
                 <BottleVolumeInput valueMl={bottleMl ?? DEFAULT_BOTTLE_ML} onChange={setBottleMl} />
+              </div>
+            )}
+            {isBreast && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {t("entryEdit.breastDuration")}
+                </span>
+                <BreastMinutesInput minutes={breastMinutes ?? 0} onChange={setBreastMinutes} />
               </div>
             )}
             <p className="text-xs text-slate-400">{t("entryEdit.hint")}</p>

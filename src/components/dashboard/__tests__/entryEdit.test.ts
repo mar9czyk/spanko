@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyClockTime, buildEntryTimePatch, toClockInputValue } from "../entryEdit";
+import {
+  applyClockTime,
+  buildEntryTimePatch,
+  stepBreastMinutes,
+  toClockInputValue,
+} from "../entryEdit";
 import type { TimelineEvent } from "../types";
 
 // Momenty budowane w czasie lokalnym, tak jak liczy je formularz edycji
@@ -152,5 +157,55 @@ describe("buildEntryTimePatch", () => {
     const untouched = buildEntryTimePatch(nap, { start: "12:00", end: "13:00" }, NOW);
     expect(untouched).not.toHaveProperty("patch.mood");
     expect(untouched).not.toHaveProperty("patch.interventions");
+  });
+});
+
+describe("stepBreastMinutes", () => {
+  it("przesuwa o 5 min do wielokrotności kroku", () => {
+    expect(stepBreastMinutes(15, 1)).toBe(20);
+    expect(stepBreastMinutes(15, -1)).toBe(10);
+    expect(stepBreastMinutes(12, 1)).toBe(15);
+    expect(stepBreastMinutes(12, -1)).toBe(10);
+  });
+
+  it("trzyma się zakresu 0–120", () => {
+    expect(stepBreastMinutes(0, -1)).toBe(0);
+    expect(stepBreastMinutes(120, 1)).toBe(120);
+  });
+});
+
+describe("buildEntryTimePatch: pierś", () => {
+  const breast = (side: "left" | "right"): TimelineEvent => ({
+    id: "br1",
+    kind: "feeding",
+    time: "",
+    timeIso: local(21, 14, 10),
+    feedingType: "breast",
+    breastSide: side,
+  });
+
+  it("zapisuje minuty w polu strony karmienia", () => {
+    expect(buildEntryTimePatch(breast("left"), { start: "14:10", breastMinutes: 25 }, NOW)).toEqual(
+      {
+        collection: "day_context",
+        id: "br1",
+        patch: { timestamp: local(21, 14, 10), breast_left_min: 25 },
+      },
+    );
+    expect(buildEntryTimePatch(breast("right"), { start: "14:10", breastMinutes: 0 }, NOW)).toEqual(
+      {
+        collection: "day_context",
+        id: "br1",
+        patch: { timestamp: local(21, 14, 10), breast_right_min: 0 },
+      },
+    );
+  });
+
+  it("bez podanych minut nie rusza czasu karmienia", () => {
+    expect(buildEntryTimePatch(breast("left"), { start: "14:10" }, NOW)).toEqual({
+      collection: "day_context",
+      id: "br1",
+      patch: { timestamp: local(21, 14, 10) },
+    });
   });
 });

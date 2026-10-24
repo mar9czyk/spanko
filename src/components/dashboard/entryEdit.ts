@@ -4,6 +4,7 @@ import type {
   SleepLogRecord,
   SleepMood,
 } from "@/lib/types/database";
+import { BREAST_MAX_MIN, BREAST_STEP_MIN } from "./constants";
 import type { TimelineEvent } from "./types";
 
 const MS_PER_DAY = 86_400_000;
@@ -16,6 +17,8 @@ export interface EntryTimeDraft {
   readonly end?: string;
   /** Tylko butelka: nowa ilość mleka w ml. */
   readonly bottleMl?: number;
+  /** Tylko pierś: czas karmienia w minutach; brak pola = bez zmiany. */
+  readonly breastMinutes?: number;
   /** Tylko sen: nastrój przy zasypianiu; null = wyczyść, brak pola = bez zmiany. */
   readonly mood?: SleepMood | null;
   /** Tylko sen: co pomogło przy zasypianiu; brak pola = bez zmiany. */
@@ -36,8 +39,23 @@ export type EntryEditPatch =
       readonly collection: "day_context";
       readonly id: string;
       readonly patch: Pick<DayContextRecord, "timestamp"> &
-        Partial<Pick<DayContextRecord, "bottle_ml">>;
+        Partial<Pick<DayContextRecord, "bottle_ml" | "breast_left_min" | "breast_right_min">>;
     };
+
+/**
+ * Przesuwa minuty karmienia piersią o krok (5 min) do wielokrotności kroku, w granicach 0–120.
+ *
+ * @param {number} current - Bieżące minuty
+ * @param {1 | -1} direction - Kierunek zmiany
+ * @returns {number} Nowe minuty
+ */
+export function stepBreastMinutes(current: number, direction: 1 | -1): number {
+  const snapped =
+    direction === 1
+      ? (Math.floor(current / BREAST_STEP_MIN) + 1) * BREAST_STEP_MIN
+      : (Math.ceil(current / BREAST_STEP_MIN) - 1) * BREAST_STEP_MIN;
+  return Math.min(BREAST_MAX_MIN, Math.max(0, snapped));
+}
 
 /**
  * Formatuje moment ISO do wartości pola `<input type="time">` (HH:mm, czas lokalny).
@@ -114,10 +132,22 @@ export function buildEntryTimePatch(
     if (Date.parse(timestamp) > nowMs) return "in_future";
     const bottleMl =
       event.kind === "feeding" && event.feedingType === "bottle" ? draft.bottleMl : undefined;
+    const breastMinutes =
+      event.kind === "feeding" && event.feedingType === "breast" && event.breastSide
+        ? draft.breastMinutes
+        : undefined;
     return {
       collection: "day_context",
       id: event.id,
-      patch: bottleMl === undefined ? { timestamp } : { timestamp, bottle_ml: bottleMl },
+      patch: {
+        timestamp,
+        ...(bottleMl === undefined ? {} : { bottle_ml: bottleMl }),
+        ...(breastMinutes === undefined
+          ? {}
+          : event.kind === "feeding" && event.breastSide === "right"
+            ? { breast_right_min: breastMinutes }
+            : { breast_left_min: breastMinutes }),
+      },
     };
   }
 

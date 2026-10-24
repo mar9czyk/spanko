@@ -82,6 +82,11 @@ export const DEFAULT_BOTTLE_ML = 120;
 /** Minuty karmienia piersią do dopisania w toście po zapisie. */
 export const BREAST_TOAST_MINUTES = [10, 20] as const;
 
+/** Krok steppera minut karmienia piersią i górny limit zgodny ze schematem PocketBase. */
+export const BREAST_STEP_MIN = 5;
+export const BREAST_MAX_MIN = 120;
+export const DEFAULT_BREAST_CUSTOM_MIN = 15;
+
 export const DIAPER_OPTIONS = [
   { value: "wet", labelKey: "diaper.wet" },
   { value: "dirty", labelKey: "diaper.dirty" },
