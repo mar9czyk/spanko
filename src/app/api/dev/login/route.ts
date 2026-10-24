@@ -1,5 +1,5 @@
 import PocketBase, { ClientResponseError } from "pocketbase";
-import { devLoginEnvPrefix, isDevLoginEnabled } from "@/lib/dev-auth";
+import { devLoginEnvPrefix, isDevLoginEnabled, isPrivateNetworkHost } from "@/lib/dev-auth";
 
 const POCKETBASE_URL =
   process.env.POCKETBASE_INTERNAL_URL ||
@@ -11,7 +11,11 @@ const POCKETBASE_URL =
  * Poza development z lokalnym PocketBase zwraca 404.
  */
 export async function POST(request: Request): Promise<Response> {
-  if (!isDevLoginEnabled(process.env.NODE_ENV, POCKETBASE_URL)) {
+  // Host z sieci prywatnej (localhost, LAN, Tailscale) — telefon w domowym Wi-Fi; publiczne tunele odpadają.
+  const isTrustedHost = isPrivateNetworkHost(
+    request.headers.get("host") ?? new URL(request.url).host,
+  );
+  if (!isDevLoginEnabled(process.env.NODE_ENV, POCKETBASE_URL) || !isTrustedHost) {
     return new Response("Not found", { status: 404 });
   }
   const body = (await request.json().catch(() => ({}))) as { role?: unknown };
