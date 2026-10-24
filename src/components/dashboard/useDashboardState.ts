@@ -33,6 +33,7 @@ import {
   type TravelStrategy,
 } from "@/lib/sleep-engine";
 import { normalizeDayTag } from "@/lib/sleep-engine/dayTags";
+import type { SleepPlace } from "@/lib/sleep-environment";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
   ActiveDayMode,
@@ -793,6 +794,12 @@ export function useDashboardState() {
     await saveSleepLog(currentSleepLog, mood ? { mood, interventions } : { interventions });
   };
 
+  /** Zapisuje wyjątek „dziś gdzie indziej”; pusty tekst czyści wybór. */
+  const handleSaveSleepPlace = async (place: SleepPlace | "") => {
+    if (!currentSleepLog || currentSleepLog.id !== fellAsleepPromptLogId) return;
+    await saveSleepLog(currentSleepLog, { sleep_place: place });
+  };
+
   /** Włącza lub wyłącza tag dnia; wyłączenie usuwa dzisiejsze wpisy z tym tagiem. */
   const handleToggleDayTag = async (tag: string) => {
     const matching = dayContext.filter((entry) =>
@@ -903,6 +910,7 @@ export function useDashboardState() {
     fellAsleepPromptLogId,
     dismissFellAsleepPrompt: () => setFellAsleepPromptLogId(null),
     handleSaveFellAsleep,
+    handleSaveSleepPlace,
     minutesSinceFeeding,
     physiologicalDate: nowIso === EPOCH_ISO ? null : physiologicalDate,
     nowIso,

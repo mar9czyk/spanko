@@ -1,6 +1,7 @@
 import { Check, Edit3, Lightbulb, Undo2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { InsightAdviceWhy } from "@/components/insights/InsightAdviceWhy";
 import { CORRECT_INSIGHT_QUERY_PARAM } from "@/components/insights/useInsightsState";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ChildInsightRecord } from "@/lib/types/database";
@@ -145,7 +146,7 @@ export function SmartInsightCard({
   return (
     <div className="flex flex-col gap-3">
       <InsightHeader category={insight.category} title={insight.title} />
-      <p className="text-base text-slate-300 leading-relaxed">{insight.explanation}</p>
+      <InsightAdviceWhy insight={insight} />
       <InsightActions insightId={insight.id} onAccept={onAccept} />
       <div className="flex justify-end">
         <Link

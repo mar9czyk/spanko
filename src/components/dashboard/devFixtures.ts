@@ -27,8 +27,8 @@ export const DEV_FIXTURE_INSIGHT: ChildInsightRecord = {
   diagnosis_code: "SHORT_CYCLE_COMPENSATION",
   status: "active",
   title: "Skróć okno czuwania po krótkiej drzemce",
-  explanation:
-    "Poprzednia drzemka trwała tylko 35 min. Kolejne okno czuwania skrócone o 20 min, by zapobiec przemęczeniu.",
+  explanation: "Poprzednia drzemka trwała tylko 35 min, więc dziecko może być przemęczone.",
+  clinical_action: "Skróć kolejne okno czuwania o 20 min.",
   confidence_score: 0.92,
   parent_feedback: "pending",
   created: FIXTURE_TIMESTAMP,
