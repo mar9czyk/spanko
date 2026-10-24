@@ -3,6 +3,7 @@ import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatDuration } from "@/i18n/translate";
 import type { SleepLogRecord } from "@/lib/types/database";
+import { AddEntryControl, type AddEntryControlProps } from "./AddEntrySheet";
 import { DayHourStrip } from "./DayHourStrip";
 import { collectDayStripEvents, type DayStripSleep } from "./dayHourStrip";
 import { EditEntrySheet, type EditedEntry } from "./EditEntrySheet";
@@ -23,6 +24,8 @@ interface PhysiologicalTimelineProps {
   readonly emptyText?: string;
   /** Wywoływane po zapisaniu edycji wpisu; brak = karty tylko do odczytu. */
   readonly onEntryEdited?: (entry: EditedEntry) => void;
+  /** Dopisywanie wpisów do oglądanej minionej doby; brak = bez przycisku „Dodaj wpis”. */
+  readonly addEntry?: AddEntryControlProps;
 }
 
 export interface TimelineNavigation {
@@ -131,6 +134,7 @@ export function PhysiologicalTimeline({
   navigation,
   emptyText,
   onEntryEdited,
+  addEntry,
 }: PhysiologicalTimelineProps): ReactNode {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -148,6 +152,7 @@ export function PhysiologicalTimeline({
         <div className="p-4 rounded-xl bg-[#151B28] border border-[#263348] text-center text-xs text-slate-400">
           {emptyText ?? t("timeline.empty")}
         </div>
+        {addEntry && <AddEntryControl {...addEntry} />}
       </section>
     );
   }
@@ -207,6 +212,7 @@ export function PhysiologicalTimeline({
           ))}
         </div>
       )}
+      {addEntry && <AddEntryControl {...addEntry} />}
       {onEntryEdited && (
         <EditEntrySheet
           event={editedEvent}
