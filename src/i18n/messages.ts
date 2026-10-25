@@ -94,10 +94,6 @@ export const pl = {
     "Prognozy uwzględniają dzisiejsze przesunięcie, a ocena pór snu i pobudek jest wstrzymana.",
   "travel.finish": "Przejdź od razu na czas lokalny",
 
-  "anti.title": "Przełącz między precyzyjnym zegarem a miękkim kompasem snu (Anti-Orthosomnia)",
-  "anti.compass": "Miękki kompas",
-  "anti.clock": "Zegar",
-
   "insightCard.works": "Działa",
   "insightCard.adjust": "Skoryguj",
   "insightCard.saved": "Zapisane, uwzględnimy to w prognozach.",
@@ -136,7 +132,9 @@ export const pl = {
   "bubble.goal.advice": "Rady na dziś i dlaczego tak",
   "bubble.goal.how": "Pokaż pełny opis",
   "bubble.goal.noTasks": "Zadania pojawią się, gdy plan na dziś będzie gotowy.",
-  "ring.reasonHint": "Pokaż powód tej pory",
+  "ring.toCompass": "Przełącz na kompas",
+  "ring.toClock": "Przełącz na zegar",
+  "ring.hint": "Stuknij zegar, by przełączyć na kompas",
 
   "timer.fallingAsleep": "Usypianie w toku",
   "timer.nap": "Drzemka w toku",
@@ -516,10 +514,6 @@ export const en: Record<MessageKey, string> = {
     "Predictions include today's shift, and bedtime and early-waking checks are paused.",
   "travel.finish": "Switch to local time now",
 
-  "anti.title": "Switch between a precise clock and a soft sleep compass (Anti-Orthosomnia)",
-  "anti.compass": "Soft compass",
-  "anti.clock": "Clock",
-
   "insightCard.works": "Works",
   "insightCard.adjust": "Adjust",
   "insightCard.saved": "Saved, we'll use it in predictions.",
@@ -557,7 +551,9 @@ export const en: Record<MessageKey, string> = {
   "bubble.goal.advice": "Today's tips and why",
   "bubble.goal.how": "Show full description",
   "bubble.goal.noTasks": "Tasks will appear once today's plan is ready.",
-  "ring.reasonHint": "Show why this time",
+  "ring.toCompass": "Switch to compass",
+  "ring.toClock": "Switch to clock",
+  "ring.hint": "Tap the clock to switch to the compass",
 
   "timer.fallingAsleep": "Settling in progress",
   "timer.nap": "Nap in progress",

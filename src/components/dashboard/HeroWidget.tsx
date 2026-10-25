@@ -11,7 +11,7 @@ interface HeroWidgetProps {
   readonly countdownDisplay: string;
   readonly sweetSpotTimeDisplay: string;
   readonly compassRangeDisplay: string;
-  readonly reasonDescription: string;
+  readonly onToggleAntiOrthosomnia: () => void;
   readonly effectiveAgeDays: number;
   /** Sugerowana pora wybudzenia z drzemki (HH:mm), gdy drzewo zaleca ograniczenie snu w dzień. */
   readonly napWakeSuggestion?: string | null;
@@ -48,7 +48,7 @@ function ClockOrStopwatch(props: HeroWidgetProps): ReactNode {
       countdownDisplay={countdownDisplay}
       sweetSpotTimeDisplay={sweetSpotTimeDisplay}
       compassRangeDisplay={props.compassRangeDisplay}
-      reasonDescription={props.reasonDescription}
+      onToggleAntiOrthosomnia={props.onToggleAntiOrthosomnia}
     />
   );
 }

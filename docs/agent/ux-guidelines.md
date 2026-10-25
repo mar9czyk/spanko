@@ -39,6 +39,7 @@ Ekran telefonu w ciemnej sypialni o 03:00 w nocy nie może oślepiać rodzica an
 Ortosomnia to zaburzenie lękowe wywołane obsesyjnym śledzeniem wskaźników snu przez aplikacje i zegarki:
 * **Problem:** Rodzic widzący komunikat "Połóż dziecko o 13:14" wpada w panikę, gdy o 13:16 dziecko nadal nie śpi.
 * **Rozwiązanie (Anti-Orthosomnia Mode):**
+  - Przełączenie: stuknięcie w pierścień na ekranie głównym (zegar ↔ kompas, zapis w `anti_orthosomnia_mode`). Krótki flip/crossfade (respektuje `prefers-reduced-motion`), `aria-label` „Przełącz na kompas / zegar”, pod pierścieniem dwie dekoracyjne kropki pokazujące aktywny widok, a przy pierwszej wizycie jednorazowa podpowiedź z delikatnym „pulsem” pierścienia (flaga w `localStorage`).
   - Przełącza widok z precyzyjnego zegara na **Miękki Kompas Snu**:
     - Zamiast: *"Kolejna drzemka: 13:14"*
     - Pokazuje: *"Wypatruj oznak zmęczenia (ziewanie, tarcie oczu) między 13:00 a 13:30"*.
@@ -56,13 +57,13 @@ Widok `/dashboard` składa się z zintegrowanych stref:
   - `[🏠 W domu]`
   - `[🚗 W drodze]`
   - `[🤒 Choroba / Regresja]`
-- Przełącznik `Anti-Orthosomnia Mode` (ikona kompasu).
+- Przycisku `Anti-Orthosomnia Mode` w nagłówku już nie ma; przełączanie odbywa się stuknięciem w pierścień (sekcja 2).
 
 ### 3.2. Bąbelki skrótów dnia i wspólny arkusz
 - Wokół pierścienia stoją 4 okrągłe bąbelki (64 px): **wyspanie** (np. `3/5`, kolor stanu), **cel** (`odhaczone/wszystkie` zadania dnia), **wniosek** (żarówka z bursztynową kropką, dopóki rodzic nie dał opinii) i **ostatnia drzemka** (`HH:mm`). Bąbelek bez danych (brak celu lub wniosku) się nie pojawia.
 - Każdy bąbelek otwiera **jeden wspólny arkusz** od dołu (połowa ekranu) na własnej zakładce. Przesunięcie w bok zmienia zakładkę, w dół lub stuknięcie obok zamyka, w górę rozciąga do pełnej wysokości. Nigdy arkusz na arkuszu.
-- Zakładki: *Wyspanie* (słowo stanu, 5 segmentów, zdanie o skutku, profil potrzeb), *Cel* (tytuł, metoda · dzień, postęp, zadania z krótkimi tytułami odhaczane w miejscu, (i) z pełnym opisem, zwinięte „Rady na dziś i dlaczego tak”, wstrzymaj i zakończ na dole), *Wniosek* (kategoria, tytuł, wyjaśnienie, Działa / Skoryguj, link do historii), *Ostatnia drzemka* (duża godzina + jedno zdanie po co).
-- Stuknięcie w pierścień pokazuje na ok. 4 s dymek z powodem tej pory (zastępuje etykietę pod pierścieniem).
+- Zakładki: *Wyspanie* (słowo stanu, 5 segmentów, zdanie o skutku, profil potrzeb), *Cel* (tytuł, metoda · dzień, postęp, zadania z krótkimi tytułami odhaczane w miejscu, (i) z pełnym opisem, zwinięte „Rady na dziś i dlaczego tak”, wstrzymaj i zakończ na dole), *Wniosek* (kategoria, tytuł, wyjaśnienie, Działa / Skoryguj, link do historii), *Ostatnia drzemka* (duża godzina + jedno zdanie po co + powód tej pory SweetSpot).
+- Powód tej pory SweetSpot jest w zakładce *Ostatnia drzemka*; stuknięcie w pierścień przełącza zegar i kompas (sekcja 2).
 - W trakcie snu (w tym w nocy) bąbelków nie ma, a karty celu i wniosku nie wiszą na ekranie.
 
 ### 3.3. Centralny Hero Widget (SweetSpot & Bateria Snu)

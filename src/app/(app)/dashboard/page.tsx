@@ -126,7 +126,6 @@ export default function DashboardPage() {
         ageDisplay={state.ageDisplay}
         onSelectChild={handleSelectChild}
         onSelectDayMode={state.handleSelectDayMode}
-        onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
         onChangeChildPhoto={state.isDemoData ? undefined : state.handleChangeChildPhoto}
       />
       <DayModeGuidanceCard
@@ -157,7 +156,7 @@ export default function DashboardPage() {
         countdownDisplay={state.countdownDisplay}
         sweetSpotTimeDisplay={state.sweetSpotTimeDisplay}
         compassRangeDisplay={state.compassRangeDisplay}
-        reasonDescription={state.reasonDescription}
+        onToggleAntiOrthosomnia={state.handleToggleAntiOrthosomnia}
         effectiveAgeDays={state.effectiveAgeDays}
         napWakeSuggestion={state.napWakeSuggestionDisplay}
         bubbles={
@@ -260,7 +259,7 @@ export default function DashboardPage() {
               onUndoAccept={state.handleUndoAcceptInsight}
             />
           ),
-          nap: <LastNapPanel time={state.latestLastNapEndAt} />,
+          nap: <LastNapPanel time={state.latestLastNapEndAt} reason={state.reasonDescription} />,
         }}
       />
       <QuickEntryBottomSheet

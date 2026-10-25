@@ -3,7 +3,6 @@ import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ActiveDayMode, ChildRecord } from "@/lib/types/database";
-import { AntiOrthosomniaToggle } from "./AntiOrthosomniaToggle";
 import { ChildPhotoSheet } from "./ChildPhotoSheet";
 import { ChildSwitcher } from "./ChildSwitcher";
 import { DayModeSwitcher } from "./DayModeSwitcher";
@@ -15,13 +14,12 @@ interface DashboardHeaderProps {
   readonly ageDisplay: string;
   readonly onSelectChild: (childId: string) => void;
   readonly onSelectDayMode: (mode: ActiveDayMode) => void;
-  readonly onToggleAntiOrthosomnia: () => void;
   /** Zapis zdjęcia aktywnego dziecka; brak = zdjęć nie da się zmieniać (dane demo) */
   readonly onChangeChildPhoto?: (file: File | null) => Promise<boolean>;
 }
 
 /**
- * Górny pasek nawigacyjny z tożsamością i przełącznikiem dziecka, trybem dnia i kompasem Anti-Orthosomnia.
+ * Górny pasek nawigacyjny z tożsamością i przełącznikiem dziecka i trybem dnia.
  *
  * @param {DashboardHeaderProps} props - Parametry nagłówka
  * @returns {ReactNode} Nagłówek pulpitu
@@ -32,7 +30,6 @@ export function DashboardHeader({
   ageDisplay,
   onSelectChild,
   onSelectDayMode,
-  onToggleAntiOrthosomnia,
   onChangeChildPhoto,
 }: DashboardHeaderProps): ReactNode {
   const { t } = useI18n();
@@ -82,10 +79,6 @@ export function DashboardHeader({
           >
             <UserRound className="w-4 h-4" />
           </Link>
-          <AntiOrthosomniaToggle
-            isActive={child.anti_orthosomnia_mode}
-            onToggle={onToggleAntiOrthosomnia}
-          />
         </div>
       </div>
       <DayModeSwitcher currentMode={child.active_day_mode} onSelectMode={onSelectDayMode} />
