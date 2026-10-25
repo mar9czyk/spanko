@@ -1,10 +1,11 @@
 "use client";
 
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { formatVolume } from "@/i18n/translate";
 import type { DiaperKind } from "@/lib/types/database";
-import { BREAST_TOAST_MINUTES, DIAPER_OPTIONS } from "./constants";
+import { BreastMinutesInput } from "./BreastMinutesInput";
+import { BREAST_TOAST_MINUTES, DEFAULT_BREAST_CUSTOM_MIN, DIAPER_OPTIONS } from "./constants";
 import type { EntryToast as EntryToastData } from "./useDashboardState";
 
 const TOAST_VISIBLE_MS = 8000;
@@ -35,12 +36,22 @@ export function EntryToast({
   onDismiss,
 }: EntryToastProps): ReactNode {
   const { t, units } = useI18n();
+  const [customMinutes, setCustomMinutes] = useState<number | null>(null);
+  const toastId = toast?.id;
+  const isCustomOpen = customMinutes !== null;
 
+  // Nowy wpis zamyka wpisywanie własnego czasu poprzedniego
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset ma się wykonać przy zmianie toastu
   useEffect(() => {
-    if (!toast) return;
+    setCustomMinutes(null);
+  }, [toastId]);
+
+  // Podczas ustawiania własnego czasu toast nie znika sam
+  useEffect(() => {
+    if (!toast || isCustomOpen) return;
     const timeoutId = setTimeout(onDismiss, TOAST_VISIBLE_MS);
     return () => clearTimeout(timeoutId);
-  }, [toast, onDismiss]);
+  }, [toast, isCustomOpen, onDismiss]);
 
   if (!toast) return null;
   let message: string;
@@ -77,7 +88,19 @@ export function EntryToast({
           {t("entryToast.undo")}
         </button>
       </div>
-      {toast.kind === "breast" && (
+      {toast.kind === "breast" && customMinutes !== null && (
+        <div className="flex flex-col gap-2">
+          <BreastMinutesInput minutes={customMinutes} onChange={setCustomMinutes} />
+          <button
+            type="button"
+            onClick={() => onBreastMinutes(customMinutes)}
+            className="min-h-12 rounded-xl bg-amber-500 text-sm font-semibold text-[#0B0F17]"
+          >
+            {t("breast.save")}
+          </button>
+        </div>
+      )}
+      {toast.kind === "breast" && customMinutes === null && (
         <div className="flex gap-2">
           {BREAST_TOAST_MINUTES.map((minutes) => (
             <button
@@ -89,6 +112,13 @@ export function EntryToast({
               {minutes} {t("common.minutesShort")}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setCustomMinutes(DEFAULT_BREAST_CUSTOM_MIN)}
+            className={CHIP_CLASS}
+          >
+            {t("breast.other")}
+          </button>
         </div>
       )}
       {toast.kind === "diaper" && (
