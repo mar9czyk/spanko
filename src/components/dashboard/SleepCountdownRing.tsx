@@ -1,4 +1,5 @@
-import { Compass, Moon, Sparkles } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Compass, Sparkles } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -7,7 +8,7 @@ interface SleepCountdownRingProps {
   readonly countdownDisplay: string;
   readonly sweetSpotTimeDisplay: string;
   readonly compassRangeDisplay: string;
-  readonly reasonDescription: string;
+  readonly onToggleAntiOrthosomnia: () => void;
 }
 
 /**
@@ -51,12 +52,13 @@ function SoftCompassContent({ compassRange }: { compassRange: string }) {
   );
 }
 
-const TOOLTIP_VISIBLE_MS = 4000;
+const HINT_KEY = "spanko.ringToggleHintSeen";
+const HINT_VISIBLE_MS = 6000;
 
 /**
- * Pierścień odliczający czas do kolejnego SweetSpot z obsługą trybu Anti-Orthosomnia.
+ * Pierścień odliczający czas do kolejnego SweetSpot; stuknięcie przełącza zegar i miękki kompas Anti-Orthosomnia.
  *
- * @param {SleepCountdownRingProps} props - Dane odliczania i uzasadnienie algorytmu
+ * @param {SleepCountdownRingProps} props - Dane odliczania i funkcja przełączająca widok
  * @returns {ReactNode} Widżet pierścienia snu
  */
 export function SleepCountdownRing({
@@ -64,39 +66,69 @@ export function SleepCountdownRing({
   countdownDisplay,
   sweetSpotTimeDisplay,
   compassRangeDisplay,
-  reasonDescription,
+  onToggleAntiOrthosomnia,
 }: SleepCountdownRingProps): ReactNode {
   const { t } = useI18n();
-  const [isReasonVisible, setIsReasonVisible] = useState(false);
+  const [isHintVisible, setIsHintVisible] = useState(false);
+
   useEffect(() => {
-    if (!isReasonVisible) return;
-    const timer = setTimeout(() => setIsReasonVisible(false), TOOLTIP_VISIBLE_MS);
+    try {
+      if (window.localStorage.getItem(HINT_KEY)) return;
+      window.localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      // brak localStorage: podpowiedź pokaże się przy każdej wizycie, co nie szkodzi
+    }
+    setIsHintVisible(true);
+    const timer = setTimeout(() => setIsHintVisible(false), HINT_VISIBLE_MS);
     return () => clearTimeout(timer);
-  }, [isReasonVisible]);
+  }, []);
+
+  const handleToggle = () => {
+    setIsHintVisible(false);
+    onToggleAntiOrthosomnia();
+  };
 
   return (
-    <div className="relative flex flex-col items-center justify-center my-2">
-      <button
+    <div className="relative flex flex-col items-center justify-center my-2 gap-2">
+      <motion.button
         type="button"
-        onClick={() => setIsReasonVisible((visible) => !visible)}
-        aria-label={t("ring.reasonHint")}
-        aria-expanded={isReasonVisible}
+        onClick={handleToggle}
+        aria-label={isAntiOrthosomnia ? t("ring.toClock") : t("ring.toCompass")}
+        animate={isHintVisible ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+        transition={isHintVisible ? { duration: 1.2, repeat: 2 } : undefined}
         className="relative w-52 h-52 rounded-full border-2 border-amber-500/20 bg-gradient-to-b from-[#151B28] to-[#0E1420] flex items-center justify-center shadow-2xl shadow-amber-500/5 p-4"
       >
         <div className="absolute inset-1 rounded-full border border-dashed border-amber-400/20 animate-pulse pointer-events-none" />
-        {isAntiOrthosomnia ? (
-          <SoftCompassContent compassRange={compassRangeDisplay} />
-        ) : (
-          <ExactClockContent countdown={countdownDisplay} targetTime={sweetSpotTimeDisplay} />
-        )}
-      </button>
-      {isReasonVisible && (
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={isAntiOrthosomnia ? "compass" : "clock"}
+            initial={{ opacity: 0, rotateY: 90 }}
+            animate={{ opacity: 1, rotateY: 0 }}
+            exit={{ opacity: 0, rotateY: -90 }}
+            transition={{ duration: 0.18 }}
+          >
+            {isAntiOrthosomnia ? (
+              <SoftCompassContent compassRange={compassRangeDisplay} />
+            ) : (
+              <ExactClockContent countdown={countdownDisplay} targetTime={sweetSpotTimeDisplay} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </motion.button>
+      <div className="flex items-center gap-1.5" aria-hidden="true">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${isAntiOrthosomnia ? "bg-slate-600" : "bg-amber-400"}`}
+        />
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${isAntiOrthosomnia ? "bg-violet-400" : "bg-slate-600"}`}
+        />
+      </div>
+      {isHintVisible && (
         <div
           role="status"
-          className="absolute -bottom-3 z-10 px-3 py-1.5 rounded-xl bg-[#1E2738] border border-[#263348] text-sm text-amber-200 flex items-center gap-1.5 shadow-lg max-w-[280px]"
+          className="absolute -bottom-9 z-10 px-3 py-1.5 rounded-xl bg-[#1E2738] border border-[#263348] text-sm text-amber-200 shadow-lg max-w-[280px] text-center"
         >
-          <Moon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span>{reasonDescription}</span>
+          {t("ring.hint")}
         </div>
       )}
     </div>
