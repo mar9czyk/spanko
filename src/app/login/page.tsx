@@ -73,6 +73,7 @@ export default function LoginPage(): ReactNode {
             width={96}
             height={96}
             priority
+            unoptimized
             className="rounded-3xl shadow-lg shadow-violet-900/40"
           />
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-amber-200">Spanko</h1>
