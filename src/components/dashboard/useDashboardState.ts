@@ -34,6 +34,7 @@ import {
   type TravelStrategy,
 } from "@/lib/sleep-engine";
 import { normalizeDayTag } from "@/lib/sleep-engine/dayTags";
+import type { InterventionType } from "@/lib/sleep-engine/types";
 import type { SleepPlace } from "@/lib/sleep-environment";
 import { aggregateDailySleepSummaries, calculateDurationInMinutes } from "@/lib/sleep-summary";
 import type {
@@ -45,6 +46,7 @@ import type {
   DiaperKind,
   FeedingType,
   InterventionLevel,
+  NightWakingDetail,
   SleepLogRecord,
   SleepMood,
 } from "@/lib/types/database";
@@ -67,7 +69,6 @@ import type { TimelineEvent } from "./types";
 export type DashboardLoadStatus = "loading" | "ready" | "empty" | "error";
 
 /** Wybór w toście pobudki nocnej: pierś lewa/prawa, butelka albo bez karmienia. */
-export type NightWakeFeed = "left" | "right" | "bottle" | "none";
 
 /** Ostatnio zapisane karmienie lub pielucha — toast „zapisano” z cofnięciem i dopiskiem. */
 export interface EntryToast {
@@ -92,6 +93,11 @@ type DayContextDraft = {
 };
 
 // Czas bieżący ustawiany po zamontowaniu (new Date() w stanie początkowym blokuje prerender)
+export interface MorningWakingAnswer {
+  readonly durationMin: number;
+  readonly interventions: readonly InterventionType[];
+}
+
 const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
 const MS_PER_SECOND = 1000;
 const PLACEHOLDER_TIME = "—";
@@ -165,8 +171,13 @@ export function useDashboardState() {
   const [dayContext, setDayContext] = useState<readonly DayContextRecord[]>([]);
   const [localTimelineEvents, setLocalTimelineEvents] = useState<readonly TimelineEvent[]>([]);
   const [currentSleepLog, setCurrentSleepLog] = useState<SleepLogRecord | null>(null);
-  const [pendingMorningWakingReview, setPendingMorningWakingReview] = useState<readonly string[]>(
-    [],
+  const [pendingMorningReview, setPendingMorningReview] = useState<{
+    readonly logId: string;
+    readonly wakings: readonly NightWakingDetail[];
+  } | null>(null);
+  const pendingMorningWakingReview = useMemo(
+    () => (pendingMorningReview?.wakings ?? []).map((wake) => formatClock(wake.wokeAt)),
+    [pendingMorningReview],
   );
   const [nowIso, setNowIso] = useState<string>(EPOCH_ISO);
 
@@ -237,7 +248,7 @@ export function useDashboardState() {
     storeActiveChildId(childId);
     setErrorMessage(null);
     setDayContext([]);
-    setPendingMorningWakingReview([]);
+    setPendingMorningReview(null);
     loadDashboardData();
   };
 
@@ -647,9 +658,10 @@ export function useDashboardState() {
     if (currentSleepLog.status === "sleeping") {
       setFellAsleepPromptLogId(null);
       if (currentSleepLog.type === "night" && currentSleepLog.night_wakings?.length) {
-        setPendingMorningWakingReview(
-          currentSleepLog.night_wakings.map((wake) => formatClock(wake.wokeAt)),
-        );
+        setPendingMorningReview({
+          logId: currentSleepLog.id,
+          wakings: currentSleepLog.night_wakings,
+        });
       }
       await saveSleepLog(currentSleepLog, {
         status: "completed",
@@ -669,19 +681,6 @@ export function useDashboardState() {
     ];
     await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
     setNightWakeToast({ logId: currentSleepLog.id, wokeAt });
-  };
-
-  /** Uzupełnia ostatnią pobudkę o wybór z tostu: fedMilk i interwencje wynikają z niego. */
-  const handleNightWakeFeed = async (feed: NightWakeFeed) => {
-    const toast = nightWakeToast;
-    setNightWakeToast(null);
-    if (!toast || !currentSleepLog || currentSleepLog.id !== toast.logId) return;
-    if (feed === "none") return;
-    const interventions: readonly InterventionLevel[] = [feed === "bottle" ? "bottle" : "breast"];
-    const updatedWakings = (currentSleepLog.night_wakings || []).map((wake) =>
-      wake.wokeAt === toast.wokeAt ? { ...wake, fedMilk: true, interventions } : wake,
-    );
-    await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
   };
 
   /** Cofa ostatnio zapisaną szybką pobudkę (usuwa wpis o tym samym czasie). */
@@ -710,8 +709,22 @@ export function useDashboardState() {
     await saveSleepLog(currentSleepLog, { night_wakings: updatedWakings });
   };
 
-  const handleResolveMorningWaking = (_minutes: number) => {
-    setPendingMorningWakingReview([]);
+  /** Poranna odpowiedź o nocnych pobudkach: czas trwania i czym uspokojono; null = pomiń. */
+  const handleResolveMorningWaking = async (answer: MorningWakingAnswer | null): Promise<void> => {
+    const review = pendingMorningReview;
+    setPendingMorningReview(null);
+    if (!answer || !review || isDemoData) return;
+    const wakings = review.wakings.map((wake) => ({
+      ...wake,
+      estimatedDurationMin: answer.durationMin,
+      interventions: answer.interventions,
+      fedMilk: answer.interventions.some((item) => item === "breast" || item === "bottle"),
+    }));
+    try {
+      await pb.collection("sleep_logs").update(review.logId, { night_wakings: wakings });
+    } catch (error) {
+      reportError(error, t("dashboard.saveSleepError"));
+    }
   };
 
   const patchDayContext = async (id: string, patch: Partial<DayContextRecord>) => {
@@ -930,7 +943,6 @@ export function useDashboardState() {
     handleUndoAcceptInsight,
     handleCycleSleepStatus,
     handleQuickNightWake,
-    handleNightWakeFeed,
     nightWakeToast,
     dismissNightWakeToast: () => setNightWakeToast(null),
     handleUndoNightWake,
