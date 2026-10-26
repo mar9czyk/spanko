@@ -12,13 +12,14 @@ import { dateLocaleTag } from "@/i18n/translate";
 
 /**
  * Ekran Historia (/history): ostatnie doby jedna pod drugą, każda z paskiem 24 godzin
- * i rozwijaną listą drzemek, karmień i pieluch, do porównywania wzorców.
+ * i rozwijaną listą drzemek, karmień i pieluch, do porównywania wzorców. Pod każdą dobą
+ * (także pustą) jest „Dodaj wpis” do dopisywania zaległych zdarzeń.
  *
  * @returns {ReactNode} Strona historii dób
  */
 export default function HistoryPage(): ReactNode {
   const { t, locale } = useI18n();
-  const { status, days, reload } = useHistoryState();
+  const { child, status, days, reload } = useHistoryState();
   const formatDate = (date: string) =>
     new Date(`${date}T12:00:00Z`).toLocaleDateString(dateLocaleTag(locale), {
       timeZone: "UTC",
@@ -59,7 +60,7 @@ export default function HistoryPage(): ReactNode {
         </p>
       )}
       {status === "empty" && <p className="text-sm text-slate-400">{t("dashboard.noChild")}</p>}
-      {status === "ready" && days.length === 0 && (
+      {status === "ready" && days.every((day) => day.events.length === 0) && (
         <p className="text-sm text-slate-400">{t("history.empty")}</p>
       )}
 
@@ -73,6 +74,12 @@ export default function HistoryPage(): ReactNode {
           nowIso={pastDayStripNowIso(day) ?? new Date().toISOString()}
           currentSleepLog={null}
           onEntryEdited={reload}
+          addEntry={
+            child
+              ? { day, childId: child.id, timeZone: child.timezone, onSaved: reload }
+              : undefined
+          }
+          emptyText={t("timeline.emptyPast")}
         />
       ))}
     </main>

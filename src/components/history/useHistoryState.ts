@@ -68,7 +68,7 @@ export function useHistoryState() {
   return {
     child,
     status: status === "idle" ? "loading" : status,
-    days: days.filter((day) => day.events.length > 0),
+    days,
     reload,
   };
 }

@@ -221,12 +221,6 @@ export default function DashboardPage() {
           currentSleepLog={null}
           navigation={navigation}
           onEntryEdited={pastDays.reload}
-          addEntry={{
-            day: pastDays.status === "ready" ? pastDay : undefined,
-            childId: child.id,
-            timeZone: child.timezone,
-            onSaved: pastDays.reload,
-          }}
           emptyText={
             pastDays.status === "error"
               ? t("timeline.loadPastError")
