@@ -171,8 +171,8 @@ export default function DashboardPage() {
       )}
       <MorningNightSummaryBanner
         wakingTimes={state.pendingMorningWakingReview}
-        onSelectDuration={state.handleResolveMorningWaking}
-        onDismiss={() => state.handleResolveMorningWaking(15)}
+        onSave={(answer) => void state.handleResolveMorningWaking(answer)}
+        onDismiss={() => void state.handleResolveMorningWaking(null)}
       />
       <HeroWidget
         currentSleepLog={state.currentSleepLog}
@@ -265,7 +265,6 @@ export default function DashboardPage() {
         />
         <NightWakeToast
           wokeAtIso={state.nightWakeToast?.wokeAt ?? null}
-          onChoose={(feed) => void state.handleNightWakeFeed(feed)}
           onUndo={() => void state.handleUndoNightWake()}
           onDismiss={state.dismissNightWakeToast}
         />
