@@ -81,6 +81,59 @@ export async function signInWithGoogle(): Promise<UserRecord> {
   return authData.record as unknown as UserRecord;
 }
 
+export const MIN_PASSWORD_LENGTH = 10;
+
+/**
+ * Rejestruje konto e-mail + hasło i wysyła wiadomość z linkiem potwierdzającym adres.
+ *
+ * @param {string} email - Adres e-mail
+ * @param {string} password - Hasło (min. 10 znaków)
+ * @param {string} [name] - Opcjonalne imię rodzica
+ */
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  name?: string,
+): Promise<void> {
+  await pb.collection("users").create({
+    email: email.trim(),
+    password,
+    passwordConfirm: password,
+    ...(name?.trim() ? { name: name.trim() } : {}),
+  });
+  await pb.collection("users").requestVerification(email.trim());
+}
+
+/**
+ * Loguje użytkownika e-mailem i hasłem (konto musi mieć potwierdzony adres).
+ *
+ * @param {string} email - Adres e-mail
+ * @param {string} password - Hasło
+ * @returns {Promise<UserRecord>} Zalogowany użytkownik
+ */
+export async function signInWithEmail(email: string, password: string): Promise<UserRecord> {
+  const authData = await pb.collection("users").authWithPassword(email.trim(), password);
+  return authData.record as unknown as UserRecord;
+}
+
+/**
+ * Ponownie wysyła link potwierdzający adres; odpowiedź nie zdradza, czy konto istnieje.
+ *
+ * @param {string} email - Adres e-mail
+ */
+export async function resendVerification(email: string): Promise<void> {
+  await pb.collection("users").requestVerification(email.trim());
+}
+
+/**
+ * Wysyła link do zmiany hasła; odpowiedź nie zdradza, czy konto istnieje.
+ *
+ * @param {string} email - Adres e-mail
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await pb.collection("users").requestPasswordReset(email.trim());
+}
+
 /**
  * Wylogowuje aktualnego użytkownika i czyści magazyn sesji.
  */

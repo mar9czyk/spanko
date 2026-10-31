@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -27,7 +28,7 @@ const DEV_FAMILY_BUTTONS: readonly { role: DevLoginRole; labelKey: MessageKey }[
  */
 export default function LoginPage(): ReactNode {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const [error, setError] = useState<string | null>(null);
 
   const handleGoogle = async () => {
@@ -106,9 +107,37 @@ export default function LoginPage(): ReactNode {
           <button
             type="button"
             onClick={handleGoogle}
-            className="h-14 rounded-2xl bg-violet-600 text-base font-medium text-white shadow-lg shadow-violet-900/40 active:scale-[0.98] transition"
+            className="h-14 rounded-2xl bg-white text-base font-medium text-slate-900 shadow-lg shadow-black/30 active:scale-[0.98] transition"
           >
             {t("login.google")}
+          </button>
+          <Link
+            href="/signup"
+            className="flex h-14 items-center justify-center rounded-2xl bg-violet-600 text-base font-medium text-white shadow-lg shadow-violet-900/40 active:scale-[0.98] transition"
+          >
+            {t("login.signupEmail")}
+          </Link>
+          <Link
+            href="/login/email"
+            className="flex h-12 items-center justify-center rounded-2xl border border-white/10 text-sm text-slate-200 active:scale-[0.98] transition"
+          >
+            {t("login.haveAccount")}
+          </Link>
+          <p className="text-center text-xs text-slate-500">
+            <Link href="/terms" className="underline">
+              {t("legal.termsLink")}
+            </Link>{" "}
+            ·{" "}
+            <Link href="/privacy" className="underline">
+              {t("legal.privacyLink")}
+            </Link>
+          </p>
+          <button
+            type="button"
+            onClick={() => setLocale(locale === "pl" ? "en" : "pl")}
+            className="mx-auto text-xs text-slate-400 underline"
+          >
+            {locale === "pl" ? "English" : "Polski"}
           </button>
           {IS_DEV_LOGIN_ENABLED && (
             <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-amber-400/30 p-3">

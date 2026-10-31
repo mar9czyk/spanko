@@ -3,7 +3,7 @@
     "id": "_pb_users_auth_",
     "listRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
     "viewRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
-    "createRule": "@request.body.is_admin:isset = false && @request.body.is_blocked:isset = false",
+    "createRule": "@request.body.is_admin:isset = false && @request.body.is_blocked:isset = false && @request.body.household_id:isset = false && @request.body.verified:isset = false",
     "updateRule": "(id = @request.auth.id && @request.body.is_admin:isset = false && @request.body.is_blocked:isset = false && @request.body.last_seen_at:isset = false && @request.body.household_id:isset = false && @request.body.verified:isset = false) || @request.auth.is_admin = true",
     "deleteRule": "id = @request.auth.id || @request.auth.is_admin = true",
     "name": "users",
@@ -30,7 +30,7 @@
         "hidden": true,
         "id": "password901924565",
         "max": 0,
-        "min": 8,
+        "min": 10,
         "name": "password",
         "pattern": "",
         "presentable": false,
@@ -256,7 +256,7 @@
       "enabled": true
     },
     "passwordAuth": {
-      "enabled": false,
+      "enabled": true,
       "identityFields": ["email"]
     },
     "mfa": {
@@ -289,12 +289,12 @@
       "duration": 180
     },
     "verificationTemplate": {
-      "subject": "Verify your {APP_NAME} email",
-      "body": "<p>Hello,</p>\n<p>Thank you for joining us at {APP_NAME}.</p>\n<p>Click on the button below to verify your email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-verification/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Verify</a>\n</p>\n<p><i>If you didn't recently register, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+      "subject": "Potwierdź adres e-mail w {APP_NAME} / Confirm your {APP_NAME} email",
+      "body": "<p>Cześć!</p>\n<p>Dziękujemy za założenie konta w {APP_NAME}. Kliknij, aby potwierdzić adres e-mail.</p>\n<p><a class=\"btn\" href=\"{APP_URL}/auth/verify?token={TOKEN}\" target=\"_blank\" rel=\"noopener\">Potwierdź adres</a></p>\n<p><i>Jeśli to nie Ty zakładałeś konto, zignoruj tę wiadomość.</i></p>\n<hr/>\n<p>Hi!</p>\n<p>Thanks for joining {APP_NAME}. Click to confirm your email address.</p>\n<p><a class=\"btn\" href=\"{APP_URL}/auth/verify?token={TOKEN}\" target=\"_blank\" rel=\"noopener\">Confirm email</a></p>\n<p><i>If you didn't sign up, ignore this message.</i></p>\n<p>— {APP_NAME}</p>"
     },
     "resetPasswordTemplate": {
-      "subject": "Reset your {APP_NAME} password",
-      "body": "<p>Hello,</p>\n<p>Click on the button below to reset your password.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Reset password</a>\n</p>\n<p><i>If you didn't ask to reset your password, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+      "subject": "Zmiana hasła w {APP_NAME} / Reset your {APP_NAME} password",
+      "body": "<p>Cześć!</p>\n<p>Kliknij, aby ustawić nowe hasło.</p>\n<p><a class=\"btn\" href=\"{APP_URL}/auth/reset?token={TOKEN}\" target=\"_blank\" rel=\"noopener\">Ustaw nowe hasło</a></p>\n<p><i>Jeśli to nie Ty prosiłeś o zmianę hasła, zignoruj tę wiadomość.</i></p>\n<hr/>\n<p>Hi!</p>\n<p>Click to set a new password.</p>\n<p><a class=\"btn\" href=\"{APP_URL}/auth/reset?token={TOKEN}\" target=\"_blank\" rel=\"noopener\">Set new password</a></p>\n<p><i>If you didn't ask for a password reset, ignore this message.</i></p>\n<p>— {APP_NAME}</p>"
     },
     "confirmEmailChangeTemplate": {
       "subject": "Confirm your {APP_NAME} new email address",
