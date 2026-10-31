@@ -58,13 +58,21 @@ export function resolveDailyAiLimit(
 }
 
 /**
- * Czy AI jest wyłączone: globalnie (`admin_settings.ai_disabled`) lub dla gospodarstwa.
+ * Czy AI jest wyłączone: brak zgody wywołującego rodzica (RODO), globalnie lub dla gospodarstwa.
  *
  * @param {PocketBase} pb - Klient PocketBase użytkownika
  * @param {string} householdId - Identyfikator gospodarstwa
+ * @param {{ ai_consent?: boolean }} user - Wywołujący użytkownik; bez `ai_consent` AI jest wyłączone
  * @returns {Promise<boolean>} True, gdy należy użyć wyłącznie silnika deterministycznego
  */
-export async function isAiDisabled(pb: PocketBase, householdId: string): Promise<boolean> {
+export async function isAiDisabled(
+  pb: PocketBase,
+  householdId: string,
+  user: { readonly ai_consent?: boolean },
+): Promise<boolean> {
+  if (user.ai_consent !== true) {
+    return true;
+  }
   const [adminSettings, household] = await Promise.all([
     fetchAdminSettings(),
     pb.collection("households").getOne<HouseholdRecord>(householdId),

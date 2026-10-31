@@ -63,7 +63,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Limit AI nie może blokować planu dnia — przy wyczerpaniu zwracamy tekst deterministyczny
-    let aiAllowed = !(await isAiDisabled(pb, user.household_id));
+    let aiAllowed = !(await isAiDisabled(pb, user.household_id, user));
     if (aiAllowed) {
       try {
         await enforceDailyAiLimit(pb, user.household_id);

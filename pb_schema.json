@@ -4,7 +4,7 @@
     "listRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
     "viewRule": "id = @request.auth.id || (household_id != '' && household_id = @request.auth.household_id) || @request.auth.is_admin = true",
     "createRule": "@request.body.is_admin:isset = false && @request.body.is_blocked:isset = false",
-    "updateRule": "(id = @request.auth.id && @request.body.is_admin:isset = false && @request.body.is_blocked:isset = false && @request.body.last_seen_at:isset = false) || @request.auth.is_admin = true",
+    "updateRule": "(id = @request.auth.id && @request.body.is_admin:isset = false && @request.body.is_blocked:isset = false && @request.body.last_seen_at:isset = false && @request.body.household_id:isset = false && @request.body.verified:isset = false) || @request.auth.is_admin = true",
     "deleteRule": "id = @request.auth.id || @request.auth.is_admin = true",
     "name": "users",
     "type": "auth",
@@ -180,6 +180,55 @@
         "required": false,
         "system": false,
         "type": "relation"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "users_terms_at_f",
+        "name": "terms_accepted_at",
+        "presentable": false,
+        "system": false,
+        "type": "date",
+        "required": false,
+        "max": "",
+        "min": ""
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "users_consent_ver_f",
+        "name": "consent_version",
+        "presentable": false,
+        "system": false,
+        "type": "text",
+        "required": false,
+        "autogeneratePattern": "",
+        "max": 32,
+        "min": 0,
+        "pattern": "",
+        "primaryKey": false
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "users_health_at_f",
+        "name": "health_consent_at",
+        "presentable": false,
+        "system": false,
+        "type": "date",
+        "required": false,
+        "max": "",
+        "min": ""
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "users_ai_consent_f",
+        "name": "ai_consent",
+        "presentable": false,
+        "system": false,
+        "type": "bool",
+        "required": false
       }
     ],
     "indexes": [
@@ -187,7 +236,7 @@
       "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)"
     ],
     "system": false,
-    "authRule": "",
+    "authRule": "is_blocked = false && verified = true",
     "manageRule": null,
     "authAlert": {
       "enabled": true,
@@ -256,7 +305,7 @@
     "id": "pbc_households0",
     "listRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)",
     "viewRule": "@request.auth.household_id = id || (@request.auth.id != '' && invite_code != '' && invite_code = @request.query.code && invite_expires_at > @now)",
-    "createRule": "@request.auth.id != ''",
+    "createRule": null,
     "updateRule": "@request.auth.household_id = id && @request.body.ai_daily_limit_override:isset = false && @request.body.ai_disabled:isset = false",
     "deleteRule": "@request.auth.household_id = id",
     "name": "households",

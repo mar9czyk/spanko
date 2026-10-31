@@ -60,6 +60,15 @@ export interface UserRecord {
   readonly is_blocked?: boolean;
   readonly last_seen_at?: string;
   readonly household_id?: string;
+  readonly verified?: boolean;
+  /** Akceptacja regulaminu i polityki prywatności (ISO) */
+  readonly terms_accepted_at?: string;
+  /** Wersja zaakceptowanych dokumentów, np. "2026-10" */
+  readonly consent_version?: string;
+  /** Zgoda na przetwarzanie danych o zdrowiu dziecka (ISO) */
+  readonly health_consent_at?: string;
+  /** Zgoda na wnioski AI (OpenRouter); domyślnie wyłączona */
+  readonly ai_consent?: boolean;
   readonly created: string;
   readonly updated: string;
 }

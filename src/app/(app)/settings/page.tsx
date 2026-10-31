@@ -4,8 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AccountSection } from "@/components/settings/AccountSection";
+import { FamilySection } from "@/components/settings/FamilySection";
 import { GoalSettingsSection } from "@/components/settings/GoalSettingsSection";
 import { PreferencesMenu } from "@/components/settings/PreferencesMenu";
+import { PrivacySection } from "@/components/settings/PrivacySection";
 import { ProfileSection } from "@/components/settings/ProfileSection";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { SleepEnvironmentSection } from "@/components/settings/SleepEnvironmentSection";
@@ -42,6 +44,8 @@ export default function SettingsPage(): ReactNode {
         <ProfileSection key={session.user.id} user={session.user} />
       )}
 
+      {session.status === "signedIn" && <FamilySection user={session.user} />}
+
       {session.status === "signedIn" && (
         <SettingsCard title={t("settings.goal")} hint={t("settings.goalHint")}>
           <GoalSettingsSection />
@@ -59,6 +63,10 @@ export default function SettingsPage(): ReactNode {
       </SettingsCard>
 
       {session.status === "signedIn" && <WakeAlertsSection />}
+
+      {session.status === "signedIn" && (
+        <PrivacySection key={session.user.id} user={session.user} />
+      )}
 
       {session.status === "signedIn" && <AccountSection user={session.user} />}
 

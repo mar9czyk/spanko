@@ -183,15 +183,15 @@ PocketBase zabezpiecza dostęp do kolekcji poprzez wbudowane wyrażenia filtruj�
 
 ## 4. Kody Zaproszeń do Rodziny (Household Sharing)
 
-1. Pierwszy rodzic loguje się przez Google OAuth2 $\rightarrow$ system tworzy `household` i przypisuje użytkownika (`users.household_id = new_household.id`).
-2. Rodzic generuje w profilu 6-znakowy kod zaproszenia (`invite_code`), ważny 24h (`invite_expires_at`).
-3. Drugi rodzic loguje się swoim kontem Google, wybiera "Dołącz do istniejącej rodziny", wpisuje kod.
-4. Klient wyszukuje gospodarstwo domowe po kodzie zaproszenia (`invite_code = code && invite_expires_at > now`). Klient przekazuje kod także jako `?code=` (`query: { code }`), a reguła `listRule`/`viewRule` wymaga `invite_code = @request.query.code`, więc nie da się wylistować cudzych kodów. Zalogowany użytkownik niemający jeszcze `household_id` może bezpiecznie zlokalizować właściwe gospodarstwo.
-5. Klient aktualizuje rekord użytkownika (`users.update(id, { household_id: target_household.id })`), co autoryzuje reguła `updateRule` dla `users` (`id = @request.auth.id`), a następnie odświeża sesję (`authRefresh`).
+1. Nowy rodzic (Google lub e-mail) przechodzi onboarding: zgody (`terms_accepted_at`, `health_consent_at`, `consent_version`, opcjonalnie `ai_consent`) → „Załóż rodzinę” (`POST /api/household`) albo „Mam kod” (`POST /api/household/join`). Bramka w `(app)/layout` (`useOnboardingGuard`, `resolveOnboardingStep` w `src/lib/onboarding.ts`) przekierowuje: brak sesji → `/login`, brak zgód → `/onboarding/consent`, brak rodziny → `/onboarding`.
+2. `POST /api/household` tworzy `household` (kod 6 znaków, ważny 24h) + pierwsze `children` i ustawia `users.household_id` kontem serwisowym, z rollbackiem przy błędzie.
+3. Zaproszenie: kod w Ustawieniach → Rodzina lub link `/join/KOD` (kod zapamiętany w sessionStorage na czas logowania i zgód).
+4. `GET/POST /api/household/join` waliduje kształt kodu, `invite_expires_at > now` i limituje nieudane próby (8 / 10 min na użytkownika), po czym ustawia `household_id` kontem serwisowym. Użytkownik NIE może sam ustawić `household_id` (`users.updateRule` ma `@request.body.household_id:isset = false`), a `households.createRule` jest tylko dla superusera.
+5. `users.authRule = "is_blocked = false && verified = true"` — zablokowany lub niezweryfikowany użytkownik nie zaloguje się.
 6. Od tego momentu oboje rodzice posiadają ten sam `household_id` i mają pełny dostęp w czasie rzeczywistym do profilu dziecka, wpisów snu i stopera.
 
 ## Tryb DEV logowania (tylko lokalnie)
-- `pb_schema.json` ma `users.passwordAuth.enabled = false` (produkcja: wyłącznie Google OAuth). `pnpm dev:seed` włącza logowanie hasłem w lokalnym PocketBase i idempotentnie tworzy: `dev@spanko.test`, `dev-admin@spanko.test` (is_admin), gospodarstwo „Dom testowy (DEV)”, dziecko „Tymon (DEV)” oraz 5 dni `sleep_logs`/`day_context`.
+- `pb_schema.json` ma `users.passwordAuth.enabled = false` (do czasu PR rejestracji e-mail). `pnpm dev:seed` włącza logowanie hasłem w lokalnym PocketBase i idempotentnie tworzy: `dev@spanko.test`, `dev-admin@spanko.test` (is_admin), gospodarstwo „Dom testowy (DEV)”, dziecko „Tymon (DEV)” oraz 5 dni `sleep_logs`/`day_context`.
 - Dane logowania (`DEV_USER_*`, `DEV_ADMIN_*`) generuje skrypt do `.env.development.local` (gitignored). Hasła nie trafiają do bundla — loguje je serwerowy `POST /api/dev/login`, który zwraca 404 poza `NODE_ENV=development` z lokalnym PocketBase.
 - Przycisk „Zaloguj jako testowy użytkownik (DEV)” na `/login` jest widoczny tylko gdy `IS_DEV_LOGIN_ENABLED` (`src/lib/dev-auth.ts`). Dane demo (`devFixtures.ts`) pokazują się tylko bez sesji.
 - `pnpm dev:seed:profiles` (po `pnpm dev:seed`) dodaje 4 dzieci-profile z 21 dobami logów (typowe, wczesny ptaszek, krótkie drzemki, częste pobudki) z `scripts/seed-profiles.mjs` — tego samego generatora używa test regresji silnika `seedProfilesRegression.test.ts`.

@@ -85,7 +85,7 @@ function createFakePocketBase(store: FakeStore) {
 function authenticateAs(store: FakeStore, householdId = HOUSEHOLD_ID) {
   authMock.authenticateRequest.mockResolvedValue({
     pb: createFakePocketBase(store),
-    user: { id: "user_1", household_id: householdId },
+    user: { id: "user_1", household_id: householdId, ai_consent: true },
   });
 }
 
