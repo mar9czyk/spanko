@@ -72,6 +72,10 @@ for (const acc of Object.values(accounts)) {
     name: acc.name,
     is_admin: acc.admin,
     household_id: household.id,
+    terms_accepted_at: new Date().toISOString(),
+    health_consent_at: new Date().toISOString(),
+    consent_version: "dev",
+    ai_consent: true,
   };
   const existing = await findOne("users", pb.filter("email = {:e}", { e: acc.email }));
   if (existing) await pb.collection("users").update(existing.id, data);

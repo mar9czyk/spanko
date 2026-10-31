@@ -159,7 +159,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw new ApiAuthError("Brak dostępu do tego dziecka.", 403);
     }
     // AI wyłączone (globalnie lub dla gospodarstwa) → sam silnik deterministyczny, bez limitu i błędu
-    const aiDisabled = await isAiDisabled(pb, user.household_id);
+    const aiDisabled = await isAiDisabled(pb, user.household_id, user);
     if (!aiDisabled) {
       await enforceDailyAiLimit(pb, user.household_id);
     }

@@ -52,8 +52,14 @@ ich nie utworzył, oraz ustaw `is_admin = true` na swoim koncie.
 
 W Google Cloud Console → Credentials → OAuth client (Web):
 - **Authorized redirect URI:** `https://<domena>/pb/api/oauth2-redirect`
-  (Caddy `handle_path /pb/*` obcina prefiks, więc PocketBase widzi `/api/oauth2-redirect`; w ustawieniach
-  PocketBase → Application ustaw **URL aplikacji** na `https://<domena>/pb`, by adres zwrotny się zgadzał).
+  (Caddy `handle_path /pb/*` obcina prefiks, więc PocketBase widzi `/api/oauth2-redirect`. Adres zwrotny
+  SDK buduje z adresu klienta PocketBase (`NEXT_PUBLIC_POCKETBASE_URL`), a nie z „URL aplikacji”.)
+- Ekran zgody: typ External, zakresy `openid`, `email`, `profile`; po testach opublikuj („In production”).
+- W PocketBase → Settings → Application: **URL aplikacji** = adres aplikacji Next (`https://<domena>`, a NIE `/pb`).
+  Szablony maili `users` linkują do `{APP_URL}/auth/verify?token=…` i `{APP_URL}/auth/reset?token=…`.
+- W PocketBase → Settings → Mail settings: SMTP (np. Brevo/Resend, port 587) i nadawca. Bez własnej domeny
+  (SPF/DKIM) maile potwierdzające mogą trafiać do spamu — ekran „Sprawdź skrzynkę” podpowiada folder Spam.
+- Po zmianie `pb_schema.json` zaimportuj go ponownie (Settings → Import collections) i wykonaj backup.
 - W PocketBase: kolekcja `users` → Options → OAuth2 → Google (Client ID / Secret).
 
 ## 4. Caddy
