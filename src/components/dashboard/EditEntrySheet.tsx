@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { pb } from "@/lib/pocketbase";
@@ -18,17 +18,20 @@ import { DEFAULT_BOTTLE_ML } from "./constants";
 import {
   buildEntryTimePatch,
   clockAfterIso,
+  type EntryDeleteTarget,
   type EntryEditError,
   type EntryEditPatch,
+  entryDeleteTarget,
   toClockInputValue,
 } from "./entryEdit";
 import { SleepHowPicker } from "./SleepHowPicker";
 import type { TimelineEvent } from "./types";
 
-/** Zapisany wpis po edycji: kolekcja i rekord zwrócony przez PocketBase. */
+/** Wynik edycji: zapisany rekord zwrócony przez PocketBase albo usunięty wpis. */
 export type EditedEntry =
   | { readonly collection: "sleep_logs"; readonly record: SleepLogRecord }
-  | { readonly collection: "day_context"; readonly record: DayContextRecord };
+  | { readonly collection: "day_context"; readonly record: DayContextRecord }
+  | { readonly deleted: EntryDeleteTarget };
 
 interface EditEntrySheetProps {
   /** Edytowany wpis; null = arkusz zamknięty. */
@@ -108,8 +111,9 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   const [breastMinutes, setBreastMinutes] = useState<number | undefined>(undefined);
   const [wakings, setWakings] = useState<readonly NightWakingDetail[]>([]);
   const [newWaking, setNewWaking] = useState("");
-  const [error, setError] = useState<EntryEditError | "save_failed" | null>(null);
+  const [error, setError] = useState<EntryEditError | "save_failed" | "delete_failed" | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!event) return;
@@ -125,6 +129,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
     setNewWaking("");
     setError(null);
     setIsSaving(false);
+    setConfirmDelete(false);
   }, [event]);
 
   const addWaking = () => {
@@ -173,6 +178,24 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
       onClose();
     } catch {
       setError("save_failed");
+      setIsSaving(false);
+    }
+  };
+
+  const deleteTarget = event ? entryDeleteTarget(event) : null;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await pb.collection(deleteTarget.collection).delete(deleteTarget.id);
+      onSaved({ deleted: deleteTarget });
+      onClose();
+    } catch {
+      setError("delete_failed");
       setIsSaving(false);
     }
   };
@@ -312,6 +335,17 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
               <p role="alert" className="text-xs text-red-300">
                 {t(`entryEdit.error.${error}` as const)}
               </p>
+            )}
+            {deleteTarget && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isSaving}
+                className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border text-sm font-semibold disabled:opacity-60 ${confirmDelete ? "border-red-500 bg-red-500/15 text-red-200" : "border-red-500/40 text-red-300"}`}
+              >
+                <Trash2 className="h-4 w-4" />
+                {confirmDelete ? t("entryEdit.deleteConfirm") : t("entryEdit.delete")}
+              </button>
             )}
             <div className="grid grid-cols-2 gap-2 pb-2">
               <button

@@ -3,6 +3,7 @@ import {
   applyClockTime,
   buildEntryTimePatch,
   clockAfterIso,
+  entryDeleteTarget,
   stepBreastMinutes,
   toClockInputValue,
 } from "../entryEdit";
@@ -258,5 +259,22 @@ describe("night wakings in edit", () => {
         NOW,
       ),
     ).toBe("waking_outside_sleep");
+  });
+});
+
+describe("entryDeleteTarget", () => {
+  it("usuwa karmienie, pieluchę i tagi z day_context", () => {
+    expect(entryDeleteTarget(diaper)).toEqual({ collection: "day_context", id: "d1" });
+    expect(
+      entryDeleteTarget({ id: "f1", kind: "feeding", time: "14:13", feedingType: "solid" }),
+    ).toEqual({ collection: "day_context", id: "f1" });
+  });
+
+  it("usuwa zakończony sen z sleep_logs", () => {
+    expect(entryDeleteTarget(nap)).toEqual({ collection: "sleep_logs", id: "s1" });
+  });
+
+  it("nie usuwa trwającego snu", () => {
+    expect(entryDeleteTarget({ ...nap, status: "sleeping" } as TimelineEvent)).toBeNull();
   });
 });

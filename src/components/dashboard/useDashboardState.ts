@@ -879,8 +879,18 @@ export function useDashboardState() {
     }
   };
 
-  /** Po edycji godzin wpisu z osi czasu bieżącej doby podmienia rekord w stanie. */
+  /** Po edycji albo usunięciu wpisu z osi czasu bieżącej doby podmienia lub usuwa rekord w stanie. */
   const handleEntryEdited = (entry: EditedEntry) => {
+    if ("deleted" in entry) {
+      const { collection, id } = entry.deleted;
+      if (collection === "day_context") {
+        setDayContext((prev) => prev.filter((record) => record.id !== id));
+      } else {
+        setRecentLogs((prev) => prev.filter((log) => log.id !== id));
+        setCurrentSleepLog((prev) => (prev?.id === id ? null : prev));
+      }
+      return;
+    }
     if (entry.collection === "day_context") {
       setDayContext((prev) =>
         prev
