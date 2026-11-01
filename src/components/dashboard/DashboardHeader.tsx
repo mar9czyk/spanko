@@ -1,11 +1,11 @@
-import { History, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { History, Route, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { ActiveDayMode, ChildRecord } from "@/lib/types/database";
 import { ChildPhotoSheet } from "./ChildPhotoSheet";
 import { ChildSwitcher } from "./ChildSwitcher";
-import { DayModeSwitcher } from "./DayModeSwitcher";
+import { DayModeBadge, DayModeSheet } from "./DayModeSwitcher";
 import { useIsAdmin } from "./useIsAdmin";
 
 interface DashboardHeaderProps {
@@ -35,6 +35,8 @@ export function DashboardHeader({
   const { t } = useI18n();
   const isAdmin = useIsAdmin();
   const [isPhotoSheetOpen, setIsPhotoSheetOpen] = useState(false);
+  const [isModeSheetOpen, setIsModeSheetOpen] = useState(false);
+  const isModeActive = child.active_day_mode !== "home";
   return (
     <header className="flex flex-col gap-2.5 w-full pt-1 pb-2">
       <div className="flex items-start justify-between gap-2">
@@ -56,6 +58,19 @@ export function DashboardHeader({
               <ShieldCheck className="w-4 h-4" />
             </Link>
           )}
+          <button
+            type="button"
+            onClick={() => setIsModeSheetOpen(true)}
+            className={`p-1.5 rounded-xl border transition-colors ${
+              isModeActive
+                ? "bg-amber-500/10 text-amber-300 border-amber-500/40"
+                : "bg-[#1E2738] text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 border-[#263348]"
+            }`}
+            title={t("dayMode.menuTitle")}
+            aria-label={t("dayMode.menuTitle")}
+          >
+            <Route className="w-4 h-4" />
+          </button>
           <Link
             href="/history"
             className="p-1.5 rounded-xl bg-[#1E2738] text-slate-300 hover:text-amber-300 hover:bg-amber-500/10 border border-[#263348] transition-colors"
@@ -81,7 +96,13 @@ export function DashboardHeader({
           </Link>
         </div>
       </div>
-      <DayModeSwitcher currentMode={child.active_day_mode} onSelectMode={onSelectDayMode} />
+      <DayModeBadge currentMode={child.active_day_mode} onTurnOff={() => onSelectDayMode("home")} />
+      <DayModeSheet
+        isOpen={isModeSheetOpen}
+        currentMode={child.active_day_mode}
+        onClose={() => setIsModeSheetOpen(false)}
+        onSelectMode={onSelectDayMode}
+      />
       {onChangeChildPhoto && (
         <ChildPhotoSheet
           child={child}
