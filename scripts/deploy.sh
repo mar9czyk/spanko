@@ -66,6 +66,9 @@ else
     mv '${NEW_DIR}' '${REMOTE_DIR}'"
 fi
 
+echo "🔗 Dowiązywanie zależności pnpm (tar -h gubi layout node_modules)..."
+"${SSH_CMD[@]}" "$SSH_TARGET" "cd '${REMOTE_DIR}/node_modules' && for d in .pnpm/*/node_modules/*; do n=\${d#.pnpm/*/node_modules/}; case \$n in @*) for s in \$d/*; do sn=\$n/\$(basename \$s); [ -e \"\$sn\" ] || { mkdir -p \$n; ln -s \"\$PWD/\$s\" \"\$sn\"; }; done;; *) [ -e \"\$n\" ] || ln -s \"\$PWD/\$d\" \"\$n\";; esac; done"
+
 echo "🔄 5/5: Restart usługi spanko-web i healthcheck..."
 "${SSH_CMD[@]}" "$SSH_TARGET" "chown -R ${REMOTE_SERVICE_USER}:${REMOTE_SERVICE_USER} '${REMOTE_DIR}' \
   && systemctl restart spanko-web && systemctl is-active spanko-web"
