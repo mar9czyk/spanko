@@ -9,6 +9,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import type { MessageKey } from "@/i18n/messages";
 import { type DevLoginRole, IS_DEV_LOGIN_ENABLED } from "@/lib/dev-auth";
 import { pb, signInWithGoogle } from "@/lib/pocketbase";
+import { useAuthMethods } from "@/lib/useAuthMethods";
 
 const INTRO_POINTS: readonly { icon: string; titleKey: MessageKey; textKey: MessageKey }[] = [
   { icon: "🌙", titleKey: "login.intro.windows.title", textKey: "login.intro.windows.text" },
@@ -30,12 +31,17 @@ export default function LoginPage(): ReactNode {
   const router = useRouter();
   const { t, locale, setLocale } = useI18n();
   const [error, setError] = useState<string | null>(null);
+  const methods = useAuthMethods();
 
   const handleGoogle = async () => {
     try {
       await signInWithGoogle();
       router.push("/dashboard");
     } catch (e) {
+      if (methods?.signup.google === false) {
+        setError(t("login.googleSignupDisabled"));
+        return;
+      }
       setError(e instanceof Error ? e.message : t("login.failed"));
     }
   };
@@ -104,25 +110,31 @@ export default function LoginPage(): ReactNode {
               {error}
             </p>
           )}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            className="h-14 rounded-2xl bg-white text-base font-medium text-slate-900 shadow-lg shadow-black/30 active:scale-[0.98] transition"
-          >
-            {t("login.google")}
-          </button>
-          <Link
-            href="/signup"
-            className="flex h-14 items-center justify-center rounded-2xl bg-violet-600 text-base font-medium text-white shadow-lg shadow-violet-900/40 active:scale-[0.98] transition"
-          >
-            {t("login.signupEmail")}
-          </Link>
-          <Link
-            href="/login/email"
-            className="flex h-12 items-center justify-center rounded-2xl border border-white/10 text-sm text-slate-200 active:scale-[0.98] transition"
-          >
-            {t("login.haveAccount")}
-          </Link>
+          {methods?.login.google && (
+            <button
+              type="button"
+              onClick={handleGoogle}
+              className="h-14 rounded-2xl bg-white text-base font-medium text-slate-900 shadow-lg shadow-black/30 active:scale-[0.98] transition"
+            >
+              {t("login.google")}
+            </button>
+          )}
+          {methods?.signup.email && (
+            <Link
+              href="/signup"
+              className="flex h-14 items-center justify-center rounded-2xl bg-violet-600 text-base font-medium text-white shadow-lg shadow-violet-900/40 active:scale-[0.98] transition"
+            >
+              {t("login.signupEmail")}
+            </Link>
+          )}
+          {methods?.login.email && (
+            <Link
+              href="/login/email"
+              className="flex h-12 items-center justify-center rounded-2xl border border-white/10 text-sm text-slate-200 active:scale-[0.98] transition"
+            >
+              {t("login.haveAccount")}
+            </Link>
+          )}
           <p className="text-center text-xs text-slate-500">
             <Link href="/terms" className="underline">
               {t("legal.termsLink")}

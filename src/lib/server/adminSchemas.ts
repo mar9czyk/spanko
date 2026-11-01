@@ -49,6 +49,26 @@ export const OpenRouterKeySchema = z.object({
     .regex(/^sk-or-\S+$/, 'Klucz OpenRouter zaczyna się od "sk-or-".'),
 });
 
+const AuthMethodTogglesSchema = z.object({ email: z.boolean(), google: z.boolean() }).strict();
+
+export const AuthMethodsSchema = z
+  .object({ login: AuthMethodTogglesSchema, signup: AuthMethodTogglesSchema })
+  .strict();
+
+export const MAX_GOOGLE_CREDENTIAL_LENGTH = 300;
+
+export const GoogleCredentialsSchema = z.object({
+  clientId: z
+    .string()
+    .trim()
+    .max(MAX_GOOGLE_CREDENTIAL_LENGTH)
+    .regex(
+      /^\S+\.apps\.googleusercontent\.com$/,
+      "Client ID kończy się na .apps.googleusercontent.com.",
+    ),
+  clientSecret: z.string().trim().min(1).max(MAX_GOOGLE_CREDENTIAL_LENGTH),
+});
+
 export const ReplayRequestSchema = z.object({
   prompt: z.string().max(MAX_PROMPT_LENGTH).optional(),
   model: z.string().trim().max(MAX_MODEL_NAME_LENGTH).optional(),
