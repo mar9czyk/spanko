@@ -25,21 +25,21 @@ Status: zaakceptowany przez Gosię 2026-11-01 (znaczniki pomniejszone na jej pro
 - Zmiana w `dayStripModel.ts`/`DayHourStrip.tsx`: osobne `axisStartIso` (oś) i `dayStartIso` (granica doby). Dla jednej doby `axisStartIso = dayStartIso`, więc obecne testy zostają ważne.
 - Etykiety godzin co 4 h pod każdym paskiem; legenda pod paskiem znika (zastępują ją znaczniki, patrz C).
 
-### C. Znaczniki zamiast zdania podsumowania
-Rząd drobnych znaczników bez tła (wysokość ok. 18 px, `text-xs`, `text-slate-300`, `tabular-nums`, odstęp `gap-x-3 gap-y-1`, zawijanie); Gosia: tagi mają być małe, nie pigułki. Każdy ma na początku ten sam kształt i kolor co znak na pasku, więc działa też jako legenda:
+### C. Ikonki z liczbami zamiast zdania podsumowania
+Rząd małych ikonek (15 px, obrys jak lucide, kolor kategorii) z samą liczbą obok (`text-xs`, `text-slate-300`, `tabular-nums`, `gap-x-3.5 gap-y-1`, bez tła, zawijanie). Decyzja Gosi 2026-11-01: żadnych słów, tylko ikonka i liczba.
 
-| Znacznik | Kształt / kolor | Przykład |
-|---|---|---|
-| pobudka | bursztynowa kropka | `pobudka 6:40` |
-| drzemki | bursztynowy kwadracik | `2 drzemki · 2 h 40` |
-| noc (tylko doby zamknięte, gdy były pobudki) | jasnofioletowa kropka | `noc: 2 pobudki` |
-| karmienia | zielona kreska | `karmienia 4` |
-| siku | turkusowa kropla (`diaper` #8FC7BE) | `siku 3` |
-| kupka | ochrowy romb (nowy token `poop`, np. #D4A373, kontrast ≥3:1 do #151B28) | `kupka 1` |
+| Co | Ikonka / kolor | Wartość | Przykład |
+|---|---|---|---|
+| poranna pobudka | słoneczko (`Sun`), amber-400 | godzina | ☀ `6:40` |
+| drzemki | księżyc (`Moon`), amber-500 | **łączny czas drzemek** (nie liczba) | `2 h 40` |
+| pobudki nocne (tylko gdy były) | budzik (`AlarmClock`), violet-300 | liczba | `2` |
+| karmienia | butelka (`Milk`), emerald-400 | liczba | `4` |
+| siku | kropla (`Droplet`), `diaper` #8FC7BE | liczba | `3` |
+| kupka | własna ikonka kupki (SVG w stylu lucide, brak w lucide), nowy token `poop` np. #D4A373 | liczba | `1` |
 
-- Zero pokazujemy przygaszone (`kupka 0`), żeby rzędy trzech dób były porównywalne.
-- Znaczniki nie są osobnymi przyciskami (cała górna część karty to jeden przycisk rozwijania); `aria-label` przycisku = pełne zdanie podsumowania.
-- Na pasku: siku = kropla turkusowa, kupka = romb ochrowy. Pielucha `both` liczy się do obu i rysuje oba znaki.
+- Zero pokazujemy przygaszone (50% krycia), żeby rzędy trzech dób były porównywalne.
+- Ikonki nie są osobnymi przyciskami (cała górna część karty to jeden przycisk rozwijania); `aria-label` przycisku = pełne zdanie podsumowania (np. „Pobudka 6:40, 2 drzemki, razem 2 h 40, 4 karmienia, siku 3, kupka 1”).
+- Na pasku zostają małe znaki w tych samych kolorach: karmienie zielona kreska, siku turkusowa kropla, kupka ochrowy romb, pobudka bursztynowa kropka. Pielucha `both` liczy się do obu i rysuje oba znaki. Kolor ikonki = kolor znaku, więc legenda pod paskiem nie jest potrzebna.
 
 ### D. Rozwijanie, które widać
 - Akordeon: naraz otwarta jedna doba. Stuknięcie w kartę albo stopkę „Pokaż N wpisów ˅” rozwija listę **w tej samej ramce** (zostaje z PR #70), stopka zmienia się w „Zwiń ˄” i trafia na dół listy.
