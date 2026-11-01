@@ -23,6 +23,13 @@ export function formatClock(iso?: string): string {
  */
 export function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
   const startIso = log.fell_asleep_at || log.put_down_at;
+  const fallAsleepMinutes =
+    log.fell_asleep_at && log.put_down_at
+      ? Math.max(
+          0,
+          Math.round((Date.parse(log.fell_asleep_at) - Date.parse(log.put_down_at)) / 60_000),
+        )
+      : undefined;
   return {
     id: log.id,
     kind: "nap",
@@ -33,6 +40,7 @@ export function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
     startIso: startIso || undefined,
     startField: log.fell_asleep_at ? "fell_asleep_at" : log.put_down_at ? "put_down_at" : undefined,
     putDownIso: log.put_down_at || undefined,
+    fallAsleepMinutes: Number.isFinite(fallAsleepMinutes) ? fallAsleepMinutes : undefined,
     endIso: log.woke_up_at || undefined,
     durationMinutes: calculateDurationInMinutes(startIso, log.woke_up_at),
     mood: log.mood,

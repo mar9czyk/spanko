@@ -53,8 +53,13 @@ function NapEventCard({ event }: { event: TimelineNapEvent }) {
           </span>
         </div>
       </div>
-      {(moodOption || helped.length > 0) && (
+      {(moodOption || helped.length > 0 || event.fallAsleepMinutes !== undefined) && (
         <div className="flex flex-wrap gap-1.5">
+          {event.fallAsleepMinutes !== undefined && (
+            <span className="rounded-md border border-[#263348] bg-[#1E2738] px-2 py-0.5 text-xs tabular-nums text-slate-300">
+              {t("timeline.fallAsleep", { duration: formatDuration(event.fallAsleepMinutes) })}
+            </span>
+          )}
           {moodOption && (
             <span
               className={`rounded-md border bg-[#1E2738] px-2 py-0.5 text-xs ${moodOption.colorClass}`}

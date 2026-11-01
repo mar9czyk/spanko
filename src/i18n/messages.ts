@@ -353,6 +353,8 @@ export const pl = {
   "entryEdit.removeWaking": "Usuń pobudkę {time}",
   "entryEdit.error.waking_outside_sleep": "Pobudka musi wypadać między zaśnięciem a pobudką rano.",
   "entryEdit.sleepStart": "Zaśnięcie",
+  "entryEdit.fallAsleepMin": "Usypianie (min)",
+  "timeline.fallAsleep": "Usypianie: {duration}",
   "entryEdit.sleepEnd": "Pobudka",
   "entryEdit.howFellAsleep": "Jak zasnął?",
   "entryEdit.hint": "Godzina zmienia się tylko w obrębie tej samej doby.",
@@ -1010,6 +1012,8 @@ export const en: Record<MessageKey, string> = {
   "entryEdit.error.waking_outside_sleep":
     "A waking must fall between falling asleep and the morning wake-up.",
   "entryEdit.sleepStart": "Fell asleep",
+  "entryEdit.fallAsleepMin": "Time to fall asleep (min)",
+  "timeline.fallAsleep": "Falling asleep: {duration}",
   "entryEdit.sleepEnd": "Woke up",
   "entryEdit.howFellAsleep": "How did they fall asleep?",
   "entryEdit.hint": "The time can only change within the same day.",
