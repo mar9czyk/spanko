@@ -1,6 +1,6 @@
 # Plan: panel dni na pulpicie (3 ostatnie doby)
 
-Status: projekt do akceptacji Gosi (2026-11-01). Makieta: https://claude.ai/artifact/1ei5aagWdpEG3pH44scXx7
+Status: zaakceptowany przez Gosię 2026-11-01 (znaczniki pomniejszone na jej prośbę). Makieta: https://claude.ai/artifact/1ei5aagWdpEG3pH44scXx7
 
 ## Problem
 
@@ -12,6 +12,7 @@ Status: projekt do akceptacji Gosi (2026-11-01). Makieta: https://claude.ai/arti
 ## Rozwiązanie
 
 ### A. Stos trzech dób zamiast nawigacji
+- Bez zmian zostaje wszystko nad stosem, w tym karta nasłuchu pobudki (`WakeListenerCard`) pod zegarem.
 - Pod pierścieniem sekcja z trzema kartami: **Dziś**, **Wczoraj**, **Przedwczoraj** (najnowsza na górze). Każda karta: etykieta + krótka data (`nd 1.11`), po prawej stan (`trwa` albo `noc 11 h 20`), pasek 24 h, rząd znaczników, stopka „Pokaż N wpisów ˅”.
 - Znikają: `TimelineHeader` ze strzałkami, „Dziś”, ikoną kalendarza i plakietką „Pobudka”; stan `viewedDate` i `navigation` w `dashboard/page.tsx`.
 - Pod stosem link „Starsze doby w Historii” do `/history` (tam zostaje pełne przeglądanie).
@@ -25,7 +26,7 @@ Status: projekt do akceptacji Gosi (2026-11-01). Makieta: https://claude.ai/arti
 - Etykiety godzin co 4 h pod każdym paskiem; legenda pod paskiem znika (zastępują ją znaczniki, patrz C).
 
 ### C. Znaczniki zamiast zdania podsumowania
-Rząd pigułek (`h-7`, `text-sm`, `tabular-nums`, tło `#1E2738`); każda ma na początku ten sam kształt i kolor co znak na pasku, więc działa też jako legenda:
+Rząd drobnych znaczników bez tła (wysokość ok. 18 px, `text-xs`, `text-slate-300`, `tabular-nums`, odstęp `gap-x-3 gap-y-1`, zawijanie); Gosia: tagi mają być małe, nie pigułki. Każdy ma na początku ten sam kształt i kolor co znak na pasku, więc działa też jako legenda:
 
 | Znacznik | Kształt / kolor | Przykład |
 |---|---|---|
@@ -37,7 +38,7 @@ Rząd pigułek (`h-7`, `text-sm`, `tabular-nums`, tło `#1E2738`); każda ma na 
 | kupka | ochrowy romb (nowy token `poop`, np. #D4A373, kontrast ≥3:1 do #151B28) | `kupka 1` |
 
 - Zero pokazujemy przygaszone (`kupka 0`), żeby rzędy trzech dób były porównywalne.
-- Pigułki nie są osobnymi przyciskami (cała górna część karty to jeden przycisk rozwijania); `aria-label` przycisku = pełne zdanie podsumowania.
+- Znaczniki nie są osobnymi przyciskami (cała górna część karty to jeden przycisk rozwijania); `aria-label` przycisku = pełne zdanie podsumowania.
 - Na pasku: siku = kropla turkusowa, kupka = romb ochrowy. Pielucha `both` liczy się do obu i rysuje oba znaki.
 
 ### D. Rozwijanie, które widać
