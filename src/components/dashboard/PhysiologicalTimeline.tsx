@@ -200,18 +200,18 @@ export function PhysiologicalTimeline({
             }}
           />
         )}
+        {isExpanded && (
+          <div className="mt-1 flex flex-col gap-2 border-t border-[#263348] pt-3">
+            {[...events].reverse().map((event) => (
+              <TimelineEventCard
+                key={event.id}
+                event={event}
+                onEdit={onEntryEdited ? setEditedEvent : undefined}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      {isExpanded && (
-        <div className="flex flex-col gap-2">
-          {[...events].reverse().map((event) => (
-            <TimelineEventCard
-              key={event.id}
-              event={event}
-              onEdit={onEntryEdited ? setEditedEvent : undefined}
-            />
-          ))}
-        </div>
-      )}
       {addEntry && <AddEntryControl {...addEntry} />}
       {onEntryEdited && (
         <EditEntrySheet
