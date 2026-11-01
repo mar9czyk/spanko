@@ -11,7 +11,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { dateLocaleTag } from "@/i18n/translate";
 
 /**
- * Ekran Historia (/history): ostatnie doby jedna pod drugą, każda z paskiem 24 godzin
+ * Ekran Historia (/history): bieżąca i ostatnie doby jedna pod drugą, każda z paskiem 24 godzin
  * i rozwijaną listą drzemek, karmień i pieluch, do porównywania wzorców. Pod każdą dobą
  * (także pustą) jest „Dodaj wpis” do dopisywania zaległych zdarzeń.
  *
@@ -19,7 +19,7 @@ import { dateLocaleTag } from "@/i18n/translate";
  */
 export default function HistoryPage(): ReactNode {
   const { t, locale } = useI18n();
-  const { child, status, days, reload } = useHistoryState();
+  const { child, currentDate, status, days, reload } = useHistoryState();
   const formatDate = (date: string) =>
     new Date(`${date}T12:00:00Z`).toLocaleDateString(dateLocaleTag(locale), {
       timeZone: "UTC",
@@ -71,7 +71,11 @@ export default function HistoryPage(): ReactNode {
           morningWakeTimeDisplay={formatClock(day.dayStartIso)}
           events={day.events}
           morningWakeIso={day.dayStartIso}
-          nowIso={pastDayStripNowIso(day) ?? new Date().toISOString()}
+          nowIso={
+            day.date === currentDate
+              ? new Date().toISOString()
+              : (pastDayStripNowIso(day) ?? new Date().toISOString())
+          }
           currentSleepLog={null}
           onEntryEdited={reload}
           addEntry={
