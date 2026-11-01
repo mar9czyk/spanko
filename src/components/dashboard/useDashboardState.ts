@@ -605,16 +605,22 @@ export function useDashboardState() {
     }
   };
 
-  const startSleepLog = async () => {
+  /**
+   * Zakłada sen. Z `backdatedStartIso` powstaje od razu trwający sen („śpi”), który zaczął się
+   * w przeszłości — licznik liczy od tej pory, a koniec zapisuje „Wstał”.
+   */
+  const startSleepLog = async (backdatedStartIso?: string) => {
     if (!child) return;
     const nowIsoValue = new Date().toISOString();
-    const hour = new Date().getHours();
+    const startIso = backdatedStartIso ?? nowIsoValue;
+    const hour = new Date(startIso).getHours();
     const draft = {
       child_id: child.id,
       physiological_date: physiologicalDate,
       type: hour >= 18 || hour < 6 ? ("night" as const) : ("nap" as const),
-      status: "falling_asleep" as const,
-      put_down_at: nowIsoValue,
+      status: backdatedStartIso ? ("sleeping" as const) : ("falling_asleep" as const),
+      put_down_at: startIso,
+      ...(backdatedStartIso ? { fell_asleep_at: startIso } : {}),
       interventions: [],
       night_wakings: [],
       is_rebound_sleep: false,
@@ -638,6 +644,11 @@ export function useDashboardState() {
     } catch (error) {
       reportError(error, t("dashboard.startSleepError"));
     }
+  };
+
+  const handleStartSleepEarlier = async (startIso: string) => {
+    if (currentSleepLog && currentSleepLog.status !== "completed") return;
+    await startSleepLog(startIso);
   };
 
   const handleCycleSleepStatus = async () => {
@@ -942,6 +953,7 @@ export function useDashboardState() {
     handleAcceptInsight,
     handleUndoAcceptInsight,
     handleCycleSleepStatus,
+    handleStartSleepEarlier,
     handleQuickNightWake,
     nightWakeToast,
     dismissNightWakeToast: () => setNightWakeToast(null),

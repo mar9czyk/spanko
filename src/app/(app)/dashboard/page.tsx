@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnnouncementBanner } from "@/components/dashboard/AnnouncementBanner";
+import { BackdatedSleepSheet } from "@/components/dashboard/BackdatedSleepSheet";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import {
   DAY_DETAIL_TAB_ORDER,
@@ -50,6 +51,7 @@ export default function DashboardPage() {
   const { t, locale } = useI18n();
   const [isTagsOpen, setIsTagsOpen] = useState(false);
   const [isFeedingOpen, setIsFeedingOpen] = useState(false);
+  const [isBackdatedOpen, setIsBackdatedOpen] = useState(false);
   const state = useDashboardState();
   const { child } = state;
   const goalState = useGoalState({
@@ -325,6 +327,19 @@ export default function DashboardPage() {
         activeTags={state.activeDayTags}
         onClose={() => setIsTagsOpen(false)}
         onToggleTag={(tag) => void state.handleToggleDayTag(tag)}
+        onStartEarlier={
+          state.currentSleepLog && state.currentSleepLog.status !== "completed"
+            ? undefined
+            : () => {
+                setIsTagsOpen(false);
+                setIsBackdatedOpen(true);
+              }
+        }
+      />
+      <BackdatedSleepSheet
+        isOpen={isBackdatedOpen}
+        onClose={() => setIsBackdatedOpen(false)}
+        onStart={(startIso) => void state.handleStartSleepEarlier(startIso)}
       />
     </main>
   );
