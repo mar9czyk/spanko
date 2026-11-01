@@ -5,6 +5,7 @@ import type {
   DiaperKind,
   FeedingType,
   InterventionLevel,
+  NightWakingDetail,
   SleepLogRecord,
   SleepMood,
   SleepStatus,
@@ -28,6 +29,8 @@ export interface TimelineNapEvent {
   readonly interventions?: readonly InterventionLevel[];
   /** Momenty pobudek nocnych zapisanych w tym śnie. */
   readonly nightWakingIsos?: readonly string[];
+  /** Pełne wpisy pobudek nocnych (edycja zachowuje ich pozostałe pola). */
+  readonly nightWakings?: readonly NightWakingDetail[];
 }
 
 export interface TimelineFeedingEvent {

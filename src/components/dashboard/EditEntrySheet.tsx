@@ -1,13 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { pb } from "@/lib/pocketbase";
 import type {
   DayContextRecord,
   InterventionLevel,
+  NightWakingDetail,
   SleepLogRecord,
   SleepMood,
 } from "@/lib/types/database";
@@ -16,6 +17,7 @@ import { BreastMinutesInput } from "./BreastMinutesInput";
 import { DEFAULT_BOTTLE_ML } from "./constants";
 import {
   buildEntryTimePatch,
+  clockAfterIso,
   type EntryEditError,
   type EntryEditPatch,
   toClockInputValue,
@@ -104,6 +106,8 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   const [interventions, setInterventions] = useState<readonly InterventionLevel[]>([]);
   const [bottleMl, setBottleMl] = useState<number | undefined>(undefined);
   const [breastMinutes, setBreastMinutes] = useState<number | undefined>(undefined);
+  const [wakings, setWakings] = useState<readonly NightWakingDetail[]>([]);
+  const [newWaking, setNewWaking] = useState("");
   const [error, setError] = useState<EntryEditError | "save_failed" | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -117,9 +121,28 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
       event.kind === "feeding" ? (event.bottleMl ?? DEFAULT_BOTTLE_ML) : DEFAULT_BOTTLE_ML,
     );
     setBreastMinutes(event.kind === "feeding" ? event.breastMinutes : undefined);
+    setWakings(event.kind === "nap" ? (event.nightWakings ?? []) : []);
+    setNewWaking("");
     setError(null);
     setIsSaving(false);
   }, [event]);
+
+  const addWaking = () => {
+    if (event?.kind !== "nap" || !event.startIso) return;
+    const wokeAt = clockAfterIso(event.startIso, newWaking);
+    if (!wokeAt) {
+      setError("invalid_time");
+      return;
+    }
+    setError(null);
+    setWakings((current) =>
+      [
+        ...current,
+        { wokeAt, estimatedDurationMin: 15, fedMilk: false, interventions: [] as const },
+      ].sort((a, b) => a.wokeAt.localeCompare(b.wokeAt)),
+    );
+    setNewWaking("");
+  };
 
   const handleSave = async () => {
     if (!event) return;
@@ -130,7 +153,13 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
         end,
         bottleMl,
         breastMinutes,
-        ...(event.kind === "nap" ? { mood: mood ?? null, interventions } : {}),
+        ...(event.kind === "nap"
+          ? {
+              mood: mood ?? null,
+              interventions,
+              ...(event.type === "night" ? { nightWakings: wakings } : {}),
+            }
+          : {}),
       },
       new Date().toISOString(),
     );
@@ -209,6 +238,57 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
                     setInterventions(nextInterventions);
                   }}
                 />
+              </div>
+            )}
+            {isSleep && event.type === "night" && (
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {t("entryEdit.nightWakings")}
+                </span>
+                {wakings.length > 0 && (
+                  <ul className="flex flex-wrap gap-2">
+                    {wakings.map((waking) => (
+                      <li
+                        key={waking.wokeAt}
+                        className="flex items-center gap-1 rounded-xl border border-[#263348] bg-[#1E2738] py-1 pl-3 pr-1 text-sm tabular-nums text-ink"
+                      >
+                        {toClockInputValue(waking.wokeAt)}
+                        <button
+                          type="button"
+                          aria-label={t("entryEdit.removeWaking", {
+                            time: toClockInputValue(waking.wokeAt),
+                          })}
+                          onClick={() =>
+                            setWakings((current) =>
+                              current.filter((entry) => entry.wokeAt !== waking.wokeAt),
+                            )
+                          }
+                          className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-slate-400"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    aria-label={t("entryEdit.nightWakings")}
+                    value={newWaking}
+                    onChange={(change) => setNewWaking(change.target.value)}
+                    className={TIME_INPUT_CLASS}
+                  />
+                  <button
+                    type="button"
+                    onClick={addWaking}
+                    disabled={!newWaking}
+                    className="flex min-h-12 shrink-0 items-center gap-1 rounded-xl border border-amber-400/60 px-4 text-sm font-semibold text-amber-300 disabled:opacity-40"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("entryEdit.addWaking")}
+                  </button>
+                </div>
               </div>
             )}
             {isBottle && (

@@ -1,6 +1,7 @@
 import type {
   DayContextRecord,
   InterventionLevel,
+  NightWakingDetail,
   SleepLogRecord,
   SleepMood,
 } from "@/lib/types/database";
@@ -23,16 +24,25 @@ export interface EntryTimeDraft {
   readonly mood?: SleepMood | null;
   /** Tylko sen: co pomogło przy zasypianiu; brak pola = bez zmiany. */
   readonly interventions?: readonly InterventionLevel[];
+  /** Tylko sen: pełna lista pobudek nocnych; brak pola = bez zmiany. */
+  readonly nightWakings?: readonly NightWakingDetail[];
 }
 
-export type EntryEditError = "invalid_time" | "end_before_start" | "in_future";
+export type EntryEditError =
+  | "invalid_time"
+  | "end_before_start"
+  | "in_future"
+  | "waking_outside_sleep";
 
 export type EntryEditPatch =
   | {
       readonly collection: "sleep_logs";
       readonly id: string;
       readonly patch: Partial<
-        Pick<SleepLogRecord, "fell_asleep_at" | "put_down_at" | "woke_up_at" | "interventions">
+        Pick<
+          SleepLogRecord,
+          "fell_asleep_at" | "put_down_at" | "woke_up_at" | "interventions" | "night_wakings"
+        >
       > & { readonly mood?: SleepMood | "" };
     }
   | {
@@ -68,6 +78,26 @@ export function toClockInputValue(iso?: string): string {
   const date = new Date(iso);
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/**
+ * Pierwszy moment nie wcześniejszy niż `afterIso`, w którym zegar pokazuje HH:mm.
+ *
+ * @param {string} afterIso - Dolna granica (początek snu)
+ * @param {string} clock - Godzina HH:mm
+ * @returns {string | null} Moment ISO albo null przy błędnej godzinie
+ */
+export function clockAfterIso(afterIso: string, clock: string): string | null {
+  const match = CLOCK_PATTERN.exec(clock);
+  const after = new Date(afterIso);
+  if (!match || Number.isNaN(after.getTime())) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  const candidate = new Date(after);
+  candidate.setHours(hours, minutes, 0, 0);
+  if (candidate.getTime() < after.getTime()) candidate.setDate(candidate.getDate() + 1);
+  return candidate.toISOString();
 }
 
 /**
@@ -157,6 +187,15 @@ export function buildEntryTimePatch(
   if (!start || end === null) return "invalid_time";
   if (end && Date.parse(end) <= Date.parse(start)) return "end_before_start";
   if (Date.parse(end ?? start) > nowMs) return "in_future";
+  const windowEndMs = Date.parse(end ?? event.endIso ?? nowIso);
+  if (
+    draft.nightWakings?.some((waking) => {
+      const wakingMs = Date.parse(waking.wokeAt);
+      return wakingMs < Date.parse(start) || wakingMs > windowEndMs;
+    })
+  ) {
+    return "waking_outside_sleep";
+  }
 
   const patch: Extract<EntryEditPatch, { collection: "sleep_logs" }>["patch"] = {
     ...(event.startField === "put_down_at" ? { put_down_at: start } : { fell_asleep_at: start }),
@@ -168,6 +207,11 @@ export function buildEntryTimePatch(
     ...(end ? { woke_up_at: end } : {}),
     ...(draft.mood === undefined ? {} : { mood: draft.mood ?? "" }),
     ...(draft.interventions === undefined ? {} : { interventions: draft.interventions }),
+    ...(draft.nightWakings === undefined
+      ? {}
+      : {
+          night_wakings: [...draft.nightWakings].sort((a, b) => a.wokeAt.localeCompare(b.wokeAt)),
+        }),
   };
   return { collection: "sleep_logs", id: event.id, patch };
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyClockTime,
   buildEntryTimePatch,
+  clockAfterIso,
   stepBreastMinutes,
   toClockInputValue,
 } from "../entryEdit";
@@ -207,5 +208,55 @@ describe("buildEntryTimePatch: pierś", () => {
       id: "br1",
       patch: { timestamp: local(21, 14, 10) },
     });
+  });
+});
+
+describe("night wakings in edit", () => {
+  const night: TimelineEvent = {
+    id: "n1",
+    kind: "nap",
+    type: "night",
+    status: "completed",
+    startTime: "",
+    startIso: local(20, 22, 34),
+    startField: "fell_asleep_at",
+    endIso: local(21, 7, 30),
+  };
+  const waking = (iso: string) => ({
+    wokeAt: iso,
+    estimatedDurationMin: 15,
+    fedMilk: false,
+    interventions: [] as const,
+  });
+
+  it("clockAfterIso puts post-midnight clocks on the next day", () => {
+    expect(clockAfterIso(local(20, 22, 34), "02:10")).toBe(local(21, 2, 10));
+    expect(clockAfterIso(local(20, 22, 34), "23:30")).toBe(local(20, 23, 30));
+  });
+
+  it("saves sorted night wakings with the patch", () => {
+    const result = buildEntryTimePatch(
+      night,
+      {
+        start: "22:34",
+        end: "07:30",
+        nightWakings: [waking(local(21, 5, 0)), waking(local(21, 2, 10))],
+      },
+      NOW,
+    );
+    expect(result).toMatchObject({
+      collection: "sleep_logs",
+      patch: { night_wakings: [{ wokeAt: local(21, 2, 10) }, { wokeAt: local(21, 5, 0) }] },
+    });
+  });
+
+  it("rejects a waking outside the sleep", () => {
+    expect(
+      buildEntryTimePatch(
+        night,
+        { start: "22:34", end: "07:30", nightWakings: [waking(local(21, 8, 0))] },
+        NOW,
+      ),
+    ).toBe("waking_outside_sleep");
   });
 });

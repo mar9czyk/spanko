@@ -40,6 +40,7 @@ export function mapSleepLogToTimelineEvent(log: SleepLogRecord): TimelineEvent {
     nightWakingIsos: log.night_wakings?.length
       ? log.night_wakings.map((wake) => wake.wokeAt)
       : undefined,
+    nightWakings: log.night_wakings?.length ? log.night_wakings : undefined,
   };
 }
 
