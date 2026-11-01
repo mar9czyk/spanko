@@ -15,7 +15,8 @@ export type ManualEntryError =
   | "end_before_start"
   | "in_future"
   | "outside_day"
-  | "overlap";
+  | "overlap"
+  | "no_night_sleep";
 
 /** Co użytkownik chce dopisać do minionej doby. */
 export type ManualEntryDraft =
@@ -27,10 +28,17 @@ export type ManualEntryDraft =
     }
   | { readonly kind: "breast"; readonly time: string; readonly side: BreastSide }
   | { readonly kind: "bottle"; readonly time: string; readonly ml: number }
-  | { readonly kind: "diaper"; readonly time: string; readonly diaperKind: DiaperKind };
+  | { readonly kind: "diaper"; readonly time: string; readonly diaperKind: DiaperKind }
+  | { readonly kind: "night_waking"; readonly time: string };
 
 /** Pola nowego rekordu; `child_id`, strefę i autora dokłada zapis. */
 export type ManualEntryRecord =
+  | {
+      /** Pobudka nocna dopisywana do istniejącego snu nocnego (nie osobny rekord). */
+      readonly collection: "night_waking";
+      readonly logId: string;
+      readonly wokeAt: string;
+    }
   | {
       readonly collection: "sleep_logs";
       readonly data: {
@@ -170,6 +178,19 @@ export function buildManualEntry(
   if (timeMs >= windowEnd) return "outside_day";
   if (timeMs > nowMs) return "in_future";
   const timestamp = new Date(timeMs).toISOString();
+  if (draft.kind === "night_waking") {
+    const night = day.events.find(
+      (event) =>
+        event.kind === "nap" &&
+        event.type === "night" &&
+        event.startIso !== undefined &&
+        event.endIso !== undefined &&
+        Date.parse(event.startIso) <= timeMs &&
+        timeMs <= Date.parse(event.endIso),
+    );
+    if (!night) return "no_night_sleep";
+    return { collection: "night_waking", logId: night.id, wokeAt: timestamp };
+  }
   if (draft.kind === "diaper") {
     return {
       collection: "day_context",

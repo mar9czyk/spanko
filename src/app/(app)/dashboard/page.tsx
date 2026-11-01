@@ -129,7 +129,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="w-full flex flex-col gap-3 pb-8">
+    <main className="w-full flex flex-col gap-3">
       {!state.isDemoData && <AnnouncementBanner />}
       {state.isDemoData && (
         <p className="rounded-lg bg-amber-500/10 px-3 py-1 text-xs text-amber-300">
