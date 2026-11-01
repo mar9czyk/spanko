@@ -601,6 +601,8 @@ export const pl = {
   "settings.subtitle": "Profil, preferencje i zarządzanie kontem",
   "settings.back": "Dashboard",
   "settings.profile": "Profil",
+  "settings.child": "Dane dziecka",
+  "settings.childHint": "Imię, data urodzenia i termin porodu liczą wiek dziecka w silniku snu.",
   "settings.name": "Imię",
   "settings.namePlaceholder": "Jak mamy Cię nazywać?",
   "settings.email": "E-mail (z konta Google)",
@@ -1230,6 +1232,9 @@ export const en: Record<MessageKey, string> = {
   "settings.subtitle": "Profile, preferences and account management",
   "settings.back": "Dashboard",
   "settings.profile": "Profile",
+  "settings.child": "Child details",
+  "settings.childHint":
+    "Name, date of birth and due date determine the age used by the sleep engine.",
   "settings.name": "Name",
   "settings.namePlaceholder": "What should we call you?",
   "settings.email": "Email (from your Google account)",

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AccountSection } from "@/components/settings/AccountSection";
+import { ChildProfileSection } from "@/components/settings/ChildProfileSection";
 import { FamilySection } from "@/components/settings/FamilySection";
 import { GoalSettingsSection } from "@/components/settings/GoalSettingsSection";
 import { PreferencesMenu } from "@/components/settings/PreferencesMenu";
@@ -42,6 +43,12 @@ export default function SettingsPage(): ReactNode {
 
       {session.status === "signedIn" && (
         <ProfileSection key={session.user.id} user={session.user} />
+      )}
+
+      {session.status === "signedIn" && (
+        <SettingsCard title={t("settings.child")} hint={t("settings.childHint")}>
+          <ChildProfileSection />
+        </SettingsCard>
       )}
 
       {session.status === "signedIn" && <FamilySection user={session.user} />}
