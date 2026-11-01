@@ -12,6 +12,8 @@ interface QuickEntryBottomSheetProps {
   readonly activeTags: readonly string[];
   readonly onClose: () => void;
   readonly onToggleTag: (tag: string) => void;
+  /** Gdy podane, pokazuje skrót „Sen zaczął się wcześniej” (tylko bez trwającego snu). */
+  readonly onStartEarlier?: () => void;
 }
 
 /**
@@ -26,6 +28,7 @@ export function QuickEntryBottomSheet({
   activeTags,
   onClose,
   onToggleTag,
+  onStartEarlier,
 }: QuickEntryBottomSheetProps): ReactNode {
   const { t, tDynamic } = useI18n();
   return (
@@ -61,6 +64,15 @@ export function QuickEntryBottomSheet({
                 <X className="h-5 w-5" />
               </button>
             </div>
+            {onStartEarlier && (
+              <button
+                type="button"
+                onClick={onStartEarlier}
+                className="min-h-12 rounded-xl border border-amber-400/50 bg-amber-500/10 text-sm font-medium text-amber-200"
+              >
+                {t("sheet.startEarlier")}
+              </button>
+            )}
             <div className="flex flex-wrap gap-2">
               {DAY_TAG_PRESETS.map((tag) => {
                 const selected = activeTags.includes(tag);

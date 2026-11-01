@@ -402,6 +402,14 @@ export const pl = {
 
   "sheet.title": "Co dziś wpływa na sen?",
   "sheet.done": "Gotowe",
+  "sheet.startEarlier": "Sen zaczął się wcześniej",
+  "backdated.title": "Sen zaczął się wcześniej",
+  "backdated.hint":
+    "Zacznie się trwający sen od wybranej pory. Koniec zapiszesz przyciskiem „Wstał”.",
+  "backdated.ago": "{minutes} min temu",
+  "backdated.exact": "Albo dokładna godzina",
+  "backdated.start": "Zacznij od tej godziny",
+  "backdated.error": "Podaj godzinę z ostatnich 16 godzin.",
   "feedSheet.title": "Karmienie",
   "feedSheet.left": "Lewa",
   "feedSheet.right": "Prawa",
@@ -1046,6 +1054,13 @@ export const en: Record<MessageKey, string> = {
 
   "sheet.title": "What affects sleep today?",
   "sheet.done": "Done",
+  "sheet.startEarlier": "Sleep started earlier",
+  "backdated.title": "Sleep started earlier",
+  "backdated.hint": "An ongoing sleep begins at the chosen time. Save the end with “Up”.",
+  "backdated.ago": "{minutes} min ago",
+  "backdated.exact": "Or an exact time",
+  "backdated.start": "Start from this time",
+  "backdated.error": "Enter a time within the last 16 hours.",
   "feedSheet.title": "Feeding",
   "feedSheet.left": "Left",
   "feedSheet.right": "Right",
