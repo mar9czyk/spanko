@@ -58,7 +58,7 @@ else
   OLD_DIR="${REMOTE_DIR}.old"
   # -h: rozwiązuje symlinki pnpm
   tar -chzf - -C .next/standalone . |
-    "${SSH_CMD[@]}" "$SSH_TARGET" "rm -rf '${NEW_DIR}' && mkdir -p '${NEW_DIR}' && tar -xzf - -C '${NEW_DIR}'"
+    "${SSH_CMD[@]}" "$SSH_TARGET" "rm -rf '${NEW_DIR}' && mkdir -p '${NEW_DIR}' && tar --no-same-owner -xzf - -C '${NEW_DIR}'"
   "${SSH_CMD[@]}" "$SSH_TARGET" "set -e
     if [ -f '${REMOTE_DIR}/.env.production' ]; then cp '${REMOTE_DIR}/.env.production' '${NEW_DIR}/.env.production'; fi
     rm -rf '${OLD_DIR}'
