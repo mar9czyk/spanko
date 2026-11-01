@@ -1,9 +1,16 @@
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ChildAvatar, useChildFileToken } from "@/components/dashboard/ChildSwitcher";
+import { formatChildAge } from "@/components/dashboard/useDashboardState";
 import { useI18n } from "@/i18n/I18nProvider";
+import { childPhotoUrl } from "@/lib/child-photo";
+import { calculateEffectiveAgeDays } from "@/lib/sleep-engine";
+import type { ChildRecord } from "@/lib/types/database";
 
 interface InsightsHeaderProps {
+  /** Dziecko, którego dotyczą wnioski; null przed załadowaniem */
+  readonly child: ChildRecord | null;
   readonly isEvaluating: boolean;
   readonly onTriggerEvaluation: () => void;
 }
@@ -15,10 +22,12 @@ interface InsightsHeaderProps {
  * @returns {ReactNode} Nagłówek widoku
  */
 export function InsightsHeader({
+  child,
   isEvaluating,
   onTriggerEvaluation,
 }: InsightsHeaderProps): ReactNode {
   const { t } = useI18n();
+  const fileToken = useChildFileToken(child ? [child] : []);
   return (
     <header className="flex flex-col gap-3 w-full pt-1 pb-3">
       <div className="flex items-center justify-between">
@@ -43,6 +52,32 @@ export function InsightsHeader({
           <span>{isEvaluating ? t("insights.analyzing") : t("insights.analyze")}</span>
         </button>
       </div>
+
+      {child && (
+        <div className="flex items-center gap-2.5" data-testid="insights-child">
+          <ChildAvatar
+            child={child}
+            photoUrl={fileToken ? childPhotoUrl(child, fileToken) : null}
+            size="md"
+            isActive
+          />
+          <p className="text-sm font-semibold text-ink leading-tight">
+            {child.name}
+            <span className="ml-1.5 text-xs font-normal text-slate-400">
+              (
+              {formatChildAge(
+                calculateEffectiveAgeDays(
+                  child.birth_date,
+                  child.due_date,
+                  new Date().toISOString(),
+                ),
+                t,
+              )}
+              )
+            </span>
+          </p>
+        </div>
+      )}
 
       <div>
         <h1 className="text-lg font-bold text-ink flex items-center gap-2">
