@@ -9,6 +9,8 @@ import { BREAST_MAX_MIN, BREAST_STEP_MIN } from "./constants";
 import type { TimelineEvent } from "./types";
 
 const MS_PER_DAY = 86_400_000;
+/** Górna granica czasu usypiania w formularzu edycji. */
+export const MAX_FALL_ASLEEP_MIN = 240;
 const CLOCK_PATTERN = /^(\d{2}):(\d{2})$/;
 
 /** Godziny wpisu w formularzu edycji (HH:mm, czas lokalny urządzenia). */
@@ -20,6 +22,8 @@ export interface EntryTimeDraft {
   readonly bottleMl?: number;
   /** Tylko pierś: czas karmienia w minutach; brak pola = bez zmiany. */
   readonly breastMinutes?: number;
+  /** Tylko sen: czas usypiania w minutach (odłożenie → zaśnięcie); brak pola = bez zmiany. */
+  readonly fallAsleepMin?: number;
   /** Tylko sen: nastrój przy zasypianiu; null = wyczyść, brak pola = bez zmiany. */
   readonly mood?: SleepMood | null;
   /** Tylko sen: co pomogło przy zasypianiu; brak pola = bez zmiany. */
@@ -197,9 +201,23 @@ export function buildEntryTimePatch(
     return "waking_outside_sleep";
   }
 
+  const fallAsleepMin = draft.fallAsleepMin;
+  if (
+    fallAsleepMin !== undefined &&
+    (!Number.isInteger(fallAsleepMin) || fallAsleepMin < 0 || fallAsleepMin > MAX_FALL_ASLEEP_MIN)
+  ) {
+    return "invalid_time";
+  }
+  const putDownFromLatency =
+    event.startField === "fell_asleep_at" && fallAsleepMin !== undefined
+      ? new Date(Date.parse(start) - fallAsleepMin * 60_000).toISOString()
+      : undefined;
+
   const patch: Extract<EntryEditPatch, { collection: "sleep_logs" }>["patch"] = {
     ...(event.startField === "put_down_at" ? { put_down_at: start } : { fell_asleep_at: start }),
-    ...(event.startField === "fell_asleep_at" &&
+    ...(putDownFromLatency ? { put_down_at: putDownFromLatency } : {}),
+    ...(putDownFromLatency === undefined &&
+    event.startField === "fell_asleep_at" &&
     event.putDownIso &&
     Date.parse(event.putDownIso) > Date.parse(start)
       ? { put_down_at: start }
