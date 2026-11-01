@@ -67,7 +67,8 @@ export default function HistoryPage(): ReactNode {
       {days.map((day) => (
         <PhysiologicalTimeline
           key={day.date}
-          physiologicalDateDisplay={formatDate(day.date)}
+          label={formatDate(day.date)}
+          isCurrentDay={day.date === currentDate}
           morningWakeTimeDisplay={formatClock(day.dayStartIso)}
           events={day.events}
           morningWakeIso={day.dayStartIso}

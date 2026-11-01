@@ -17,11 +17,20 @@ export interface DayStripSleep {
 }
 
 export interface DayStripInput {
+  /** Poranna pobudka otwierająca dobę (granica doby). */
   readonly dayStartIso: string;
+  /**
+   * Początek wspólnej osi zegarowej (zaokrąglany w dół do pełnej godziny). Brak = oś zaczyna się
+   * od doby; podanie go oznacza odcinki przed pobudką jako koniec poprzedniej nocy.
+   */
+  readonly axisStartIso?: string;
   readonly nowIso: string;
   readonly sleeps: readonly DayStripSleep[];
   readonly feedingIsos: readonly string[];
-  readonly diaperIsos: readonly string[];
+  /** Pieluchy z siku (także „obie”). */
+  readonly wetIsos: readonly string[];
+  /** Pieluchy z kupką (także „obie”). */
+  readonly dirtyIsos?: readonly string[];
   /** Pobudki nocne; pomijane, gdy brak. */
   readonly wakingIsos?: readonly string[];
 }
@@ -33,10 +42,12 @@ export interface DayStripSlot {
   /** Rodzaj snu dominujący w odcinku. */
   readonly sleepType: SleepType | null;
   readonly state: "past" | "current" | "future";
+  /** Odcinek leży przed poranną pobudką doby (przy wspólnej osi: koniec poprzedniej nocy). */
+  readonly beforeDay: boolean;
 }
 
 export interface DayStripMark {
-  readonly kind: "feeding" | "diaper" | "waking";
+  readonly kind: "feeding" | "wet" | "dirty" | "waking";
   /** Położenie na pasku, 0..1 od początku doby. */
   readonly offset: number;
 }
@@ -48,6 +59,8 @@ export interface DayStrip {
   readonly marks: readonly DayStripMark[];
   /** Położenie „teraz” na pasku, 0..1, albo null poza dobą. */
   readonly nowOffset: number | null;
+  /** Położenie porannej pobudki na osi, 0..1, albo null poza osią. */
+  readonly wakeOffset: number | null;
 }
 
 /**
@@ -58,10 +71,11 @@ export interface DayStrip {
  * @returns {DayStrip} Odcinki, znaczniki zdarzeń i położenie „teraz”
  */
 export function buildDayStrip(input: DayStripInput): DayStrip {
-  const first = new Date(input.dayStartIso);
+  const first = new Date(input.axisStartIso ?? input.dayStartIso);
   first.setMinutes(0, 0, 0);
   const firstMs = first.getTime();
   const nowMs = new Date(input.nowIso).getTime();
+  const dayStartMs = new Date(input.dayStartIso).getTime();
   const sleeps = input.sleeps.map((sleep) => ({
     startMs: new Date(sleep.startIso).getTime(),
     endMs: sleep.endIso ? new Date(sleep.endIso).getTime() : nowMs,
@@ -86,17 +100,54 @@ export function buildDayStrip(input: DayStripInput): DayStrip {
       sleepFraction: Math.min(1, asleepMs / SLOT_MS),
       sleepType: dominant?.type ?? null,
       state: nowMs >= endMs ? "past" : nowMs >= startMs ? "current" : "future",
+      beforeDay: input.axisStartIso !== undefined && endMs <= dayStartMs,
     };
   });
 
   const marks: DayStripMark[] = [
     ...input.feedingIsos.map((iso) => ({ kind: "feeding" as const, offset: toOffset(iso) })),
-    ...input.diaperIsos.map((iso) => ({ kind: "diaper" as const, offset: toOffset(iso) })),
+    ...input.wetIsos.map((iso) => ({ kind: "wet" as const, offset: toOffset(iso) })),
+    ...(input.dirtyIsos ?? []).map((iso) => ({ kind: "dirty" as const, offset: toOffset(iso) })),
     ...(input.wakingIsos ?? []).map((iso) => ({ kind: "waking" as const, offset: toOffset(iso) })),
   ].filter((mark) => inDay(mark.offset));
 
   const nowOffset = (nowMs - firstMs) / DAY_MS;
-  return { startMs: firstMs, slots, marks, nowOffset: inDay(nowOffset) ? nowOffset : null };
+  const wakeOffset = toOffset(input.dayStartIso);
+  return {
+    startMs: firstMs,
+    slots,
+    marks,
+    nowOffset: inDay(nowOffset) ? nowOffset : null,
+    wakeOffset: inDay(wakeOffset) ? wakeOffset : null,
+  };
+}
+
+/**
+ * Wybiera godzinę (0–23) początku wspólnej osi: najwcześniejsza pora porannej pobudki
+ * spośród dób, zaokrąglona w dół do pełnej godziny.
+ *
+ * @param {readonly string[]} wakeIsos - Poranne pobudki porównywanych dób
+ * @returns {number | null} Godzina lokalna albo null, gdy nie ma żadnej pobudki
+ */
+export function sharedAxisHour(wakeIsos: readonly string[]): number | null {
+  const minutes = wakeIsos.map((iso) => {
+    const date = new Date(iso);
+    return date.getHours() * 60 + date.getMinutes();
+  });
+  return minutes.length > 0 ? Math.floor(Math.min(...minutes) / 60) : null;
+}
+
+/**
+ * Początek wspólnej osi dla doby: dzień jej porannej pobudki o godzinie `hour`.
+ *
+ * @param {string} dayStartIso - Poranna pobudka doby
+ * @param {number} hour - Godzina osi z `sharedAxisHour`
+ * @returns {string} Moment ISO początku osi
+ */
+export function axisStartFor(dayStartIso: string, hour: number): string {
+  const date = new Date(dayStartIso);
+  date.setHours(hour, 0, 0, 0);
+  return date.toISOString();
 }
 
 /**
@@ -109,10 +160,11 @@ export function buildDayStrip(input: DayStripInput): DayStrip {
 export function collectDayStripEvents(
   events: readonly TimelineEvent[],
   activeSleep: DayStripSleep | null,
-): Pick<DayStripInput, "sleeps" | "feedingIsos" | "diaperIsos" | "wakingIsos"> {
+): Pick<DayStripInput, "sleeps" | "feedingIsos" | "wetIsos" | "dirtyIsos" | "wakingIsos"> {
   const sleeps: DayStripSleep[] = [];
   const feedingIsos: string[] = [];
-  const diaperIsos: string[] = [];
+  const wetIsos: string[] = [];
+  const dirtyIsos: string[] = [];
   const wakingIsos: string[] = [];
   for (const event of events) {
     if (event.kind === "nap" && event.startIso) {
@@ -121,12 +173,13 @@ export function collectDayStripEvents(
     } else if (event.kind === "feeding" && event.timeIso) {
       feedingIsos.push(event.timeIso);
     } else if (event.kind === "diaper" && event.timeIso) {
-      diaperIsos.push(event.timeIso);
+      if (event.diaperKind !== "dirty") wetIsos.push(event.timeIso);
+      if (event.diaperKind !== "wet") dirtyIsos.push(event.timeIso);
     }
   }
   if (activeSleep) {
     sleeps.push(activeSleep);
     wakingIsos.push(...(activeSleep.wakingIsos ?? []));
   }
-  return { sleeps, feedingIsos, diaperIsos, wakingIsos };
+  return { sleeps, feedingIsos, wetIsos, dirtyIsos, wakingIsos };
 }
