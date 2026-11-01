@@ -318,6 +318,7 @@ export default function DashboardPage() {
         onClose={() => setIsFeedingOpen(false)}
         onSaveBreast={(side) => void state.handleSaveFeeding("breast", { side })}
         onSaveBottle={(ml) => void state.handleSaveFeeding("bottle", { ml })}
+        onSaveSolid={() => void state.handleSaveFeeding("solid", {})}
       />
       <QuickEntryBottomSheet
         isOpen={isTagsOpen}

@@ -28,6 +28,7 @@ export type ManualEntryDraft =
     }
   | { readonly kind: "breast"; readonly time: string; readonly side: BreastSide }
   | { readonly kind: "bottle"; readonly time: string; readonly ml: number }
+  | { readonly kind: "solid"; readonly time: string }
   | { readonly kind: "diaper"; readonly time: string; readonly diaperKind: DiaperKind }
   | { readonly kind: "night_waking"; readonly time: string };
 
@@ -60,7 +61,7 @@ export type ManualEntryRecord =
         readonly physiological_date: string;
         readonly timestamp: string;
         readonly event_type: "feeding" | "diaper";
-        readonly feeding_type: "breast" | "bottle" | "none";
+        readonly feeding_type: "breast" | "bottle" | "solid" | "none";
         readonly breast_side?: BreastSide;
         readonly bottle_ml?: number;
         readonly diaper_kind?: DiaperKind;
@@ -210,7 +211,11 @@ export function buildManualEntry(
       timestamp,
       event_type: "feeding",
       feeding_type: draft.kind,
-      ...(draft.kind === "breast" ? { breast_side: draft.side } : { bottle_ml: draft.ml }),
+      ...(draft.kind === "breast"
+        ? { breast_side: draft.side }
+        : draft.kind === "bottle"
+          ? { bottle_ml: draft.ml }
+          : {}),
     },
   };
 }
