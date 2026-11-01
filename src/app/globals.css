@@ -23,6 +23,8 @@
   --color-coral-600: #d45b52;
   /* Przygaszony turkus dla pieluch zamiast jaskrawego błękitu */
   --color-diaper: #8fc7be;
+  /* Ochra dla kupki: odróżnia się od turkusowego siku także bez koloru (romb zamiast kropli) */
+  --color-poop: #d4a373;
 }
 
 body {

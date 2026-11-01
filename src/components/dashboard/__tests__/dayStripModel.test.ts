@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildDayStrip, collectDayStripEvents, type DayStripSlot } from "../dayStripModel";
+import {
+  axisStartFor,
+  buildDayStrip,
+  collectDayStripEvents,
+  type DayStripSlot,
+  sharedAxisHour,
+} from "../dayStripModel";
 
 function slotAt(slots: readonly DayStripSlot[], index: number): DayStripSlot {
   const slot = slots[index];
@@ -9,7 +15,7 @@ function slotAt(slots: readonly DayStripSlot[], index: number): DayStripSlot {
 
 // Minuty :40 dają tę samą pełną godzinę w każdej strefie z pełnogodzinnym przesunięciem.
 const DAY_START = "2026-10-19T06:40:00Z";
-const EMPTY = { sleeps: [], feedingIsos: [], diaperIsos: [] };
+const EMPTY = { sleeps: [], feedingIsos: [], wetIsos: [] };
 
 describe("buildDayStrip", () => {
   it("builds 96 quarter-hour slots from the full hour of the morning wake-up", () => {
@@ -65,11 +71,11 @@ describe("buildDayStrip", () => {
       dayStartIso: DAY_START,
       nowIso: "2026-10-19T12:00:00Z",
       feedingIsos: ["2026-10-19T12:00:00Z", "2026-10-19T05:30:00Z"],
-      diaperIsos: ["2026-10-20T00:00:00Z"],
+      wetIsos: ["2026-10-20T00:00:00Z"],
     });
     expect(marks).toEqual([
       { kind: "feeding", offset: 0.25 },
-      { kind: "diaper", offset: 0.75 },
+      { kind: "wet", offset: 0.75 },
     ]);
   });
 
@@ -113,6 +119,50 @@ describe("collectDayStripEvents", () => {
     );
     expect(result.sleeps).toHaveLength(2);
     expect(result.feedingIsos).toHaveLength(0);
-    expect(result.diaperIsos).toEqual(["x"]);
+    expect(result.wetIsos).toEqual(["x"]);
+    expect(result.dirtyIsos).toEqual([]);
+  });
+});
+
+describe("shared axis", () => {
+  it("dims slots before the morning wake-up and moves marks onto the shared axis", () => {
+    const axisStartIso = "2026-10-19T05:00:00Z";
+    const strip = buildDayStrip({
+      ...EMPTY,
+      dayStartIso: DAY_START,
+      axisStartIso,
+      nowIso: "2026-10-19T12:00:00Z",
+      feedingIsos: ["2026-10-19T11:00:00Z"],
+    });
+    expect(new Date(strip.startMs).toISOString()).toBe("2026-10-19T05:00:00.000Z");
+    expect(slotAt(strip.slots, 6).beforeDay).toBe(true);
+    expect(slotAt(strip.slots, 7).beforeDay).toBe(false);
+    expect(strip.wakeOffset).toBeCloseTo(100 / 60 / 24);
+    expect(strip.marks).toEqual([{ kind: "feeding", offset: 0.25 }]);
+  });
+
+  it("never dims slots without a shared axis", () => {
+    const { slots } = buildDayStrip({ ...EMPTY, dayStartIso: DAY_START, nowIso: DAY_START });
+    expect(slots.some((slot) => slot.beforeDay)).toBe(false);
+  });
+
+  it("picks the earliest wake-up hour of the compared days", () => {
+    const hour = sharedAxisHour([
+      new Date(2026, 9, 19, 6, 40).toISOString(),
+      new Date(2026, 9, 18, 5, 55).toISOString(),
+    ]);
+    expect(hour).toBe(5);
+    expect(sharedAxisHour([])).toBeNull();
+    const start = new Date(axisStartFor(new Date(2026, 9, 19, 6, 40).toISOString(), 5));
+    expect([start.getDate(), start.getHours(), start.getMinutes()]).toEqual([19, 5, 0]);
+  });
+
+  it("splits a both-diaper into a wet and a dirty mark", () => {
+    const result = collectDayStripEvents(
+      [{ id: "d", kind: "diaper", time: "11:00", diaperKind: "both", timeIso: "x" }],
+      null,
+    );
+    expect(result.wetIsos).toEqual(["x"]);
+    expect(result.dirtyIsos).toEqual(["x"]);
   });
 });
