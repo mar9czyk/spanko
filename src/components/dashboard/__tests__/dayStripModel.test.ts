@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDayStrip, collectDayStripEvents, type DayStripSlot } from "../dayHourStrip";
+import { buildDayStrip, collectDayStripEvents, type DayStripSlot } from "../dayStripModel";
 
 function slotAt(slots: readonly DayStripSlot[], index: number): DayStripSlot {
   const slot = slots[index];

@@ -5,7 +5,7 @@ import { formatDuration } from "@/i18n/translate";
 import type { SleepLogRecord } from "@/lib/types/database";
 import { AddEntryControl, type AddEntryControlProps } from "./AddEntrySheet";
 import { DayHourStrip } from "./DayHourStrip";
-import { collectDayStripEvents, type DayStripSleep } from "./dayHourStrip";
+import { collectDayStripEvents, type DayStripSleep } from "./dayStripModel";
 import { EditEntrySheet, type EditedEntry } from "./EditEntrySheet";
 import { TimelineEventCard } from "./TimelineEventCard";
 import type { TimelineEvent } from "./types";

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
-import { buildDayStrip, type DayStripInput, type DayStripSlot } from "./dayHourStrip";
+import { buildDayStrip, type DayStripInput, type DayStripSlot } from "./dayStripModel";
 
 const AWAKE_TICK_PX = 3;
 const MIN_SLEEP_TICK_PX = 4;
