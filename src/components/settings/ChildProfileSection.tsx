@@ -3,7 +3,8 @@
 import { Check, Loader2 } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
-import { loadActiveChild } from "@/lib/client-data";
+import { pickActiveChild, readStoredActiveChildId, storeActiveChildId } from "@/lib/active-child";
+import { loadChildren } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
 import type { ChildRecord } from "@/lib/types/database";
 
@@ -27,22 +28,27 @@ const FIELD_CLASS =
  */
 function ChildForm({
   child,
+  householdId,
+  timezone,
   onSaved,
 }: {
-  readonly child: ChildRecord;
+  readonly child: ChildRecord | null;
+  readonly householdId?: string;
+  readonly timezone?: string;
   readonly onSaved: (child: ChildRecord) => void;
 }): ReactNode {
   const { t } = useI18n();
-  const [name, setName] = useState(child.name);
-  const [birthDate, setBirthDate] = useState(dateOnly(child.birth_date));
-  const [premature, setPremature] = useState(Boolean(child.due_date));
-  const [dueDate, setDueDate] = useState(dateOnly(child.due_date));
+  const [name, setName] = useState(child?.name ?? "");
+  const [birthDate, setBirthDate] = useState(dateOnly(child?.birth_date));
+  const [premature, setPremature] = useState(Boolean(child?.due_date));
+  const [dueDate, setDueDate] = useState(dateOnly(child?.due_date));
   const [status, setStatus] = useState<SaveStatus>("idle");
 
   const today = new Date().toISOString().slice(0, 10);
   const trimmed = name.trim();
   const nextDue = premature ? dueDate : "";
   const isDirty =
+    !child ||
     trimmed !== child.name ||
     birthDate !== dateOnly(child.birth_date) ||
     nextDue !== dateOnly(child.due_date);
@@ -55,12 +61,17 @@ function ChildForm({
     if (!isDirty || !isValid) return;
     setStatus("saving");
     try {
-      const updated = await pb.collection("children").update<ChildRecord>(child.id, {
-        name: trimmed,
-        birth_date: birthDate,
-        due_date: nextDue,
-      });
-      onSaved(updated);
+      const data = { name: trimmed, birth_date: birthDate, due_date: nextDue };
+      const saved = child
+        ? await pb.collection("children").update<ChildRecord>(child.id, data)
+        : await pb.collection("children").create<ChildRecord>({
+            ...data,
+            household_id: householdId,
+            active_day_mode: "home",
+            anti_orthosomnia_mode: false,
+            ...(timezone ? { timezone } : {}),
+          });
+      onSaved(saved);
       setStatus("saved");
     } catch {
       setStatus("error");
@@ -139,7 +150,11 @@ function ChildForm({
           className="flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-slate-950 transition-opacity disabled:opacity-40"
         >
           {status === "saving" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          {status === "saving" ? t("settings.saving") : t("settings.save")}
+          {status === "saving"
+            ? t("settings.saving")
+            : child
+              ? t("settings.save")
+              : t("settings.addChildSubmit")}
         </button>
       </div>
     </form>
@@ -147,23 +162,88 @@ function ChildForm({
 }
 
 /**
- * Zawartość karty „Dane dziecka” w ustawieniach: edycja aktywnego dziecka.
+ * Zawartość karty „Dane dziecka”: wybór dziecka, edycja jego danych oraz dodanie kolejnego dziecka do rodziny.
  *
- * @returns {ReactNode} Formularz lub komunikat o braku dziecka
+ * @returns {ReactNode} Karta z formularzami lub komunikat o braku dziecka
  */
 export function ChildProfileSection(): ReactNode {
   const { t } = useI18n();
-  const [child, setChild] = useState<ChildRecord | null>(null);
+  const [children, setChildren] = useState<ChildRecord[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    loadActiveChild()
-      .then(setChild)
-      .catch(() => setChild(null))
+    loadChildren()
+      .then((list) => {
+        setChildren(list);
+        setSelectedId(pickActiveChild(list, readStoredActiveChildId())?.id ?? null);
+      })
+      .catch(() => setChildren([]))
       .finally(() => setLoaded(true));
   }, []);
 
   if (!loaded) return <p className="text-sm text-slate-400">{t("env.loading")}</p>;
-  if (!child) return <p className="text-sm text-slate-400">{t("env.noChild")}</p>;
-  return <ChildForm key={`${child.id}:${child.updated}`} child={child} onSaved={setChild} />;
+  const selected = children.find((item) => item.id === selectedId) ?? children[0] ?? null;
+  if (!selected) return <p className="text-sm text-slate-400">{t("env.noChild")}</p>;
+
+  const select = (id: string) => {
+    setSelectedId(id);
+    storeActiveChildId(id);
+    setAdding(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {children.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {children.map((item) => {
+            const isSelected = !adding && item.id === selected.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => select(item.id)}
+                className={`min-h-10 rounded-lg border px-3 text-sm ${isSelected ? "border-amber-400/60 bg-amber-950/40 text-amber-200" : "border-[#263348] bg-[#1E2738] text-slate-300"}`}
+              >
+                {item.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {adding ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-semibold text-ink">{t("settings.addChild")}</p>
+          <ChildForm
+            child={null}
+            householdId={selected.household_id}
+            timezone={selected.timezone}
+            onSaved={(created) => {
+              setChildren((list) => [...list, created]);
+              select(created.id);
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <ChildForm
+            key={`${selected.id}:${selected.updated}`}
+            child={selected}
+            onSaved={(updated) =>
+              setChildren((list) => list.map((item) => (item.id === updated.id ? updated : item)))
+            }
+          />
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="min-h-11 rounded-xl border border-dashed border-violet-400/40 px-4 text-sm font-semibold text-violet-200"
+          >
+            {t("settings.addChild")}
+          </button>
+        </>
+      )}
+    </div>
+  );
 }
