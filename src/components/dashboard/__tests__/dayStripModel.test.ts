@@ -135,8 +135,8 @@ describe("shared axis", () => {
       feedingIsos: ["2026-10-19T11:00:00Z"],
     });
     expect(new Date(strip.startMs).toISOString()).toBe("2026-10-19T05:00:00.000Z");
-    expect(slotAt(strip.slots, 6).beforeDay).toBe(true);
-    expect(slotAt(strip.slots, 7).beforeDay).toBe(false);
+    expect(slotAt(strip.slots, 5).beforeDay).toBe(true);
+    expect(slotAt(strip.slots, 6).beforeDay).toBe(false);
     expect(strip.wakeOffset).toBeCloseTo(100 / 60 / 24);
     expect(strip.marks).toEqual([{ kind: "feeding", offset: 0.25 }]);
   });
