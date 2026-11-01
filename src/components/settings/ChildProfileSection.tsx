@@ -31,11 +31,14 @@ function ChildForm({
   householdId,
   timezone,
   onSaved,
+  onCancel,
 }: {
   readonly child: ChildRecord | null;
   readonly householdId?: string;
   readonly timezone?: string;
   readonly onSaved: (child: ChildRecord) => void;
+  /** Gdy podane, formularz pokazuje przycisk „Anuluj” */
+  readonly onCancel?: () => void;
 }): ReactNode {
   const { t } = useI18n();
   const [name, setName] = useState(child?.name ?? "");
@@ -144,6 +147,15 @@ function ChildForm({
             {t("settings.saveFailed")}
           </span>
         )}
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="min-h-10 rounded-xl border border-[#263348] px-4 text-xs font-semibold text-slate-300"
+          >
+            {t("common.cancel")}
+          </button>
+        )}
         <button
           type="submit"
           disabled={!isDirty || !isValid || status === "saving"}
@@ -220,6 +232,7 @@ export function ChildProfileSection(): ReactNode {
             child={null}
             householdId={selected.household_id}
             timezone={selected.timezone}
+            onCancel={() => setAdding(false)}
             onSaved={(created) => {
               setChildren((list) => [...list, created]);
               select(created.id);
