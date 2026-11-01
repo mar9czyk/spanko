@@ -26,6 +26,7 @@ export const pl = {
   "login.googleSignupDisabled":
     "Nie udało się zalogować przez Google. Zakładanie nowych kont przez Google jest wyłączone.",
   "auth.methodDisabled": "Ta metoda jest obecnie wyłączona.",
+  "login.oauthDone": "Gotowe. Możesz zamknąć to okno.",
   "login.devFailed": "Logowanie DEV nie powiodło się",
   "login.devMode": "Tryb deweloperski",
   "login.devUser": "Zaloguj jako testowy użytkownik (DEV)",
@@ -685,6 +686,7 @@ export const en: Record<MessageKey, string> = {
   "login.googleSignupDisabled":
     "Couldn't sign in with Google. Creating new accounts with Google is turned off.",
   "auth.methodDisabled": "This method is currently turned off.",
+  "login.oauthDone": "All done. You can close this window.",
   "login.devFailed": "DEV sign-in failed",
   "login.devMode": "Developer mode",
   "login.devUser": "Sign in as test user (DEV)",
