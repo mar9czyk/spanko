@@ -203,7 +203,7 @@ export function PhysiologicalTimeline({
       </div>
       {isExpanded && (
         <div className="flex flex-col gap-2">
-          {events.map((event) => (
+          {[...events].reverse().map((event) => (
             <TimelineEventCard
               key={event.id}
               event={event}
