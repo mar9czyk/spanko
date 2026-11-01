@@ -7,6 +7,7 @@ import type { TranslateParams } from "@/i18n/translate";
 import { pickActiveChild, readStoredActiveChildId, storeActiveChildId } from "@/lib/active-child";
 import { prepareChildPhoto } from "@/lib/child-photo";
 import { authorizedFetch, loadChildren } from "@/lib/client-data";
+import { repairMisdatedEntries } from "@/lib/misdatedEntries";
 import { pb } from "@/lib/pocketbase";
 import { subscribeToCollection } from "@/lib/realtime";
 import {
@@ -189,6 +190,7 @@ export function useDashboardState() {
 
   // Szybkie przełączanie dzieci: liczy się tylko odpowiedź na ostatnie żądanie
   const loadRequestRef = useRef(0);
+  const [repairTick, setRepairTick] = useState(0);
 
   const loadDashboardData = useCallback(async () => {
     const requestId = ++loadRequestRef.current;
@@ -232,6 +234,17 @@ export function useDashboardState() {
       setCurrentSleepLog(logsResult.items.find((log) => log.status !== "completed") ?? null);
       setActiveInsight(insightResult.items[0] ?? null);
       setLoadStatus("ready");
+      // Samonaprawa: wpisy po pobudce, zapisane pod datą doby nocy (noc zamknięta z opóźnieniem)
+      const lastNight = logsResult.items.find((log) => log.type === "night");
+      if (lastNight) {
+        repairMisdatedEntries(
+          activeChild.id,
+          lastNight,
+          activeChild.timezone || DEFAULT_TIME_ZONE,
+        ).then((moved) => {
+          if (moved > 0 && requestId === loadRequestRef.current) setRepairTick((n) => n + 1);
+        });
+      }
     } catch (error) {
       if (requestId !== loadRequestRef.current) return;
       setErrorMessage(error instanceof Error ? error.message : tRef.current("dashboard.noData"));
@@ -274,6 +287,7 @@ export function useDashboardState() {
     [nowIso, timeZone, latestNightLog],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: repairTick celowo odświeża wpisy po samonaprawie dat
   useEffect(() => {
     if (!child || isDemoData) return;
     pb.collection("day_context")
@@ -290,7 +304,7 @@ export function useDashboardState() {
           error instanceof Error ? error.message : tRef.current("dashboard.contextError"),
         ),
       );
-  }, [child, isDemoData, physiologicalDate]);
+  }, [child, isDemoData, physiologicalDate, repairTick]);
 
   const childId = child?.id;
 
