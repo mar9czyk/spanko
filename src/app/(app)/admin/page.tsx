@@ -80,7 +80,7 @@ export default function AdminPage(): ReactNode {
   }
 
   return (
-    <main className="w-full flex flex-col gap-4 pb-8">
+    <main className="selectable w-full flex flex-col gap-4 pb-8">
       <h1 className="text-lg font-semibold text-ink">Panel Admina</h1>
       {/* 11 sekcji nie mieści się w pasku zakładek na telefonie — rozwijana lista jest czytelniejsza */}
       <select
