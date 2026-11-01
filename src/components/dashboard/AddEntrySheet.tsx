@@ -6,7 +6,7 @@ import { type ReactNode, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { pb } from "@/lib/pocketbase";
 import { DEFAULT_TIME_ZONE } from "@/lib/sleep-engine";
-import type { BreastSide, DiaperKind, SleepType } from "@/lib/types/database";
+import type { BreastSide, DiaperKind, NightWakingDetail, SleepType } from "@/lib/types/database";
 import { BottleVolumeInput } from "./BottleVolumeInput";
 import { DEFAULT_BOTTLE_ML } from "./constants";
 import type { PastDayView } from "./dayHistory";
@@ -17,9 +17,16 @@ import {
   type ManualEntryRecord,
 } from "./entryCreate";
 
-type EntryKind = "nap" | "night" | "breast" | "bottle" | "diaper";
+type EntryKind = "nap" | "night" | "night_waking" | "breast" | "bottle" | "diaper";
 
-const ENTRY_KINDS: readonly EntryKind[] = ["nap", "night", "breast", "bottle", "diaper"];
+const ENTRY_KINDS: readonly EntryKind[] = [
+  "nap",
+  "night",
+  "night_waking",
+  "breast",
+  "bottle",
+  "diaper",
+];
 const DIAPER_KINDS: readonly DiaperKind[] = ["wet", "dirty", "both"];
 const BREAST_SIDES: readonly Exclude<BreastSide, "none">[] = ["left", "right", "both"];
 
@@ -48,6 +55,18 @@ async function persistManualEntry(
   childId: string,
   timeZone: string,
 ): Promise<void> {
+  if (record.collection === "night_waking") {
+    const log = await pb.collection("sleep_logs").getOne(record.logId);
+    const wakings: readonly NightWakingDetail[] = Array.isArray(log.night_wakings)
+      ? log.night_wakings
+      : [];
+    const updated = [
+      ...wakings,
+      { wokeAt: record.wokeAt, estimatedDurationMin: 15, fedMilk: false, interventions: [] },
+    ].sort((a, b) => a.wokeAt.localeCompare(b.wokeAt));
+    await pb.collection("sleep_logs").update(record.logId, { night_wakings: updated });
+    return;
+  }
   if (record.collection === "sleep_logs") {
     await pb.collection("sleep_logs").create({
       ...record.data,
@@ -161,9 +180,11 @@ export function AddEntryControl({
         ? { kind: "sleep", sleepType: kind satisfies SleepType, start, end }
         : kind === "breast"
           ? { kind, time: start, side }
-          : kind === "bottle"
-            ? { kind, time: start, ml: bottleMl }
-            : { kind, time: start, diaperKind };
+          : kind === "night_waking"
+            ? { kind, time: start }
+            : kind === "bottle"
+              ? { kind, time: start, ml: bottleMl }
+              : { kind, time: start, diaperKind };
     const record = buildManualEntry(day, draft, new Date().toISOString());
     if (typeof record === "string") {
       setError(record);

@@ -139,3 +139,36 @@ describe("buildManualEntry", () => {
     ).toBe("in_future");
   });
 });
+
+describe("buildManualEntry night waking", () => {
+  const night: TimelineEvent = {
+    id: "n1",
+    kind: "nap",
+    type: "night",
+    status: "completed",
+    startTime: "",
+    startIso: local(20, 19, 30),
+    endIso: local(21, 6, 45),
+  };
+  const nightDay: PastDayView = { ...day, events: [nap, night] };
+
+  it("attaches a waking after midnight to the night sleep", () => {
+    expect(buildManualEntry(nightDay, { kind: "night_waking", time: "02:10" }, NOW)).toEqual({
+      collection: "night_waking",
+      logId: "n1",
+      wokeAt: local(21, 2, 10),
+    });
+  });
+
+  it("rejects a waking outside the night sleep", () => {
+    expect(buildManualEntry(nightDay, { kind: "night_waking", time: "15:00" }, NOW)).toBe(
+      "no_night_sleep",
+    );
+  });
+
+  it("rejects a waking when the day has no night sleep", () => {
+    expect(buildManualEntry(day, { kind: "night_waking", time: "02:10" }, NOW)).toBe(
+      "no_night_sleep",
+    );
+  });
+});

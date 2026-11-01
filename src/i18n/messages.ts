@@ -360,6 +360,7 @@ export const pl = {
   "entryAdd.type": "Rodzaj wpisu",
   "entryAdd.kind.nap": "Drzemka",
   "entryAdd.kind.night": "Sen nocny",
+  "entryAdd.kind.night_waking": "Nocna pobudka",
   "entryAdd.kind.breast": "Pierś",
   "entryAdd.kind.bottle": "Butelka",
   "entryAdd.kind.diaper": "Pielucha",
@@ -374,6 +375,8 @@ export const pl = {
   "entryAdd.error.in_future": "Wpis nie może być w przyszłości.",
   "entryAdd.error.outside_day": "Godzina wypada poza tą dobą (od porannej pobudki do kolejnej).",
   "entryAdd.error.overlap": "Ten sen nakłada się na inny wpis snu.",
+  "entryAdd.error.no_night_sleep":
+    "Nocna pobudka musi wypadać w trakcie snu nocnego tej doby. Najpierw dodaj sen nocny.",
   "entryAdd.error.save_failed": "Nie udało się zapisać wpisu. Spróbuj ponownie.",
   "history.title": "Historia dób",
   "history.subtitle": "Ostatnie {n} dób: drzemki, karmienia i pieluchy godzina po godzinie.",
@@ -988,6 +991,7 @@ export const en: Record<MessageKey, string> = {
   "entryAdd.type": "Entry type",
   "entryAdd.kind.nap": "Nap",
   "entryAdd.kind.night": "Night sleep",
+  "entryAdd.kind.night_waking": "Night waking",
   "entryAdd.kind.breast": "Breast",
   "entryAdd.kind.bottle": "Bottle",
   "entryAdd.kind.diaper": "Diaper",
@@ -1003,6 +1007,8 @@ export const en: Record<MessageKey, string> = {
   "entryAdd.error.outside_day":
     "That time falls outside this day (morning wake-up to the next one).",
   "entryAdd.error.overlap": "This sleep overlaps another sleep entry.",
+  "entryAdd.error.no_night_sleep":
+    "A night waking must fall within this day's night sleep. Add the night sleep first.",
   "entryAdd.error.save_failed": "Could not save the entry. Please try again.",
   "history.title": "Day history",
   "history.subtitle": "The last {n} days: naps, feeds and diapers hour by hour.",

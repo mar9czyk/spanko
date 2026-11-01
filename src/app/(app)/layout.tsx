@@ -35,8 +35,8 @@ export default function AppLayout({ children }: AppLayoutProps): ReactNode {
   });
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-ink flex flex-col items-center">
-      <div className="w-full max-w-md min-h-screen flex flex-col relative px-4 pt-4 pb-32">
+    <div className="min-h-dvh bg-[#0B0F17] text-ink flex flex-col items-center">
+      <div className="w-full max-w-md min-h-dvh flex flex-col relative px-4 pt-4 pb-32">
         {guard.status === "checking" ? (
           <p className="pt-20 text-center text-sm text-slate-400">{t("common.loading")}</p>
         ) : (
