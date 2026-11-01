@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { DEFAULT_AUTH_METHODS } from "@/lib/authMethods";
 import { getServiceClient } from "@/lib/server/auth";
 import { loadAuthConfig } from "@/lib/server/authConfig";
@@ -10,6 +10,8 @@ import { loadAuthConfig } from "@/lib/server/authConfig";
  * @returns {Promise<NextResponse>} Włączone metody
  */
 export async function GET(): Promise<NextResponse> {
+  // Bez tego Next prerenderuje trasę przy buildzie (brak konta serwisowego) i zamraża wartości domyślne.
+  await connection();
   let methods = DEFAULT_AUTH_METHODS;
   try {
     const service = await getServiceClient();
