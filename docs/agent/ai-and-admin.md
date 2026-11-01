@@ -119,6 +119,17 @@ Zasady wspólne: każdy handler `/api/admin/*` zaczyna od `requireAdmin`; każda
 - Insighty (`evaluate-insights`) są teraz promptowane jako **praktyczna rada na dziś**, a wyjaśnienie „dlaczego” jest wtórne.
 - Endpointy celów: `POST /api/goals/preview` (gotowość + plan), `POST /api/goals` (start, walidacja po stronie serwera, jeden aktywny cel na dziecko), `POST /api/goals/status` (wstrzymaj/wznów/porzuć).
 
+## Logowanie i rejestracja w panelu
+Źródłem prawdy jest konfiguracja kolekcji `users` w PocketBase, która sama egzekwuje metody (`src/lib/server/authConfig.ts`, pure: `src/lib/authMethods.ts`):
+- logowanie: `passwordAuth.enabled` (e-mail), `oauth2.enabled` + dostawca `google` (Google);
+- rejestracja: warunek w `createRule` — `@request.context = "oauth2"` (tylko Google) albo `@request.context != "oauth2"` (tylko e-mail); istniejące konta logują się przez Google także przy wyłączonej rejestracji.
+
+API: `GET/PUT /api/admin/auth-config` (409, gdy nie zostanie żadna metoda logowania lub rejestracji, Google nie ma kluczy albo rejestracja jest włączona bez logowania tą metodą), `PUT /api/admin/auth-config/google` (klucze; odrzuca tylko jawne `invalid_client` z Google), publiczny `GET /api/auth/methods` (ukrywanie przycisków na ekranach logowania). Sekret Google trzyma PocketBase (w kopiach zapasowych jawnie), API go nie zwraca.
+
+**Pułapka:** import `pb_schema.json` nadpisuje `oauth2`, `passwordAuth` i `createRule` kolekcji `users`, czyli kasuje klucze Google i przełączniki. Po imporcie wpisz je ponownie w panelu.
+
+Administratorów nadaje flaga `users.is_admin` (Panel → Użytkownicy): opierają się na niej reguły API, a ostatniemu adminowi nie można jej odebrać.
+
 ## Klucz OpenRouter w panelu
 Kolejność źródeł (`resolveOpenRouterApiKey()` w `lib/openrouter.ts`, asynchroniczne, cache 30 s): `app_secrets` (panel) →
 `OPENROUTER_API_KEY` (env) → brak. Brak mastera lub błąd odszyfrowania = fallback do env + alert na Pulpicie.
