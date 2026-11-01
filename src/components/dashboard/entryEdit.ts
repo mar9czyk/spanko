@@ -215,3 +215,26 @@ export function buildEntryTimePatch(
   };
   return { collection: "sleep_logs", id: event.id, patch };
 }
+
+/** Rekord do usunięcia: kolekcja PocketBase i id wpisu. */
+export interface EntryDeleteTarget {
+  readonly collection: "sleep_logs" | "day_context";
+  readonly id: string;
+}
+
+/**
+ * Wskazuje rekord, który usuwa przycisk „Usuń wpis” w arkuszu edycji.
+ *
+ * @description
+ * Sen żyje w `sleep_logs`, karmienie, pielucha i tagi w `day_context`. Trwającego snu nie da się
+ * tu usunąć (kończy go przycisk „Wstał”), więc dla niego zwraca null.
+ *
+ * @param {TimelineEvent} event - Wpis z osi czasu
+ * @returns {EntryDeleteTarget | null} Rekord do usunięcia albo null, gdy usuwanie jest niedostępne
+ */
+export function entryDeleteTarget(event: TimelineEvent): EntryDeleteTarget | null {
+  if (event.kind === "nap") {
+    return event.status === "completed" ? { collection: "sleep_logs", id: event.id } : null;
+  }
+  return { collection: "day_context", id: event.id };
+}
