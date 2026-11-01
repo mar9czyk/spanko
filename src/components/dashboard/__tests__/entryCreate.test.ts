@@ -172,3 +172,12 @@ describe("buildManualEntry night waking", () => {
     );
   });
 });
+
+describe("buildManualEntry solid meal", () => {
+  it("saves a solid meal as feeding without breast side or ml", () => {
+    expect(buildManualEntry(day, { kind: "solid", time: "15:00" }, NOW)).toMatchObject({
+      collection: "day_context",
+      data: { event_type: "feeding", feeding_type: "solid" },
+    });
+  });
+});

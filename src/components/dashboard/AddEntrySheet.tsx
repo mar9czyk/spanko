@@ -17,7 +17,7 @@ import {
   type ManualEntryRecord,
 } from "./entryCreate";
 
-type EntryKind = "nap" | "night" | "night_waking" | "breast" | "bottle" | "diaper";
+type EntryKind = "nap" | "night" | "night_waking" | "breast" | "bottle" | "solid" | "diaper";
 
 const ENTRY_KINDS: readonly EntryKind[] = [
   "nap",
@@ -25,6 +25,7 @@ const ENTRY_KINDS: readonly EntryKind[] = [
   "night_waking",
   "breast",
   "bottle",
+  "solid",
   "diaper",
 ];
 const DIAPER_KINDS: readonly DiaperKind[] = ["wet", "dirty", "both"];
@@ -184,7 +185,9 @@ export function AddEntryControl({
             ? { kind, time: start }
             : kind === "bottle"
               ? { kind, time: start, ml: bottleMl }
-              : { kind, time: start, diaperKind };
+              : kind === "solid"
+                ? { kind, time: start }
+                : { kind, time: start, diaperKind };
     const record = buildManualEntry(day, draft, new Date().toISOString());
     if (typeof record === "string") {
       setError(record);

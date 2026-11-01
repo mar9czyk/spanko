@@ -17,6 +17,8 @@ interface FeedingSheetProps {
   readonly onSaveBreast: (side: BreastSide) => void;
   /** Butelka; bez ilości, gdy nie podano. */
   readonly onSaveBottle: (ml?: number) => void;
+  /** Posiłek stały (bez szczegółów). */
+  readonly onSaveSolid: () => void;
 }
 
 const TILE_CLASS =
@@ -35,6 +37,7 @@ export function FeedingSheet({
   onClose,
   onSaveBreast,
   onSaveBottle,
+  onSaveSolid,
 }: FeedingSheetProps): ReactNode {
   const { t, units } = useI18n();
   const [isCustomBottle, setIsCustomBottle] = useState(false);
@@ -132,6 +135,13 @@ export function FeedingSheet({
                 {t("bottle.other")}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => save(onSaveSolid)}
+              className="min-h-12 rounded-xl border border-[#263348] bg-[#1E2738] px-2 text-sm font-medium text-emerald-300"
+            >
+              {t("feedSheet.solid")}
+            </button>
             {isCustomBottle && (
               <div className="flex flex-col gap-2">
                 <BottleVolumeInput valueMl={customMl} onChange={setCustomMl} />
