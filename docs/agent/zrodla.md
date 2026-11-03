@@ -125,6 +125,8 @@ WHO 2024, *Ethics and governance of AI for health: guidance on large multi-modal
 | Dzień bez drzemki | dopuszczony od 731. dnia | [B] | Iglowstein 2003, Staton 2020 |
 | Wykrycie mniejszej liczby drzemek | ≥5 z 7 dób | [H] | spec v2.0 |
 | Okna czuwania | 35–60 … 330–390 min | [E] | Flynn-Evans, Canapari (brak walidacji) |
+| Drzemka w ruchu (wózek/auto) poza wzorcem drzemek | wyłączona z CAT4 i zwykłego snu dziennego, dzień nie wykluczony | [H] | sen liczony minuta w minutę; brak dowodu, że gorszy |
+| Fotelik < 4 mies.: kontrola co 30 min | 120 dni | [E] | Arya 2017, AAP 2022; próg wieku [H] |
 | Limity drzemek | 120 / 150 min, sen dzienny 450 → 150 min | [H] | miękka sugestia; drzemki rosną do 28. mies. (Mindell 2016) |
 | Normy pobudek nocnych | 1,7 → 0,9 (górne 3,4 → 2,5) | [B] | Galland 2012, Paavonen 2020 (interpolacja [H]) |
 | τ | 55 → 380 min | [H] | stała autorska |

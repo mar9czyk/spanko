@@ -740,7 +740,15 @@
         "required": false,
         "system": false,
         "type": "select",
-        "values": ["crib", "bedside_crib", "moses_basket", "floor_bed", "parents_bed", "stroller"]
+        "values": [
+          "crib",
+          "bedside_crib",
+          "moses_basket",
+          "floor_bed",
+          "parents_bed",
+          "stroller",
+          "car_seat"
+        ]
       },
       {
         "help": "",

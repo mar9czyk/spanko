@@ -305,6 +305,7 @@ export default function DashboardPage() {
               onSave={state.handleSaveFellAsleep}
               onDismiss={state.dismissFellAsleepPrompt}
               defaultPlace={defaultSleepPlace}
+              effectiveAgeDays={state.effectiveAgeDays}
               onSavePlace={(place) => void state.handleSaveSleepPlace(place)}
             />
           )}
