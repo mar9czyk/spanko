@@ -12,6 +12,8 @@ spanko.twojadomena.pl {
 	}
 
 	# Panel administracyjny PocketBase nie jest publiczny (dostęp przez tunel SSH: ssh -L 8090:127.0.0.1:8090)
+	# Tylko koniec logowania OAuth2 z PocketBase: strona aplikacji zamyka popup; reszta panelu zostaje zablokowana
+	redir /pb/_/ /auth/oauth2-done 302
 	@pbadmin path /pb/_ /pb/_/*
 	respond @pbadmin 404
 

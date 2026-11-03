@@ -6,6 +6,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { OnboardingShell, onboardingStyles } from "@/components/onboarding/OnboardingShell";
 import { useI18n } from "@/i18n/I18nProvider";
 import { MIN_PASSWORD_LENGTH, signUpWithEmail } from "@/lib/pocketbase";
+import { useAuthMethods } from "@/lib/useAuthMethods";
 
 /**
  * Rejestracja e-mailem: adres, hasło (min. 10 znaków, podgląd) i opcjonalne imię.
@@ -21,6 +22,23 @@ export default function SignupPage(): ReactNode {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const methods = useAuthMethods();
+
+  if (methods?.signup.email === false) {
+    return (
+      <OnboardingShell
+        title={t("signup.title")}
+        subtitle={t("auth.methodDisabled")}
+        footer={
+          <Link href="/login" className="text-center text-xs text-slate-500 underline">
+            {t("common.back")}
+          </Link>
+        }
+      >
+        {null}
+      </OnboardingShell>
+    );
+  }
 
   const canSubmit = email.includes("@") && password.length >= MIN_PASSWORD_LENGTH && !busy;
 

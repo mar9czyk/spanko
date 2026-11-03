@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { AuditTab } from "@/components/admin/AuditTab";
+import { AuthMethodsTab } from "@/components/admin/AuthMethodsTab";
 import { CalibrationTab } from "@/components/admin/CalibrationTab";
 import { ChildrenTab } from "@/components/admin/ChildrenTab";
 import { ContentTab } from "@/components/admin/ContentTab";
@@ -40,6 +41,7 @@ const TAB_GROUPS = [
     label: "Aplikacja",
     tabs: [
       { id: "content", label: "Treści i ogłoszenia" },
+      { id: "auth", label: "Logowanie i rejestracja" },
       { id: "system", label: "System" },
       { id: "audit", label: "Dziennik działań" },
     ],
@@ -119,6 +121,7 @@ export default function AdminPage(): ReactNode {
       {activeTab === "matrix" && <MatrixTab />}
       {activeTab === "calibration" && <CalibrationTab />}
       {activeTab === "content" && <ContentTab />}
+      {activeTab === "auth" && <AuthMethodsTab />}
       {activeTab === "system" && <SystemTab />}
       {activeTab === "audit" && <AuditTab />}
     </main>

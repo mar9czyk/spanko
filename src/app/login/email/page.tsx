@@ -6,6 +6,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { OnboardingShell, onboardingStyles } from "@/components/onboarding/OnboardingShell";
 import { useI18n } from "@/i18n/I18nProvider";
 import { signInWithEmail } from "@/lib/pocketbase";
+import { useAuthMethods } from "@/lib/useAuthMethods";
 
 /**
  * Logowanie e-mailem i hasłem; błąd jest zawsze ogólny, żeby nie zdradzać, czy konto istnieje.
@@ -19,6 +20,23 @@ export default function EmailLoginPage(): ReactNode {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const methods = useAuthMethods();
+
+  if (methods?.login.email === false) {
+    return (
+      <OnboardingShell
+        title={t("loginEmail.title")}
+        subtitle={t("auth.methodDisabled")}
+        footer={
+          <Link href="/login" className="text-center text-xs text-slate-500 underline">
+            {t("common.back")}
+          </Link>
+        }
+      >
+        {null}
+      </OnboardingShell>
+    );
+  }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
