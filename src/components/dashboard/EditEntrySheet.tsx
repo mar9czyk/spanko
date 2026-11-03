@@ -22,6 +22,7 @@ import {
   type EntryEditError,
   type EntryEditPatch,
   entryDeleteTarget,
+  MAX_FALL_ASLEEP_MIN,
   toClockInputValue,
 } from "./entryEdit";
 import { SleepHowPicker } from "./SleepHowPicker";
@@ -105,6 +106,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
   const { t } = useI18n();
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [fallAsleepMin, setFallAsleepMin] = useState("");
   const [mood, setMood] = useState<SleepMood | undefined>(undefined);
   const [interventions, setInterventions] = useState<readonly InterventionLevel[]>([]);
   const [bottleMl, setBottleMl] = useState<number | undefined>(undefined);
@@ -119,6 +121,11 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
     if (!event) return;
     setStart(toClockInputValue(event.kind === "nap" ? event.startIso : event.timeIso));
     setEnd(event.kind === "nap" ? toClockInputValue(event.endIso) : "");
+    setFallAsleepMin(
+      event.kind === "nap" && event.startField === "fell_asleep_at"
+        ? String(event.fallAsleepMinutes ?? 0)
+        : "",
+    );
     setMood(event.kind === "nap" ? event.mood : undefined);
     setInterventions(event.kind === "nap" ? (event.interventions ?? []) : []);
     setBottleMl(
@@ -160,6 +167,7 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
         breastMinutes,
         ...(event.kind === "nap"
           ? {
+              ...(fallAsleepMin === "" ? {} : { fallAsleepMin: Number(fallAsleepMin) }),
               mood: mood ?? null,
               interventions,
               ...(event.type === "night" ? { nightWakings: wakings } : {}),
@@ -247,6 +255,23 @@ export function EditEntrySheet({ event, onClose, onSaved }: EditEntrySheetProps)
                 <TimeField label={t("entryEdit.sleepEnd")} value={end} onChange={setEnd} />
               )}
             </div>
+            {isSleep && event.startField === "fell_asleep_at" && (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {t("entryEdit.fallAsleepMin")}
+                </span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={MAX_FALL_ASLEEP_MIN}
+                  step={1}
+                  value={fallAsleepMin}
+                  onChange={(change) => setFallAsleepMin(change.target.value)}
+                  className={TIME_INPUT_CLASS}
+                />
+              </label>
+            )}
             {isSleep && (
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
