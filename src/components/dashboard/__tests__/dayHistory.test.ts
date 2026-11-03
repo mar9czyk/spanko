@@ -72,6 +72,16 @@ describe("shiftPhysiologicalDate", () => {
 });
 
 describe("buildPastDay", () => {
+  it("pokazuje drzemkę, która nigdy nie została zakończona", () => {
+    const open = sleepLog({
+      id: "nap-open",
+      status: "sleeping",
+      fell_asleep_at: "2026-10-18T13:00:00Z",
+    });
+    const day = buildPastDay("2026-10-18", [...LOGS, open], []);
+    expect(day.events.map((event) => event.id)).toContain("nap-open");
+  });
+
   const contexts = [
     context({ id: "feed-1", timestamp: "2026-10-18T06:00:00Z" }),
     context({ id: "feed-2", timestamp: "2026-10-18T10:00:00Z" }),

@@ -105,6 +105,20 @@ describe("buildEntryTimePatch", () => {
     });
   });
 
+  it("sen: czas usypiania ustawia odłożenie względem zaśnięcia", () => {
+    expect(
+      buildEntryTimePatch(nap, { start: "12:00", end: "13:00", fallAsleepMin: 25 }, NOW),
+    ).toMatchObject({
+      patch: { fell_asleep_at: local(21, 12, 0), put_down_at: local(21, 11, 35) },
+    });
+    expect(
+      buildEntryTimePatch(nap, { start: "12:00", end: "13:00", fallAsleepMin: 0 }, NOW),
+    ).toMatchObject({ patch: { put_down_at: local(21, 12, 0) } });
+    expect(buildEntryTimePatch(nap, { start: "12:00", end: "13:00", fallAsleepMin: -5 }, NOW)).toBe(
+      "invalid_time",
+    );
+  });
+
   it("sen bez zaśnięcia zmienia odłożenie", () => {
     const putDownOnly: TimelineEvent = {
       ...nap,

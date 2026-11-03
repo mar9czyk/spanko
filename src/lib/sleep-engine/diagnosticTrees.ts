@@ -1,3 +1,4 @@
+import { isMotionSleepPlace } from "../sleep-environment";
 import { isIllnessDay } from "./dayModes";
 import { hasDayTag } from "./dayTags";
 import {
@@ -642,7 +643,8 @@ function collectNapDaySignals(logs: readonly SleepLog[]): readonly NapDaySignal[
     const dayNaps = naps
       .filter((n) => n.physiologicalDate === date)
       .toSorted((a, b) => toMs(a.putDownAt) - toMs(b.putDownAt));
-    const lastNap = dayNaps[dayNaps.length - 1];
+    // Drzemka w ruchu (wózek, auto) nie mówi nic o oporze przed snem
+    const lastNap = dayNaps.filter((n) => !isMotionSleepPlace(n.sleepPlace)).at(-1);
     const night = logs.find((l) => l.type === "night" && l.physiologicalDate === date);
     const hasResistance =
       (lastNap !== undefined && latencyMinutes(lastNap) >= NAP_RESISTANCE_LATENCY_MINUTES) ||
@@ -750,7 +752,9 @@ export function evaluateCat4ShortNapsAndTransitions(
   const transition = detectNapTransition(input.recentSleepLogs, effectiveAgeDays);
   if (transition) return buildNapTransitionResult(transition);
 
-  const naps = input.recentSleepLogs.filter((l) => l.type === "nap" && l.status === "completed");
+  const naps = input.recentSleepLogs.filter(
+    (l) => l.type === "nap" && l.status === "completed" && !isMotionSleepPlace(l.sleepPlace),
+  );
   const shortNaps = naps.filter((n) => {
     if (!n.wokeUpAt || !n.fellAsleepAt) return false;
     const dur = (toMs(n.wokeUpAt) - toMs(n.fellAsleepAt)) / MILLISECONDS_PER_MINUTE;

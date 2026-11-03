@@ -228,3 +228,55 @@ describe("Tryby dnia: wcześniejszy sen po dniu w drodze", () => {
     expect(onTheGo.sweetSpotIso).toBe(home.sweetSpotIso);
   });
 });
+
+describe("Drzemka w ruchu w zwykły dzień", () => {
+  const nap = (id: number, minutes: number, sleepPlace?: string): SleepLog => {
+    const putDownAt = addMinutes("2026-04-10T10:00:00.000Z", id * 24 * 60);
+    return {
+      id: `nap-${id}`,
+      childId: "c",
+      physiologicalDate: putDownAt.slice(0, 10),
+      type: "nap",
+      status: "completed",
+      putDownAt,
+      fellAsleepAt: putDownAt,
+      wokeUpAt: addMinutes(putDownAt, minutes),
+      interventions: [],
+      nightWakings: [],
+      ...(sleepPlace ? { sleepPlace } : {}),
+    };
+  };
+  const cat4 = (logs: readonly SleepLog[]) => {
+    const base = input("home");
+    return evaluateAll7DiagnosticCategories({ ...base, recentSleepLogs: logs }).find(
+      (r) => r.category === "CAT4_SHORT_NAPS_TRANSITIONS",
+    );
+  };
+
+  it("krótkie drzemki w domu zgłaszają CAT4", () => {
+    expect(cat4([nap(0, 30), nap(1, 30), nap(2, 30)])?.isTriggered).toBe(true);
+  });
+
+  it("krótkie drzemki w wózku i aucie nie zgłaszają CAT4", () => {
+    expect(
+      cat4([nap(0, 30, "stroller"), nap(1, 30, "car_seat"), nap(2, 30, "stroller")])?.isTriggered,
+    ).toBe(false);
+  });
+
+  it("resolveUsualNapStats pomija drzemki w ruchu", () => {
+    const day = (date: string, stationary: number, total: number): DailySleepSummary => ({
+      physiologicalDate: date,
+      totalSleepMin: total,
+      isIllOrIgnored: false,
+      daytimeSleepMin: total,
+      napCount: 2,
+      longestNapMin: total / 2,
+      stationaryDaytimeSleepMin: stationary,
+      stationaryNapCount: 1,
+      stationaryLongestNapMin: stationary,
+    });
+    const stats = resolveUsualNapStats([day("2026-04-14", 90, 120), day("2026-04-13", 90, 100)]);
+    expect(stats.daytimeMin).toBe(90);
+    expect(stats.longestNapMin).toBe(90);
+  });
+});

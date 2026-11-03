@@ -34,12 +34,12 @@ describe("słowniki", () => {
 
 describe("translate", () => {
   it("podstawia parametry", () => {
-    expect(translate("en", "timeline.wake", { time: "06:30" })).toBe("Wake-up 06:30");
-    expect(translate("pl", "timeline.wake", { time: "06:30" })).toBe("Pobudka 06:30");
+    expect(translate("en", "timeline.chipWake", { time: "06:30" })).toBe("wake-up 06:30");
+    expect(translate("pl", "timeline.chipWake", { time: "06:30" })).toBe("pobudka 06:30");
   });
 
   it("zostawia nieznany parametr bez zmian", () => {
-    expect(translate("en", "timeline.wake")).toBe("Wake-up {time}");
+    expect(translate("en", "timeline.chipWake")).toBe("wake-up {time}");
   });
 
   it("translateDynamic zwraca fallback dla nieznanego klucza (np. własny tag)", () => {

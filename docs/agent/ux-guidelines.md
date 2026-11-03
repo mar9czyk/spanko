@@ -76,6 +76,9 @@ Widok `/dashboard` składa się z zintegrowanych stref:
 ### 3.4. Oś Czasu Doby Fizjologicznej
 - Karty zdarzeń bieżącej doby (drzemki, karmienia piersią L/P lub butelką ml, tagi ząbkowania/spaceru).
 - Wyraźne oznaczenie granicy doby (poranna pobudka).
+- **Stos trzech dób** na pulpicie (Dziś / Wczoraj / Przedwczoraj) zamiast przełączania dat; starsze doby w Historii. Paski mają wspólną oś zegarową (start = najwcześniejsza poranna pobudka z trzech dób, w dół do pełnej godziny); fragment przed pobudką jest przygaszony, pobudka to bursztynowa kropka.
+- Pod paskiem rząd samych ikon z liczbami (bez tła): słonko + godzina pobudki, księżyc + łączny czas drzemek, butelka + karmienia, kropla + siku, kupka + kupki, budzik + pobudki nocne (zamknięte doby). Zera przygaszone.
+- Akordeon: naraz otwarta jedna doba; stopka „Pokaż N wpisów” (bursztynowa, min. 44 px) rozwija listę w tej samej ramce i przewija kartę do góry ekranu.
 
 ### 3.5. Dolny Pasek Akcji (Floating Action Bar)
 - **Układ w dzień:** `[Karmienie]` `[Pielucha]` duży przycisk snu `[+]`. Karmienie i Pielucha to kafelki z ikoną i podpisem, `+` to sam znak.

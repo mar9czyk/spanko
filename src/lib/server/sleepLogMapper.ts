@@ -25,5 +25,6 @@ export function mapRecordToSleepLog(record: SleepLogRecord): SleepLog {
     isReboundSleep: record.is_rebound_sleep,
     ignoreInCalibration: record.ignore_in_calibration,
     timeZone: record.timezone || undefined,
+    sleepPlace: record.sleep_place || undefined,
   };
 }

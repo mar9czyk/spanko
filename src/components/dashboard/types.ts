@@ -23,6 +23,8 @@ export interface TimelineNapEvent {
   /** Pole logu, które wyznacza start (zaśnięcie albo samo odłożenie). */
   readonly startField?: "fell_asleep_at" | "put_down_at";
   readonly putDownIso?: string;
+  /** Ile minut trwało usypianie (odłożenie → zaśnięcie); brak, gdy nie zapisano obu momentów. */
+  readonly fallAsleepMinutes?: number;
   readonly endIso?: string;
   readonly durationMinutes?: number;
   readonly mood?: SleepMood;

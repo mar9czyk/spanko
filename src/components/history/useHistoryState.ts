@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { shiftPhysiologicalDate } from "@/components/dashboard/dayHistory";
 import { usePastDays } from "@/components/dashboard/usePastDays";
 import { loadActiveChild } from "@/lib/client-data";
 import { pb } from "@/lib/pocketbase";
@@ -11,17 +10,17 @@ import type { ChildRecord, SleepLogRecord } from "@/lib/types/database";
 export const HISTORY_DAYS = 14;
 
 /**
- * Stan ekranu Historia: aktywne dziecko i jego zamknięte doby sprzed bieżącej.
+ * Stan ekranu Historia: aktywne dziecko i jego doby, bieżąca na górze.
  *
  * @description
  * Bieżącą dobę wyznacza tak samo jak pulpit (ostatnia noc + strefa dziecka), a potem ładuje
- * {@link HISTORY_DAYS} wcześniejszych dób, najnowsza pierwsza.
+ * {@link HISTORY_DAYS} dób wraz z bieżącą, najnowsza pierwsza.
  *
  * @returns {object} Dziecko, status, doby i przeładowanie po edycji
  */
 export function useHistoryState() {
   const [child, setChild] = useState<ChildRecord | null>(null);
-  const [lastDate, setLastDate] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState<string | null>(null);
   const [setupStatus, setSetupStatus] = useState<"loading" | "ready" | "empty" | "error">(
     "loading",
   );
@@ -53,7 +52,7 @@ export function useHistoryState() {
       });
       if (!isCurrent) return;
       setChild(activeChild);
-      setLastDate(shiftPhysiologicalDate(today, -1));
+      setCurrentDate(today);
       setSetupStatus("ready");
     })().catch(() => {
       if (isCurrent) setSetupStatus("error");
@@ -63,10 +62,12 @@ export function useHistoryState() {
     };
   }, []);
 
-  const { status: daysStatus, days, reload } = usePastDays(child?.id, lastDate, HISTORY_DAYS);
+  const { status: daysStatus, days, reload } = usePastDays(child?.id, currentDate, HISTORY_DAYS);
   const status = setupStatus === "ready" ? daysStatus : setupStatus;
   return {
     child,
+    /** Bieżąca doba (pierwsza na liście, jeszcze niezamknięta). */
+    currentDate,
     status: status === "idle" ? "loading" : status,
     days,
     reload,

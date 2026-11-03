@@ -25,6 +25,18 @@ export function translate(locale: Locale, key: MessageKey, params?: TranslatePar
 }
 
 /**
+ * Przyrostek klucza liczby mnogiej (`one` / `few` / `many`) dla języka; angielskie „other” → `many`.
+ *
+ * @param {Locale} locale - Język
+ * @param {number} count - Liczba
+ * @returns {"one" | "few" | "many"} Przyrostek do klucza `nazwa.<przyrostek>`
+ */
+export function pluralSuffix(locale: Locale, count: number): "one" | "few" | "many" {
+  const category = new Intl.PluralRules(locale).select(count);
+  return category === "one" || category === "few" ? category : "many";
+}
+
+/**
  * Tłumaczy klucz dynamiczny (np. tag użytkownika); brak klucza = `fallback`.
  *
  * @param {Locale} locale - Język

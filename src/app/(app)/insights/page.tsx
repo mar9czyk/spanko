@@ -44,7 +44,11 @@ export default function InsightsPage(): ReactNode {
 
   return (
     <main className="w-full flex flex-col gap-4 pb-8">
-      <InsightsHeader isEvaluating={isEvaluating} onTriggerEvaluation={handleTriggerAiEvaluation} />
+      <InsightsHeader
+        child={child}
+        isEvaluating={isEvaluating}
+        onTriggerEvaluation={handleTriggerAiEvaluation}
+      />
 
       {errorMessage && (
         <p

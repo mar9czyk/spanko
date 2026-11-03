@@ -20,8 +20,51 @@ export const SLEEP_PLACES = [
   "floor_bed",
   "parents_bed",
   "stroller",
+  "car_seat",
 ] as const;
 export type SleepPlace = (typeof SLEEP_PLACES)[number];
+
+/** Miejsca „w ruchu”: zaśnięcie w drodze nie wyklucza doby i nie wchodzi do wzorców drzemek. */
+export const MOTION_SLEEP_PLACES = ["stroller", "car_seat"] as const;
+
+/** Miejsca do wyboru w profilu „Gdzie i jak śpi”: auto to wyjątek, nie zwykłe miejsce snu. */
+export type ProfileSleepPlace = Exclude<SleepPlace, "car_seat">;
+export const PROFILE_SLEEP_PLACES: readonly ProfileSleepPlace[] = SLEEP_PLACES.filter(
+  (place): place is ProfileSleepPlace => place !== "car_seat",
+);
+
+/** Poniżej tego wieku (4 mies., ok. 120 dni) sen w foteliku wymaga kontroli co 30 min. */
+export const CAR_SEAT_SUPERVISION_MAX_AGE_DAYS = 120;
+
+/**
+ * Czy sen odbył się w ruchu (wózek, auto).
+ *
+ * @param {string | undefined | null} place - Wartość `sleep_place` wpisu
+ * @returns {boolean} True dla wózka i auta
+ */
+export function isMotionSleepPlace(place: string | undefined | null): boolean {
+  return place === "stroller" || place === "car_seat";
+}
+
+/**
+ * Porada bezpieczeństwa po zaśnięciu w foteliku: do 4. mies. kontrola co 30 min
+ * i wyjęcie dziecka po dojechaniu (Arya 2017, AAP 2022).
+ *
+ * @param {string | undefined} place - Wybrane miejsce snu tej drzemki
+ * @param {number} effectiveAgeDays - Wiek korygowany dziecka w dniach
+ * @param {EnvironmentLocale} locale - Język tekstu
+ * @returns {string | null} Tekst porady albo null, gdy nie dotyczy
+ */
+export function resolveCarSeatSafetyAdvice(
+  place: string | undefined,
+  effectiveAgeDays: number,
+  locale: EnvironmentLocale,
+): string | null {
+  if (place !== "car_seat" || effectiveAgeDays >= CAR_SEAT_SUPERVISION_MAX_AGE_DAYS) return null;
+  return locale === "pl"
+    ? "Niemowlę w foteliku: sprawdzaj dziecko co 30 minut (oddech, kolor skóry, ułożenie główki) i po dojechaniu przełóż je na płaską, twardą powierzchnię. Fotelik to nie miejsce na dłuższy sen."
+    : "Baby in a car seat: check on them every 30 minutes (breathing, skin colour, head position) and move them to a flat, firm surface once you arrive. A car seat is not for longer sleep.";
+}
 
 export const SLEEP_ROOMS = ["own", "parents"] as const;
 export const BLACKOUT_LEVELS = ["yes", "partial", "no"] as const;
@@ -32,8 +75,8 @@ export const SCREEN_LEVELS = ["usually", "rarely"] as const;
 
 /** Profil środowiska snu (children.sleep_environment); wszystkie pola opcjonalne. */
 export interface SleepEnvironment {
-  readonly nightPlace?: SleepPlace;
-  readonly napPlace?: SleepPlace;
+  readonly nightPlace?: ProfileSleepPlace;
+  readonly napPlace?: ProfileSleepPlace;
   readonly room?: (typeof SLEEP_ROOMS)[number];
   readonly blackout?: (typeof BLACKOUT_LEVELS)[number];
   readonly nightLight?: (typeof NIGHT_LIGHTS)[number];
@@ -244,8 +287,8 @@ export function parseSleepEnvironment(raw: unknown): SleepEnvironment {
   if (!raw || typeof raw !== "object") return {};
   const r = raw as Record<string, unknown>;
   return {
-    ...(isOneOf(SLEEP_PLACES, r.nightPlace) ? { nightPlace: r.nightPlace } : {}),
-    ...(isOneOf(SLEEP_PLACES, r.napPlace) ? { napPlace: r.napPlace } : {}),
+    ...(isOneOf(PROFILE_SLEEP_PLACES, r.nightPlace) ? { nightPlace: r.nightPlace } : {}),
+    ...(isOneOf(PROFILE_SLEEP_PLACES, r.napPlace) ? { napPlace: r.napPlace } : {}),
     ...(isOneOf(SLEEP_ROOMS, r.room) ? { room: r.room } : {}),
     ...(isOneOf(BLACKOUT_LEVELS, r.blackout) ? { blackout: r.blackout } : {}),
     ...(isOneOf(NIGHT_LIGHTS, r.nightLight) ? { nightLight: r.nightLight } : {}),

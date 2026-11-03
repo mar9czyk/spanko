@@ -10,10 +10,10 @@ import {
   BLACKOUT_LEVELS,
   hasSleepEnvironment,
   NIGHT_LIGHTS,
+  PROFILE_SLEEP_PLACES,
   parseSleepEnvironment,
   ROOM_TEMPS,
   SCREEN_LEVELS,
-  SLEEP_PLACES,
   SLEEP_ROOMS,
   type SleepEnvironment,
   WHITE_NOISE_LEVELS,
@@ -108,14 +108,14 @@ export function SleepEnvironmentSection(): ReactNode {
     <div className="flex flex-col gap-4">
       <ChipGroup
         label={t("env.nightPlace")}
-        options={SLEEP_PLACES}
+        options={PROFILE_SLEEP_PLACES}
         labelOf={(o) => t(`env.place.${o}` as MessageKey)}
         value={env.nightPlace}
         onSelect={(v) => update({ nightPlace: v })}
       />
       <ChipGroup
         label={t("env.napPlace")}
-        options={SLEEP_PLACES}
+        options={PROFILE_SLEEP_PLACES}
         labelOf={(o) => t(`env.place.${o}` as MessageKey)}
         value={env.napPlace}
         onSelect={(v) => update({ napPlace: v })}

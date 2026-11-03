@@ -64,7 +64,8 @@ export function buildPastDay(
     .filter((record) => record.physiological_date === date)
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   const dayLogs = logs
-    .filter((log) => log.physiological_date === date && log.status === "completed")
+    // Także niezakończone (np. zapomniane „śpi”), inaczej drzemka znika z historii
+    .filter((log) => log.physiological_date === date)
     .sort((a, b) =>
       (b.fell_asleep_at || b.put_down_at || "").localeCompare(
         a.fell_asleep_at || a.put_down_at || "",
