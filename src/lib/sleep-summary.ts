@@ -1,4 +1,5 @@
 import type { DailySleepSummary } from "@/lib/sleep-engine/types";
+import { isMotionSleepPlace } from "@/lib/sleep-environment";
 import type { SleepLogRecord } from "@/lib/types/database";
 
 export const MILLISECONDS_PER_MINUTE = 60_000;
@@ -23,6 +24,9 @@ interface DailyAccumulator {
   nightSleepMin: number;
   napCount: number;
   longestNapMin: number;
+  stationaryDaytimeSleepMin: number;
+  stationaryNapCount: number;
+  stationaryLongestNapMin: number;
   isIllOrIgnored: boolean;
   isRebound: boolean;
 }
@@ -50,6 +54,9 @@ export function aggregateDailySleepSummaries(
       nightSleepMin: 0,
       napCount: 0,
       longestNapMin: 0,
+      stationaryDaytimeSleepMin: 0,
+      stationaryNapCount: 0,
+      stationaryLongestNapMin: 0,
       isIllOrIgnored: false,
       isRebound: false,
     };
@@ -58,6 +65,11 @@ export function aggregateDailySleepSummaries(
       day.daytimeSleepMin += duration;
       day.napCount += 1;
       day.longestNapMin = Math.max(day.longestNapMin, duration);
+      if (!isMotionSleepPlace(record.sleep_place)) {
+        day.stationaryDaytimeSleepMin += duration;
+        day.stationaryNapCount += 1;
+        day.stationaryLongestNapMin = Math.max(day.stationaryLongestNapMin, duration);
+      }
     } else {
       day.nightSleepMin += duration;
     }

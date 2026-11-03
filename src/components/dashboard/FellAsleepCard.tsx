@@ -1,13 +1,23 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { MessageKey } from "@/i18n/messages";
-import { SLEEP_PLACES, type SleepPlace } from "@/lib/sleep-environment";
+import { resolveCarSeatSafetyAdvice, SLEEP_PLACES, type SleepPlace } from "@/lib/sleep-environment";
 import type { InterventionLevel, SleepMood } from "@/lib/types/database";
 import { SleepHowPicker } from "./SleepHowPicker";
 
 const AUTO_DISMISS_MS = 15_000;
+
+const PLACE_ICONS: Partial<Record<SleepPlace, string>> = { stroller: "🚶", car_seat: "🚗" };
+
+/** Najpierw miejsca w ruchu, potem łóżka; zwykłe miejsce z profilu pomijamy. */
+const PLACE_ORDER: readonly SleepPlace[] = [
+  "stroller",
+  "car_seat",
+  ...SLEEP_PLACES.filter((place) => place !== "stroller" && place !== "car_seat"),
+];
 
 interface FellAsleepCardProps {
   readonly onSave: (
@@ -15,8 +25,10 @@ interface FellAsleepCardProps {
     interventions: readonly InterventionLevel[],
   ) => void;
   readonly onDismiss: () => void;
-  /** Domyślne miejsce snu z profilu dziecka; bez niego chip „dziś gdzie indziej” się nie pokazuje. */
+  /** Zwykłe miejsce snu z profilu dziecka (pomijane na liście); brak profilu nie chowa chipa. */
   readonly defaultPlace?: SleepPlace;
+  /** Wiek korygowany w dniach, do porady bezpieczeństwa przy foteliku. */
+  readonly effectiveAgeDays?: number;
   readonly onSavePlace?: (place: SleepPlace | "") => void;
 }
 
@@ -31,9 +43,10 @@ export function FellAsleepCard({
   onSave,
   onDismiss,
   defaultPlace,
+  effectiveAgeDays,
   onSavePlace,
 }: FellAsleepCardProps): ReactNode {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [mood, setMood] = useState<SleepMood | undefined>(undefined);
   const [interventions, setInterventions] = useState<readonly InterventionLevel[]>([]);
   const [placeOpen, setPlaceOpen] = useState(false);
@@ -46,6 +59,10 @@ export function FellAsleepCard({
     return () => clearTimeout(timer);
   }, [mood, interventions, place, placeOpen, onDismiss]);
 
+  const carSeatAdvice =
+    effectiveAgeDays === undefined
+      ? null
+      : resolveCarSeatSafetyAdvice(place, effectiveAgeDays, locale === "pl" ? "pl" : "en");
   const hasChoice = mood !== undefined || interventions.length > 0;
   return (
     <section
@@ -71,19 +88,30 @@ export function FellAsleepCard({
           onSave(nextMood, nextInterventions);
         }}
       />
-      {defaultPlace && onSavePlace && (
+      {onSavePlace && (
         <div className="flex flex-col gap-1.5">
           <button
             type="button"
             aria-expanded={placeOpen}
             onClick={() => setPlaceOpen((open) => !open)}
-            className="min-h-10 w-fit rounded-lg border border-[#263348] bg-[#1E2738] px-3 text-sm text-slate-300"
+            className={`flex min-h-10 w-fit items-center gap-1.5 rounded-lg border px-3 text-sm ${place ? "border-amber-400/60 bg-amber-950/40 text-amber-200" : "border-[#263348] bg-[#1E2738] text-slate-300"}`}
           >
-            {t("env.elsewhere")}
+            {place ? (
+              <>
+                <span aria-hidden="true">{PLACE_ICONS[place]}</span>
+                {t(`env.place.${place}` as MessageKey)}
+              </>
+            ) : (
+              t("env.elsewhere")
+            )}
+            <ChevronDown
+              aria-hidden="true"
+              className={`size-4 transition-transform ${placeOpen ? "rotate-180" : ""}`}
+            />
           </button>
           {placeOpen && (
             <div className="flex flex-wrap gap-1.5" title={t("env.elsewhereLabel")}>
-              {SLEEP_PLACES.filter((option) => option !== defaultPlace).map((option) => {
+              {PLACE_ORDER.filter((option) => option !== defaultPlace).map((option) => {
                 const selected = place === option;
                 return (
                   <button
@@ -96,11 +124,17 @@ export function FellAsleepCard({
                     }}
                     className={`min-h-10 rounded-lg border px-3 text-sm ${selected ? "border-amber-400/60 bg-amber-950/40 text-amber-200" : "border-[#263348] bg-[#1E2738] text-slate-300"}`}
                   >
+                    {PLACE_ICONS[option] ? `${PLACE_ICONS[option]} ` : ""}
                     {t(`env.place.${option}` as MessageKey)}
                   </button>
                 );
               })}
             </div>
+          )}
+          {carSeatAdvice && (
+            <p role="note" className="rounded-lg bg-amber-950/40 px-3 py-2 text-xs text-amber-200">
+              {carSeatAdvice}
+            </p>
           )}
         </div>
       )}

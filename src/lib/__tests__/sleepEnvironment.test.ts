@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   hasSleepEnvironment,
+  isMotionSleepPlace,
   parseSleepEnvironment,
+  resolveCarSeatSafetyAdvice,
   type SleepEnvironment,
   sleepEnvironmentAdvice,
   sleepEnvironmentCodes,
@@ -90,5 +92,27 @@ describe("parseSleepEnvironment", () => {
   it("hasSleepEnvironment wykrywa choć jedną odpowiedź", () => {
     expect(hasSleepEnvironment({})).toBe(false);
     expect(hasSleepEnvironment({ smokingAtHome: false })).toBe(true);
+  });
+});
+
+describe("miejsce w ruchu: wózek i auto", () => {
+  it("auto nie jest zwykłym miejscem snu w profilu", () => {
+    expect(parseSleepEnvironment({ napPlace: "car_seat" })).toEqual({});
+    expect(parseSleepEnvironment({ napPlace: "stroller" })).toEqual({ napPlace: "stroller" });
+  });
+
+  it("wózek i auto to ruch, łóżeczko nie", () => {
+    expect(isMotionSleepPlace("stroller")).toBe(true);
+    expect(isMotionSleepPlace("car_seat")).toBe(true);
+    expect(isMotionSleepPlace("crib")).toBe(false);
+    expect(isMotionSleepPlace(undefined)).toBe(false);
+  });
+
+  it("porada o kontroli co 30 min tylko w foteliku poniżej 4 mies.", () => {
+    expect(resolveCarSeatSafetyAdvice("car_seat", 60, "pl")).toContain("30 minut");
+    expect(resolveCarSeatSafetyAdvice("car_seat", 60, "en")).toContain("30 minutes");
+    expect(resolveCarSeatSafetyAdvice("car_seat", 120, "pl")).toBeNull();
+    expect(resolveCarSeatSafetyAdvice("stroller", 60, "pl")).toBeNull();
+    expect(resolveCarSeatSafetyAdvice(undefined, 60, "pl")).toBeNull();
   });
 });

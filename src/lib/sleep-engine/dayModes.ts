@@ -160,6 +160,10 @@ function medianOrNull(values: readonly number[]): number | null {
 /**
  * Zwykły sen dzienny i najdłuższa drzemka dziecka z ostatnich pełnych dób z drzemkami.
  *
+ * @description
+ * Drzemki w ruchu (wózek, auto) nie wchodzą do wzorca: są krótsze z powodów, które nie mówią
+ * nic o zwykłym śnie dziecka. Sam sen liczy się minuta w minutę w innych miejscach silnika.
+ *
  * @param {readonly DailySleepSummary[]} completedDays - Pełne doby, najnowsza pierwsza
  * @returns {{ daytimeMin: number | null; longestNapMin: number | null }} Mediany albo null
  */
@@ -168,11 +172,13 @@ export function resolveUsualNapStats(completedDays: readonly DailySleepSummary[]
   readonly longestNapMin: number | null;
 } {
   const days = completedDays
-    .filter((d) => !d.isIllOrIgnored && (d.napCount ?? 0) > 0)
+    .filter((d) => !d.isIllOrIgnored && (d.stationaryNapCount ?? d.napCount ?? 0) > 0)
     .slice(0, USUAL_DAYTIME_SAMPLE_DAYS);
   return {
-    daytimeMin: medianOrNull(days.map((d) => d.daytimeSleepMin ?? 0)),
-    longestNapMin: medianOrNull(days.map((d) => d.longestNapMin ?? 0)),
+    daytimeMin: medianOrNull(
+      days.map((d) => d.stationaryDaytimeSleepMin ?? d.daytimeSleepMin ?? 0),
+    ),
+    longestNapMin: medianOrNull(days.map((d) => d.stationaryLongestNapMin ?? d.longestNapMin ?? 0)),
   };
 }
 

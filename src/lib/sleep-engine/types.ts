@@ -75,6 +75,8 @@ export interface SleepLog {
   readonly ignoreInCalibration?: boolean;
   /** Strefa IANA, w której powstał wpis (podróż); brak = stary wpis. */
   readonly timeZone?: string;
+  /** Miejsce snu, gdy inne niż zwykłe (np. `stroller`, `car_seat`); brak = zwykłe. */
+  readonly sleepPlace?: string;
 }
 
 export interface AgeBracketConfig {
@@ -108,6 +110,10 @@ export interface DailySleepSummary {
   readonly napCount?: number;
   /** Najdłuższa drzemka doby w minutach. */
   readonly longestNapMin?: number;
+  /** Jak wyżej, ale bez drzemek w ruchu (wózek, auto): podstawa „zwykłego” snu dziennego. */
+  readonly stationaryDaytimeSleepMin?: number;
+  readonly stationaryNapCount?: number;
+  readonly stationaryLongestNapMin?: number;
   /** Rodzic oznaczył sen w tej dobie jako odsypianie (rebound). */
   readonly isRebound?: boolean;
 }
