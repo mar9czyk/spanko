@@ -155,6 +155,8 @@ export interface InsightEvaluationContext {
     confidenceScore?: number;
     algorithmOverride?: Record<string, unknown>;
   }[];
+  /** Opis miejsc drzemek (kontaktowe vs pozostałe) z silnika; brak = brak drzemek kontaktowych. */
+  readonly napPlaceSignal?: string;
   /** Status nowego wniosku wyznaczony przez silnik (domyślnie `active`). */
   readonly insightStatus?: "active" | "hypothesis";
   readonly activeInsights: readonly Pick<ChildInsightRecord, "status" | "category" | "title">[];
@@ -265,7 +267,7 @@ Oto bieżący stan deterministyczny dziecka:
 - Dług senny: ${context.chronicSleepDebtMin} min, Bateria snu: ${context.sleepBatteryPercent}%, Profil: ${context.sleepNeedsProfile}
 - Zdiagnozowane kategorie z silnika deterministycznego:
 ${diagnosticSummary || "Brak istotnych odchyleń od normy (wszystkie kategorie stabilne)."}
-- Dotychczasowe aktywne wnioski:
+${context.napPlaceSignal ? `- Miejsca drzemek: ${context.napPlaceSignal}\n` : ""}- Dotychczasowe aktywne wnioski:
 ${existingInsightsSummary || "Brak wcześniejszych wniosków."}
 
 Opisz pierwszą (główną) diagnozę z listy dla rodzica. Nie zmieniaj diagnozy ani liczb z silnika. Zwróć JSON:

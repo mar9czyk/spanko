@@ -14,7 +14,12 @@ import {
   resolveInsightStatus,
   runDeterministicEngine,
 } from "@/lib/server/childEngine";
-import { localizeDiagnosticTexts } from "@/lib/sleep-engine";
+import { mapRecordToSleepLog } from "@/lib/server/sleepLogMapper";
+import {
+  analyzeNapPlaces,
+  describeNapPlaceSignal,
+  localizeDiagnosticTexts,
+} from "@/lib/sleep-engine";
 import type { ChildInsightRecord, ChildRecord, SleepLogRecord } from "@/lib/types/database";
 
 export const MINUTES_PER_HOUR = 60;
@@ -182,6 +187,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     const locale = body.locale === "en" ? "en" : "pl";
+    const napPlaceSignal =
+      describeNapPlaceSignal(analyzeNapPlaces(sleepRecords.map(mapRecordToSleepLog))) ?? undefined;
     const evaluationContext: InsightEvaluationContext = {
       locale,
       childAgeDisplay: `${Math.round(effectiveAgeDays / 30)} msc`,
@@ -208,6 +215,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         existingActiveInsight?.diagnosis_code,
       ),
       activeInsights: existingActiveInsight ? [existingActiveInsight] : [],
+      napPlaceSignal,
     };
 
     const evaluation = await runInsightEvaluation(evaluationContext, {

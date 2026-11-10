@@ -52,7 +52,7 @@ Aplikacja komunikuje się z PocketBase poprzez oficjalny SDK (`pocketbase`) zain
 - `woke_up_at` (datetime ISO, nullable — moment pobudki)
 - `interventions` (json array: lista poziomów drabiny interwencji `['breast'|'bottle'|'bouncing'|'carrying'|'stroller_car'|'co_sleeping'|'patting'|'pacifier_reinsert'|'shushing_voice'|'room_presence'|'independent']`)
 - `mood` (select: `easy` | `fussy` | `crying`)
-- `sleep_place` (select: `crib` | `bedside_crib` | `moses_basket` | `floor_bed` | `parents_bed` | `stroller` | `car_seat`, opcjonalne — tylko gdy inne niż domyślne w `children.sleep_environment` („Zasnął gdzie indziej”). `car_seat` występuje wyłącznie tu, nie w profilu. Na produkcji wartość dopisz ręcznie w panelu PB (bez re-importu schematu)
+- `sleep_place` (select: `crib` | `bedside_crib` | `moses_basket` | `floor_bed` | `parents_bed` | `stroller` | `car_seat` | `contact`, opcjonalne — tylko gdy inne niż domyślne w `children.sleep_environment` („Zasnął gdzie indziej”). `car_seat` występuje wyłącznie tu, nie w profilu. Na produkcji wartość dopisz ręcznie w panelu PB (bez re-importu schematu)
 - `night_wakings` (json array: `[{ wokeAt: string, fellAsleepAt?: string, estimatedDurationMin: number, fedMilk: boolean, interventions: string[] }]`)
 - `is_rebound_sleep` (bool, default: `false` — flaga odsypiania oznaczana przez filtr homeostatyczny)
 - `ignore_in_calibration` (bool, default: `false` — oznaczane przy anomaliach lub korekcie rodzica)

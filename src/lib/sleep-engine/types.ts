@@ -114,6 +114,9 @@ export interface DailySleepSummary {
   readonly stationaryDaytimeSleepMin?: number;
   readonly stationaryNapCount?: number;
   readonly stationaryLongestNapMin?: number;
+  /** Drzemki kontaktowe (na rodzicu) w dobie: liczba i łączny czas; wchodzą też do sum powyżej. */
+  readonly contactNapCount?: number;
+  readonly contactNapMin?: number;
   /** Rodzic oznaczył sen w tej dobie jako odsypianie (rebound). */
   readonly isRebound?: boolean;
 }
