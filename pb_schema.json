@@ -747,7 +747,8 @@
           "floor_bed",
           "parents_bed",
           "stroller",
-          "car_seat"
+          "car_seat",
+          "contact"
         ]
       },
       {

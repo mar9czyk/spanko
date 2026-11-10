@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   hasSleepEnvironment,
+  isContactSleepPlace,
   isMotionSleepPlace,
   parseSleepEnvironment,
   resolveCarSeatSafetyAdvice,
+  resolveContactNapSafetyAdvice,
   type SleepEnvironment,
   sleepEnvironmentAdvice,
   sleepEnvironmentCodes,
@@ -114,5 +116,26 @@ describe("miejsce w ruchu: wózek i auto", () => {
     expect(resolveCarSeatSafetyAdvice("car_seat", 120, "pl")).toBeNull();
     expect(resolveCarSeatSafetyAdvice("stroller", 60, "pl")).toBeNull();
     expect(resolveCarSeatSafetyAdvice(undefined, 60, "pl")).toBeNull();
+  });
+});
+
+describe("drzemka kontaktowa", () => {
+  it("nie jest ruchem, ale jest rozpoznawana", () => {
+    expect(isContactSleepPlace("contact")).toBe(true);
+    expect(isContactSleepPlace("crib")).toBe(false);
+    expect(isMotionSleepPlace("contact")).toBe(false);
+  });
+
+  it("w profilu dla drzemek tak, dla nocy nie", () => {
+    expect(parseSleepEnvironment({ napPlace: "contact" })).toEqual({ napPlace: "contact" });
+    expect(parseSleepEnvironment({ nightPlace: "contact" })).toEqual({});
+  });
+
+  it("porada bezpieczeństwa tylko do 12. mies.", () => {
+    expect(resolveContactNapSafetyAdvice("contact", 60, "pl")).toContain("przytomna");
+    expect(resolveContactNapSafetyAdvice("contact", 60, "en")).toContain("awake");
+    expect(resolveContactNapSafetyAdvice("contact", 400, "pl")).toBeNull();
+    expect(resolveContactNapSafetyAdvice("crib", 60, "pl")).toBeNull();
+    expect(codes({ napPlace: "contact" })).toContain("ENV_CONTACT_NAP_SAFETY");
   });
 });

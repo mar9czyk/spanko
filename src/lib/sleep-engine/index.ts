@@ -10,6 +10,7 @@ export * from "./feedingSignals";
 export * from "./insightOverride";
 export * from "./matrix";
 export * from "./matrixOverride";
+export * from "./napPlaces";
 export * from "./physiologicalDay";
 export * from "./threeDrives";
 export * from "./travel";

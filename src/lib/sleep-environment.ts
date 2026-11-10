@@ -21,8 +21,12 @@ export const SLEEP_PLACES = [
   "parents_bed",
   "stroller",
   "car_seat",
+  "contact",
 ] as const;
 export type SleepPlace = (typeof SLEEP_PLACES)[number];
+
+/** Drzemka kontaktowa: dziecko śpi na rodzicu (ciało przy ciele). Nie jest ruchem, więc liczy się do wzorców. */
+export const CONTACT_SLEEP_PLACE = "contact" as const;
 
 /** Miejsca „w ruchu”: zaśnięcie w drodze nie wyklucza doby i nie wchodzi do wzorców drzemek. */
 export const MOTION_SLEEP_PLACES = ["stroller", "car_seat"] as const;
@@ -31,6 +35,11 @@ export const MOTION_SLEEP_PLACES = ["stroller", "car_seat"] as const;
 export type ProfileSleepPlace = Exclude<SleepPlace, "car_seat">;
 export const PROFILE_SLEEP_PLACES: readonly ProfileSleepPlace[] = SLEEP_PLACES.filter(
   (place): place is ProfileSleepPlace => place !== "car_seat",
+);
+
+/** Miejsca do wyboru dla snu nocnego w profilu: drzemka kontaktowa dotyczy tylko drzemek. */
+export const NIGHT_PROFILE_SLEEP_PLACES: readonly ProfileSleepPlace[] = PROFILE_SLEEP_PLACES.filter(
+  (place) => place !== CONTACT_SLEEP_PLACE,
 );
 
 /** Poniżej tego wieku (4 mies., ok. 120 dni) sen w foteliku wymaga kontroli co 30 min. */
@@ -44,6 +53,36 @@ export const CAR_SEAT_SUPERVISION_MAX_AGE_DAYS = 120;
  */
 export function isMotionSleepPlace(place: string | undefined | null): boolean {
   return place === "stroller" || place === "car_seat";
+}
+
+/**
+ * Czy sen był kontaktowy (na rodzicu).
+ *
+ * @param {string | undefined | null} place - Wartość `sleep_place` wpisu
+ * @returns {boolean} True dla drzemki kontaktowej
+ */
+export function isContactSleepPlace(place: string | undefined | null): boolean {
+  return place === CONTACT_SLEEP_PLACE;
+}
+
+/**
+ * Porada bezpieczeństwa po zaśnięciu na rodzicu: główne ryzyko to zaśnięcie rodzica z dzieckiem
+ * na kanapie lub w fotelu (AAP 2022, Lullaby Trust).
+ *
+ * @param {string | undefined} place - Wybrane miejsce snu tej drzemki
+ * @param {number} effectiveAgeDays - Wiek korygowany dziecka w dniach
+ * @param {EnvironmentLocale} locale - Język tekstu
+ * @returns {string | null} Tekst porady albo null, gdy nie dotyczy
+ */
+export function resolveContactNapSafetyAdvice(
+  place: string | undefined,
+  effectiveAgeDays: number,
+  locale: EnvironmentLocale,
+): string | null {
+  if (!isContactSleepPlace(place) || effectiveAgeDays >= SAFE_SLEEP_MAX_AGE_DAYS) return null;
+  return locale === "pl"
+    ? "Drzemka na Tobie: tylko gdy jesteś przytomna/y. Jeśli czujesz, że zasypiasz, połóż dziecko na plecach na płaskiej, twardej powierzchni. Nie zasypiaj z dzieckiem na kanapie ani w fotelu."
+    : "Nap on you: only while you are awake and alert. If you feel yourself drifting off, put your baby on their back on a flat, firm surface. Never fall asleep with your baby on a sofa or armchair.";
 }
 
 /**
@@ -156,6 +195,15 @@ const RULES: readonly Rule[] = [
     text: {
       pl: "Sen w wózku tylko pod okiem: pasy odpięte lub luźne, nic na twarzy, bez przegrzewania. Po powrocie przełóż śpiące dziecko na płaską, twardą powierzchnię.",
       en: "Stroller sleep only while supervised: nothing covering the face, no overheating. Move a sleeping baby to a flat, firm surface once you're home.",
+    },
+  },
+  {
+    code: "ENV_CONTACT_NAP_SAFETY",
+    kind: "safety",
+    applies: (env, age) => usesPlace(env, "contact") && age < SAFE_SLEEP_MAX_AGE_DAYS,
+    text: {
+      pl: "Drzemki na rodzicu: tylko gdy jesteś przytomna/y. Gdy zasypiasz, połóż dziecko na plecach na płaskiej, twardej powierzchni, nigdy razem na kanapie ani w fotelu.",
+      en: "Naps on a parent: only while you are awake and alert. If you're drifting off, put your baby on their back on a flat, firm surface, never together on a sofa or armchair.",
     },
   },
   {
@@ -287,7 +335,7 @@ export function parseSleepEnvironment(raw: unknown): SleepEnvironment {
   if (!raw || typeof raw !== "object") return {};
   const r = raw as Record<string, unknown>;
   return {
-    ...(isOneOf(PROFILE_SLEEP_PLACES, r.nightPlace) ? { nightPlace: r.nightPlace } : {}),
+    ...(isOneOf(NIGHT_PROFILE_SLEEP_PLACES, r.nightPlace) ? { nightPlace: r.nightPlace } : {}),
     ...(isOneOf(PROFILE_SLEEP_PLACES, r.napPlace) ? { napPlace: r.napPlace } : {}),
     ...(isOneOf(SLEEP_ROOMS, r.room) ? { room: r.room } : {}),
     ...(isOneOf(BLACKOUT_LEVELS, r.blackout) ? { blackout: r.blackout } : {}),

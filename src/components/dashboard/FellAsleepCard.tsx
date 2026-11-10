@@ -4,19 +4,28 @@ import { ChevronDown } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { MessageKey } from "@/i18n/messages";
-import { resolveCarSeatSafetyAdvice, SLEEP_PLACES, type SleepPlace } from "@/lib/sleep-environment";
+import {
+  resolveCarSeatSafetyAdvice,
+  resolveContactNapSafetyAdvice,
+  SLEEP_PLACES,
+  type SleepPlace,
+} from "@/lib/sleep-environment";
 import type { InterventionLevel, SleepMood } from "@/lib/types/database";
 import { SleepHowPicker } from "./SleepHowPicker";
 
 const AUTO_DISMISS_MS = 15_000;
 
-const PLACE_ICONS: Partial<Record<SleepPlace, string>> = { stroller: "🚶", car_seat: "🚗" };
+const PLACE_ICONS: Partial<Record<SleepPlace, string>> = {
+  stroller: "🚶",
+  car_seat: "🚗",
+  contact: "🤱",
+};
 
-/** Najpierw miejsca w ruchu, potem łóżka; zwykłe miejsce z profilu pomijamy. */
+/** Najpierw drzemka kontaktowa i miejsca w ruchu, potem łóżka; zwykłe miejsce z profilu pomijamy. */
+const FIRST_PLACES: readonly SleepPlace[] = ["contact", "stroller", "car_seat"];
 const PLACE_ORDER: readonly SleepPlace[] = [
-  "stroller",
-  "car_seat",
-  ...SLEEP_PLACES.filter((place) => place !== "stroller" && place !== "car_seat"),
+  ...FIRST_PLACES,
+  ...SLEEP_PLACES.filter((place) => !FIRST_PLACES.includes(place)),
 ];
 
 interface FellAsleepCardProps {
@@ -63,6 +72,11 @@ export function FellAsleepCard({
     effectiveAgeDays === undefined
       ? null
       : resolveCarSeatSafetyAdvice(place, effectiveAgeDays, locale === "pl" ? "pl" : "en");
+  const contactAdvice =
+    effectiveAgeDays === undefined
+      ? null
+      : resolveContactNapSafetyAdvice(place, effectiveAgeDays, locale === "pl" ? "pl" : "en");
+  const placeAdvice = carSeatAdvice ?? contactAdvice;
   const hasChoice = mood !== undefined || interventions.length > 0;
   return (
     <section
@@ -131,9 +145,9 @@ export function FellAsleepCard({
               })}
             </div>
           )}
-          {carSeatAdvice && (
+          {placeAdvice && (
             <p role="note" className="rounded-lg bg-amber-950/40 px-3 py-2 text-xs text-amber-200">
-              {carSeatAdvice}
+              {placeAdvice}
             </p>
           )}
         </div>
